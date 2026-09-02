@@ -70,16 +70,17 @@ const Login = () => {
 
             {/* Sub-Logos: SMART & OMI */}
             <div className="flex items-center justify-center gap-4 mb-3">
-              <div className="flex items-center gap-1.5 bg-teal-50/70 border border-teal-100 px-3 py-1 rounded-lg">
-                <span className="text-[10px] text-teal-800 font-semibold uppercase">Unit</span>
-                <img src="/smartlogo.png" alt="SMART" className="h-5 object-contain" />
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Unit</span>
+                <img src="/smartlogo.png" alt="SMART" className="h-5 object-contain mix-blend-multiply" />
               </div>
-              <span className="text-teal-300 font-bold">&</span>
-              <div className="flex items-center gap-1.5 bg-teal-50/70 border border-teal-100 px-3 py-1 rounded-lg">
-                <span className="text-[10px] text-teal-800 font-semibold uppercase">Mitra</span>
-                <img src="/logo_omi.png" alt="OMI" className="h-5 object-contain" />
+              <span className="text-slate-300 font-bold">&</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Mitra</span>
+                <img src="/logo_omi.png" alt="OMI" className="h-5 object-contain mix-blend-multiply" />
               </div>
             </div>
+
 
             <h1 className="text-xl font-bold text-slate-900 mt-1">LaporGo System</h1>
             <p className="text-xs text-slate-500 mt-0.5">Penggabungan Laporan Harian Toko OMI & SMART</p>

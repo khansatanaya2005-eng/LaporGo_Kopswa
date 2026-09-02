@@ -38,16 +38,17 @@ const Sidebar = () => {
         </div>
 
         {/* Sub-Brand Logos: OMI & SMART */}
-        <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-slate-800/60">
-          <div className="flex items-center gap-1.5 bg-[#0A4D68]/40 px-2 py-1 rounded-md flex-1 justify-center border border-slate-700/40">
-            <span className="text-[9px] text-slate-400 font-semibold uppercase">Unit:</span>
-            <img src="/smartlogo.png" alt="SMART" className="h-3.5 object-contain" />
+        <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800/60">
+          <div className="flex items-center gap-1.5 bg-white/95 px-2.5 py-1 rounded-lg flex-1 justify-center shadow-xs border border-slate-100">
+            <span className="text-[8px] text-slate-500 font-bold uppercase">Unit:</span>
+            <img src="/smartlogo.png" alt="SMART" className="h-4 object-contain mix-blend-multiply" />
           </div>
-          <div className="flex items-center gap-1.5 bg-[#0A4D68]/40 px-2 py-1 rounded-md flex-1 justify-center border border-slate-700/40">
-            <span className="text-[9px] text-slate-400 font-semibold uppercase">Mitra:</span>
-            <img src="/logo_omi.png" alt="OMI" className="h-3.5 object-contain" />
+          <div className="flex items-center gap-1.5 bg-white/95 px-2.5 py-1 rounded-lg flex-1 justify-center shadow-xs border border-slate-100">
+            <span className="text-[8px] text-slate-500 font-bold uppercase">Mitra:</span>
+            <img src="/logo_omi.png" alt="OMI" className="h-4 object-contain mix-blend-multiply" />
           </div>
         </div>
+
 
         <div className="mt-2.5 text-center">
           <span className="inline-block px-2.5 py-0.5 bg-[#FF5000] text-white text-[10px] font-bold rounded-full shadow-sm">
