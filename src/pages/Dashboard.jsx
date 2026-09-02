@@ -54,7 +54,7 @@ const Dashboard = () => {
             className="inline-flex items-center justify-center gap-2 bg-[#FF5000] hover:bg-[#e04600] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all shrink-0 active:scale-95"
           >
             <FilePlus className="w-4 h-4" />
-            <span>Buat Laporan Baru</span>
+            <span>Upload Laporan Baru</span>
           </Link>
         </div>
       </div>
