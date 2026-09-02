@@ -8,10 +8,19 @@ import {
   RotateCcw, 
   Sparkles, 
   Loader2, 
-  FileCheck2
+  FileCheck2,
+  Save,
+  Download,
+  Check,
+  Search,
+  ArrowUpDown,
+  Layers,
+  FileSpreadsheet
 } from 'lucide-react';
 import FileSlotRow from '../components/FileSlotRow';
 import { useNavigate } from 'react-router-dom';
+import { MOCK_OMSET_DATA } from '../data/mockData';
+import { formatRupiah } from '../utils/cn';
 
 const UploadReport = () => {
   const navigate = useNavigate();
@@ -20,15 +29,25 @@ const UploadReport = () => {
   const [isOmiExpanded, setIsOmiExpanded] = useState(false);
   const [isSmartExpanded, setIsSmartExpanded] = useState(false);
 
-  // Loading State
+  // Processing & State
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasProcessed, setHasProcessed] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  // Result state
+  const [reportResult, setReportResult] = useState(null);
+
+  // Table filtering & sorting state inside same page
+  const [activeTab, setActiveTab] = useState('OMSET');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
 
   // --- STATE SLOT FILE OMI ---
   const [omiPerTanggal, setOmiPerTanggal] = useState([]);
   const [omiPerMember, setOmiPerMember] = useState([]);
   const [omiDiscItem, setOmiDiscItem] = useState([]);
   const [omiStrukTxt, setOmiStrukTxt] = useState([]);
-
   const [omiPareto, setOmiPareto] = useState([]);
   const [omiAnalisa, setOmiAnalisa] = useState([]);
   const [omiPerStruk, setOmiPerStruk] = useState([]);
@@ -65,22 +84,78 @@ const UploadReport = () => {
       setOmiTutupHarian([]);
       setSmartDetail([]);
       setSmartRingkasan([]);
+      setHasProcessed(false);
+      setReportResult(null);
+      setIsSaved(false);
     }
   };
 
-  // Process Report Simulation
+  // Process Report Action (Simulasi backend merge)
   const handleProcessReport = () => {
     if (!isAllMandatoryComplete) return;
 
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
-      navigate('/preview?id=new-laporan-01');
-    }, 2000);
+      setHasProcessed(true);
+      setReportResult({
+        summary: {
+          totalDebit: 43490000,
+          totalKredit: 43490000,
+          selisih: 0,
+          jumlahTransaksi: 142,
+          statusBalance: 'Balance'
+        },
+        omsetRows: MOCK_OMSET_DATA
+      });
+      // Scroll to result table
+      setTimeout(() => {
+        document.getElementById('hasil-gabungan-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }, 1800);
   };
 
+  // Save Report Action
+  const handleSaveReport = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setIsSaved(true);
+    }, 1200);
+  };
+
+  // Download Excel Action
+  const handleDownloadExcel = () => {
+    alert("Simulasi Download Excel: Berkas Laporan Gabungan OMSET .xlsx berhasil diunduh.");
+  };
+
+  // Filtering & Sorting OMSET Data
+  const filteredRows = (reportResult?.omsetRows || []).filter((row) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      row.nama_ref.toLowerCase().includes(term) ||
+      row.jenis_transaksi.toLowerCase().includes(term) ||
+      row.kwitansi.toLowerCase().includes(term) ||
+      row.keterangan.toLowerCase().includes(term)
+    );
+  });
+
+  const sortedRows = [...filteredRows].sort((a, b) => {
+    if (sortAsc) return a.no - b.no;
+    return b.no - a.no;
+  });
+
+  const tabs = [
+    { id: 'OMSET', label: 'Sheet OMSET' },
+    { id: 'DETAIL_SMART', label: 'Detail SMART' },
+    { id: 'RINGKASAN_TOKO', label: 'Ringkasan Toko' },
+    { id: 'RINGKASAN_LOGO', label: 'Ringkasan Logo' },
+    { id: 'OMI_PERTANGGAL', label: 'OMI Pertanggal' },
+    { id: 'OMI_MEMBER', label: 'OMI Member' },
+  ];
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+    <div className="space-y-6 max-w-5xl mx-auto pb-16">
       {/* Header Page */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -95,7 +170,7 @@ const UploadReport = () => {
         <button
           onClick={handleResetAll}
           disabled={isProcessing}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl text-xs font-semibold border border-slate-200 hover:border-red-200 transition active:scale-95"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl text-xs font-semibold border border-slate-200 hover:border-red-200 transition active:scale-95 cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>Reset Semua Slot</span>
@@ -108,7 +183,7 @@ const UploadReport = () => {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all">
         <button
           onClick={() => setIsOmiExpanded(!isOmiExpanded)}
-          className="w-full px-6 py-4 bg-slate-50/70 hover:bg-slate-100/80 border-b border-slate-200/60 flex items-center justify-between transition"
+          className="w-full px-6 py-4 bg-slate-50/70 hover:bg-slate-100/80 border-b border-slate-200/60 flex items-center justify-between transition cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <span className="text-xl">📁</span>
@@ -117,7 +192,7 @@ const UploadReport = () => {
                 LAPORAN OMI
               </h3>
               <p className="text-[11px] text-slate-400">
-                Ekstensi: .xls, .xlsx, .txt
+                Ekstensi: .xls, .xlsx, .txt (Multi-file)
               </p>
             </div>
           </div>
@@ -281,7 +356,7 @@ const UploadReport = () => {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all">
         <button
           onClick={() => setIsSmartExpanded(!isSmartExpanded)}
-          className="w-full px-6 py-4 bg-slate-50/70 hover:bg-slate-100/80 border-b border-slate-200/60 flex items-center justify-between transition"
+          className="w-full px-6 py-4 bg-slate-50/70 hover:bg-slate-100/80 border-b border-slate-200/60 flex items-center justify-between transition cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <span className="text-xl">📁</span>
@@ -290,7 +365,7 @@ const UploadReport = () => {
                 LAPORAN SMART
               </h3>
               <p className="text-[11px] text-slate-400">
-                Ekstensi: .xlsx, .xls
+                Ekstensi: .xlsx, .xls (Multi-file)
               </p>
             </div>
           </div>
@@ -355,7 +430,7 @@ const UploadReport = () => {
       </div>
 
       {/* ======================================================== */}
-      {/* SUMMARY STATUS & ACTION BUTTON */}
+      {/* SUMMARY STATUS & PROCESS BUTTON */}
       {/* ======================================================== */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -396,6 +471,173 @@ const UploadReport = () => {
           )}
         </button>
       </div>
+
+      {/* ======================================================== */}
+      {/* HASIL GABUNGAN (OMSET) IN SAME PAGE */}
+      {/* ======================================================== */}
+      {hasProcessed && reportResult && (
+        <div id="hasil-gabungan-section" className="space-y-6 pt-6 border-t-2 border-slate-200">
+          <div className="bg-gradient-to-r from-[#051923] via-[#0A4D68] to-[#088395] p-6 rounded-2xl text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-teal-200 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Penggabungan Berkas Berhasil!</span>
+              </div>
+              <h2 className="text-xl font-extrabold">Hasil Penggabungan Laporan (OMSET)</h2>
+              <p className="text-xs text-slate-200 mt-1">Data gabungan otomatis dari file OMI & SMART yang diunggah.</p>
+            </div>
+
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <button
+                onClick={handleDownloadExcel}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Excel</span>
+              </button>
+
+              <button
+                onClick={handleSaveReport}
+                disabled={isSaving || isSaved}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition cursor-pointer ${
+                  isSaved 
+                    ? 'bg-emerald-500 text-white cursor-default' 
+                    : 'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95'
+                }`}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Tersimpan di Database</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Simpan Laporan</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Table Controls (Search & Tabs) */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 pt-2 gap-1 scrollbar-none">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition shrink-0 cursor-pointer ${
+                    activeTab === tab.id
+                      ? 'bg-white text-[#0A4D68] border-t-2 border-[#0A4D68] shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === 'OMSET' ? (
+              <div>
+                <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+                  <div className="relative w-full sm:w-72">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Cari transaksi, kwitansi, ref..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => setSortAsc(!sortAsc)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  >
+                    <ArrowUpDown className="w-3.5 h-3.5" />
+                    <span>Urutan NO ({sortAsc ? 'Asc' : 'Desc'})</span>
+                  </button>
+                </div>
+
+                {/* 23 Columns Table */}
+                <div className="overflow-x-auto max-h-[450px]">
+                  <table className="w-full text-left text-xs whitespace-nowrap">
+                    <thead className="bg-[#051923] text-white sticky top-0 font-semibold z-10">
+                      <tr>
+                        <th className="p-3 border-b border-slate-800">NO</th>
+                        <th className="p-3 border-b border-slate-800">NAMA DAN REF</th>
+                        <th className="p-3 border-b border-slate-800">JENIS TRANSAKSI</th>
+                        <th className="p-3 border-b border-slate-800">KWITANSI</th>
+                        <th className="p-3 border-b border-slate-800">KETERANGAN</th>
+                        <th className="p-3 border-b border-slate-800">TAG PROMO</th>
+                        <th className="p-3 border-b border-slate-800">GIRO UDP</th>
+                        <th className="p-3 border-b border-slate-800">PIUTANG</th>
+                        <th className="p-3 border-b border-slate-800">PENDAPATAN TOKO</th>
+                        <th className="p-3 border-b border-slate-800">PENDAPATAN LOGO</th>
+                        <th className="p-3 border-b border-slate-800">PENDAPATAN KERJASAMA</th>
+                        <th className="p-3 border-b border-slate-800">NON PAJAK</th>
+                        <th className="p-3 border-b border-slate-800">PPN PK</th>
+                        <th className="p-3 border-b border-slate-800">PPN WAPU</th>
+                        <th className="p-3 border-b border-slate-800">BEBAN TOKO</th>
+                        <th className="p-3 border-b border-slate-800">BEBAN LOGO</th>
+                        <th className="p-3 border-b border-slate-800">PERSEDIAAN TOKO</th>
+                        <th className="p-3 border-b border-slate-800">PERSEDIAAN LOGO</th>
+                        <th className="p-3 border-b border-slate-800">SIMSEM UKS</th>
+                        <th className="p-3 border-b border-slate-800">KAS UKS</th>
+                        <th className="p-3 border-b border-slate-800">PIUTANG PADI</th>
+                        <th className="p-3 border-b border-slate-800">PIUTANG EDC</th>
+                        <th className="p-3 border-b border-slate-800">BEBAN PROMOSI</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {sortedRows.map((row) => (
+                        <tr key={row.no} className="hover:bg-slate-50 transition">
+                          <td className="p-3 font-semibold text-slate-700">{row.no}</td>
+                          <td className="p-3 font-semibold text-slate-900">{row.nama_ref}</td>
+                          <td className="p-3"><span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded">{row.jenis_transaksi}</span></td>
+                          <td className="p-3 font-mono text-slate-600">{row.kwitansi}</td>
+                          <td className="p-3 text-slate-600 max-w-xs truncate">{row.keterangan}</td>
+                          <td className="p-3 text-slate-500">{row.tag_promo}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.giro_udp)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.piutang)}</td>
+                          <td className="p-3 font-mono text-emerald-700 font-medium">{formatRupiah(row.pendapatan_toko)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.pendapatan_logo)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.pendapatan_kerjasama)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.non_pajak)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.ppn_pk)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.ppn_wapu)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.beban_toko)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.beban_logo)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.persediaan_toko)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.persediaan_logo)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.simsem_uks)}</td>
+                          <td className="p-3 font-mono text-blue-700 font-medium">{formatRupiah(row.kas_uks)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.piutang_padi)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.piutang_edc)}</td>
+                          <td className="p-3 font-mono">{formatRupiah(row.beban_promosi)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="p-12 text-center text-slate-500">
+                <Layers className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                <p className="font-semibold text-slate-700">Halaman Sheet: {tabs.find(t => t.id === activeTab)?.label}</p>
+                <p className="text-xs mt-1 max-w-sm mx-auto">Data sheet detail ini secara otomatis diisi oleh backend service.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

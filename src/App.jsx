@@ -11,6 +11,7 @@ import ReportHistory from './pages/ReportHistory';
 import UserManagement from './pages/UserManagement';
 import Settings from './pages/Settings';
 import UserGuide from './pages/UserGuide';
+import ManageReport from './pages/ManageReport';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="/upload" element={<UploadReport />} />
             <Route path="/preview" element={<ReportPreview />} />
             <Route path="/riwayat" element={<ReportHistory />} />
+            <Route path="/kelola/:id" element={<ManageReport />} />
             <Route path="/pengaturan" element={<Settings />} />
           </Route>
 
