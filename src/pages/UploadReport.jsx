@@ -1,142 +1,77 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Upload, 
   ChevronDown, 
   ChevronUp, 
   CheckCircle2, 
   AlertCircle, 
   RotateCcw, 
-  Play, 
+  Sparkles, 
   Loader2, 
-  FolderCheck,
   FileCheck2,
-  Sparkles
+  ListCheck
 } from 'lucide-react';
-import UploadZone from '../components/UploadZone';
+import FileSlotRow from '../components/FileSlotRow';
 import { useNavigate } from 'react-router-dom';
 
 const UploadReport = () => {
   const navigate = useNavigate();
 
-  // Accordion Expand/Collapse States
+  // Accordion Expand / Collapse
   const [isOmiExpanded, setIsOmiExpanded] = useState(true);
   const [isSmartExpanded, setIsSmartExpanded] = useState(true);
 
-  // File list States
-  const [omiFiles, setOmiFiles] = useState([]);
-  const [smartFiles, setSmartFiles] = useState([]);
-
-  // Process Loading State
+  // Loading State
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- OMI File Classification Logic ---
-  const classifyOmiFile = (file) => {
-    const filenameUpper = file.name.toUpperCase();
-    const isTxt = filenameUpper.endsWith('.TXT');
+  // --- STATE SLOT FILE OMI ---
+  // Mandatory OMI
+  const [omiPerTanggal, setOmiPerTanggal] = useState([]);
+  const [omiPerMember, setOmiPerMember] = useState([]);
+  const [omiDiscItem, setOmiDiscItem] = useState([]);
+  const [omiStrukTxt, setOmiStrukTxt] = useState([]);
 
-    let isMandatory = false;
-    if (
-      filenameUpper.includes('LAPORAN PER TANGGAL') ||
-      filenameUpper.includes('LAPORAN PENJUALAN ANGGOTA PER MEMBER') ||
-      filenameUpper.includes('LAPORAN DISC. ITEM') ||
-      isTxt
-    ) {
-      isMandatory = true;
-    }
+  // Optional OMI
+  const [omiPareto, setOmiPareto] = useState([]);
+  const [omiAnalisa, setOmiAnalisa] = useState([]);
+  const [omiPerStruk, setOmiPerStruk] = useState([]);
+  const [omiPersediaan, setOmiPersediaan] = useState([]);
+  const [omiTutupHarian, setOmiTutupHarian] = useState([]);
 
-    return {
-      id: `omi-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      name: file.name,
-      size: file.size,
-      rawFile: file,
-      isMandatory,
-      isTxt
-    };
-  };
+  // --- STATE SLOT FILE SMART ---
+  // Mandatory SMART
+  const [smartDetail, setSmartDetail] = useState([]);
+  const [smartRingkasan, setSmartRingkasan] = useState([]);
 
-  // --- SMART File Classification Logic ---
-  const classifySmartFile = (file) => {
-    const filenameLower = file.name.toLowerCase();
-    let isMandatory = false;
+  // --- VALIDATION CHECKERS ---
+  const isOmiMandatoryComplete = 
+    omiPerTanggal.length > 0 &&
+    omiPerMember.length > 0 &&
+    omiDiscItem.length > 0 &&
+    omiStrukTxt.length > 0;
 
-    if (
-      filenameLower.includes('detail smart') ||
-      filenameLower.includes('ringkasan pembayaran logo')
-    ) {
-      isMandatory = true;
-    }
+  const isSmartMandatoryComplete = 
+    smartDetail.length > 0 &&
+    smartRingkasan.length > 0;
 
-    return {
-      id: `smart-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      name: file.name,
-      size: file.size,
-      rawFile: file,
-      isMandatory,
-      isTxt: false
-    };
-  };
+  const isAllMandatoryComplete = isOmiMandatoryComplete && isSmartMandatoryComplete;
 
-  // Handlers for adding files
-  const handleAddOmiFiles = (newFiles) => {
-    const classified = newFiles.map(classifyOmiFile);
-    setOmiFiles(prev => [...prev, ...classified]);
-  };
-
-  const handleAddSmartFiles = (newFiles) => {
-    const classified = newFiles.map(classifySmartFile);
-    setSmartFiles(prev => [...prev, ...classified]);
-  };
-
-  // Handlers for removing files
-  const handleRemoveOmiFile = (id) => {
-    setOmiFiles(prev => prev.filter(f => f.id !== id));
-  };
-
-  const handleRemoveSmartFile = (id) => {
-    setSmartFiles(prev => prev.filter(f => f.id !== id));
-  };
-
-  // Reset all files
+  // --- RESET ALL ---
   const handleResetAll = () => {
-    if (confirm('Apakah Anda yakin ingin menghapus semua file yang di-upload?')) {
-      setOmiFiles([]);
-      setSmartFiles([]);
+    if (confirm('Apakah Anda yakin ingin menghapus semua file di semua slot?')) {
+      setOmiPerTanggal([]);
+      setOmiPerMember([]);
+      setOmiDiscItem([]);
+      setOmiStrukTxt([]);
+      setOmiPareto([]);
+      setOmiAnalisa([]);
+      setOmiPerStruk([]);
+      setOmiPersediaan([]);
+      setOmiTutupHarian([]);
+      setSmartDetail([]);
+      setSmartRingkasan([]);
     }
   };
-
-  // --- VALIDATION LOGIC ---
-  const checkOmiMandatoryStatus = () => {
-    const hasPerTanggal = omiFiles.some(f => f.name.toUpperCase().includes('LAPORAN PER TANGGAL'));
-    const hasPerMember = omiFiles.some(f => f.name.toUpperCase().includes('LAPORAN PENJUALAN ANGGOTA PER MEMBER'));
-    const hasDiscItem = omiFiles.some(f => f.name.toUpperCase().includes('LAPORAN DISC. ITEM'));
-    const hasStrukTxt = omiFiles.some(f => f.isTxt);
-
-    const isComplete = hasPerTanggal && hasPerMember && hasDiscItem && hasStrukTxt;
-    return {
-      isComplete,
-      hasPerTanggal,
-      hasPerMember,
-      hasDiscItem,
-      hasStrukTxt
-    };
-  };
-
-  const checkSmartMandatoryStatus = () => {
-    const hasDetailSmart = smartFiles.some(f => f.name.toLowerCase().includes('detail smart'));
-    const hasRingkasanPembayaran = smartFiles.some(f => f.name.toLowerCase().includes('ringkasan pembayaran logo'));
-
-    const isComplete = hasDetailSmart && hasRingkasanPembayaran;
-    return {
-      isComplete,
-      hasDetailSmart,
-      hasRingkasanPembayaran
-    };
-  };
-
-  const omiStatus = checkOmiMandatoryStatus();
-  const smartStatus = checkSmartMandatoryStatus();
-  const isAllMandatoryComplete = omiStatus.isComplete && smartStatus.isComplete;
 
   // Process Report Simulation
   const handleProcessReport = () => {
@@ -150,7 +85,7 @@ const UploadReport = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-10">
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* Header Page */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -158,48 +93,47 @@ const UploadReport = () => {
             <span>📤 Buat Laporan Harian</span>
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Unggah seluruh berkas laporan toko OMI dan SMART untuk diproses dan digabungkan otomatis.
+            Unggah berkas laporan sesuai slot baris yang telah ditentukan untuk Toko OMI dan SMART.
           </p>
         </div>
 
-        {/* Global Reset Button */}
-        {(omiFiles.length > 0 || smartFiles.length > 0) && (
-          <button
-            onClick={handleResetAll}
-            disabled={isProcessing}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl text-xs font-semibold border border-slate-200 hover:border-red-200 transition"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Semua File</span>
-          </button>
-        )}
+        <button
+          onClick={handleResetAll}
+          disabled={isProcessing}
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl text-xs font-semibold border border-slate-200 hover:border-red-200 transition active:scale-95"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>Reset Semua Slot</span>
+        </button>
       </div>
 
-      {/* Accordion 1: LAPORAN OMI */}
+      {/* ======================================================== */}
+      {/* KATEGORI 1: LAPORAN OMI */}
+      {/* ======================================================== */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all">
         <button
           onClick={() => setIsOmiExpanded(!isOmiExpanded)}
           className="w-full px-6 py-4 bg-slate-50/70 hover:bg-slate-100/80 border-b border-slate-200/60 flex items-center justify-between transition"
         >
           <div className="flex items-center gap-3">
-            <span className="text-lg">📁</span>
+            <span className="text-xl">📁</span>
             <div className="text-left">
               <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase">
                 LAPORAN OMI
               </h3>
               <p className="text-[11px] text-slate-400">
-                Ekstensi: .xls, .xlsx, .txt &bull; <span className="text-red-500 font-semibold">Wajib Dipenuhi</span>
+                Ekstensi: .xls, .xlsx, .txt &bull; <span className="text-red-500 font-semibold">4 Berkas Wajib + 5 Opsional</span>
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
-              omiStatus.isComplete 
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+              isOmiMandatoryComplete 
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                 : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}>
-              {omiStatus.isComplete ? '✓ Wajib Lengkap' : 'Belum Lengkap'}
+              {isOmiMandatoryComplete ? '✓ Wajib Lengkap' : 'Belum Lengkap'}
             </span>
 
             {isOmiExpanded ? (
@@ -217,66 +151,162 @@ const UploadReport = () => {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="p-6 border-t border-slate-100"
+              className="p-6 space-y-6 border-t border-slate-100"
             >
-              {/* Mandatory Checklist Indicators */}
-              <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                <div className={`flex items-center gap-1.5 font-medium ${omiStatus.hasPerTanggal ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                  {omiStatus.hasPerTanggal ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />}
-                  <span className="truncate">LAPORAN PER TANGGAL</span>
+              {/* SECTION FILE WAJIB OMI */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1">
+                  <h4 className="text-xs font-extrabold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🔥 BERKAS WAJIB OMI</span>
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-semibold">Harus diisi semua</span>
                 </div>
-                <div className={`flex items-center gap-1.5 font-medium ${omiStatus.hasPerMember ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                  {omiStatus.hasPerMember ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />}
-                  <span className="truncate">PENJUALAN PER MEMBER</span>
-                </div>
-                <div className={`flex items-center gap-1.5 font-medium ${omiStatus.hasDiscItem ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                  {omiStatus.hasDiscItem ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />}
-                  <span className="truncate">LAPORAN DISC. ITEM</span>
-                </div>
-                <div className={`flex items-center gap-1.5 font-medium ${omiStatus.hasStrukTxt ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                  {omiStatus.hasStrukTxt ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />}
-                  <span className="truncate">File Struk (*.txt)</span>
+
+                <div className="space-y-2.5">
+                  <FileSlotRow
+                    title="LAPORAN PER TANGGAL.xls"
+                    description="Total Penjualan, PPN, HPP, Cash, Kredit, dan E-Money"
+                    accept=".xls,.xlsx"
+                    isMandatory={true}
+                    uploadedFiles={omiPerTanggal}
+                    onUpload={(files) => setOmiPerTanggal(files)}
+                    onRemove={() => setOmiPerTanggal([])}
+                  />
+
+                  <FileSlotRow
+                    title="LAPORAN PENJUALAN ANGGOTA PER MEMBER.xls"
+                    description="Total kredit pegawai / anggota koperasibar"
+                    accept=".xls,.xlsx"
+                    isMandatory={true}
+                    uploadedFiles={omiPerMember}
+                    onUpload={(files) => setOmiPerMember(files)}
+                    onRemove={() => setOmiPerMember([])}
+                  />
+
+                  <FileSlotRow
+                    title="LAPORAN DISC. ITEM.xls"
+                    description="Total diskon / promo barang harian"
+                    accept=".xls,.xlsx"
+                    isMandatory={true}
+                    uploadedFiles={omiDiscItem}
+                    onUpload={(files) => setOmiDiscItem(files)}
+                    onRemove={() => setOmiDiscItem([])}
+                  />
+
+                  <FileSlotRow
+                    title="BERKAS STRUK TXT (*.txt)"
+                    description="Bisa upload lebih dari 1 file struk (.txt) sekaligus"
+                    accept=".txt"
+                    isMandatory={true}
+                    isMulti={true}
+                    isStruk={true}
+                    uploadedFiles={omiStrukTxt}
+                    onUpload={(files) => setOmiStrukTxt(prev => [...prev, ...files])}
+                    onRemove={(singleIdx) => {
+                      if (typeof singleIdx === 'number') {
+                        setOmiStrukTxt(prev => prev.filter((_, idx) => idx !== singleIdx));
+                      } else {
+                        setOmiStrukTxt([]);
+                      }
+                    }}
+                  />
                 </div>
               </div>
 
-              <UploadZone
-                categoryTitle="OMI"
-                accept=".xls,.xlsx,.txt"
-                onFilesAdded={handleAddOmiFiles}
-                files={omiFiles}
-                onRemoveFile={handleRemoveOmiFile}
-                isOmi={true}
-              />
+              {/* SECTION FILE OPSIONAL OMI */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between pb-1 border-t border-slate-100 pt-4">
+                  <h4 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>⭕ BERKAS OPSIONAL OMI</span>
+                  </h4>
+                  <span className="text-[10px] text-slate-400">Tambahan pendukung</span>
+                </div>
+
+                <div className="space-y-2.5">
+                  <FileSlotRow
+                    title="LAPORAN PARETO.xls"
+                    description="Validasi silang total penjualan barang"
+                    accept=".xls,.xlsx"
+                    isMandatory={false}
+                    uploadedFiles={omiPareto}
+                    onUpload={(files) => setOmiPareto(files)}
+                    onRemove={() => setOmiPareto([])}
+                  />
+
+                  <FileSlotRow
+                    title="LAPORAN ANALISA PENJUALAN & MARGIN.xls"
+                    description="Deteksi BTKP per item produk"
+                    accept=".xls,.xlsx"
+                    isMandatory={false}
+                    uploadedFiles={omiAnalisa}
+                    onUpload={(files) => setOmiAnalisa(files)}
+                    onRemove={() => setOmiAnalisa([])}
+                  />
+
+                  <FileSlotRow
+                    title="LAPORAN PENJUALAN PER STRUK.xls"
+                    description="Detail rincian per transaksi struk"
+                    accept=".xls,.xlsx"
+                    isMandatory={false}
+                    uploadedFiles={omiPerStruk}
+                    onUpload={(files) => setOmiPerStruk(files)}
+                    onRemove={() => setOmiPerStruk([])}
+                  />
+
+                  <FileSlotRow
+                    title="LAPORAN POSISI PERSEDIAAN.xls"
+                    description="Pemeriksaan stok barang harian"
+                    accept=".xls,.xlsx"
+                    isMandatory={false}
+                    uploadedFiles={omiPersediaan}
+                    onUpload={(files) => setOmiPersediaan(files)}
+                    onRemove={() => setOmiPersediaan([])}
+                  />
+
+                  <FileSlotRow
+                    title="LAPORAN TUTUP HARIAN.txt"
+                    description="Validasi data kasir akhir hari"
+                    accept=".txt"
+                    isMandatory={false}
+                    isStruk={true}
+                    uploadedFiles={omiTutupHarian}
+                    onUpload={(files) => setOmiTutupHarian(files)}
+                    onRemove={() => setOmiTutupHarian([])}
+                  />
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Accordion 2: LAPORAN SMART */}
+      {/* ======================================================== */}
+      {/* KATEGORI 2: LAPORAN SMART */}
+      {/* ======================================================== */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all">
         <button
           onClick={() => setIsSmartExpanded(!isSmartExpanded)}
           className="w-full px-6 py-4 bg-slate-50/70 hover:bg-slate-100/80 border-b border-slate-200/60 flex items-center justify-between transition"
         >
           <div className="flex items-center gap-3">
-            <span className="text-lg">📁</span>
+            <span className="text-xl">📁</span>
             <div className="text-left">
               <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase">
                 LAPORAN SMART
               </h3>
               <p className="text-[11px] text-slate-400">
-                Ekstensi: .xlsx, .xls &bull; <span className="text-red-500 font-semibold">Wajib Dipenuhi</span>
+                Ekstensi: .xlsx, .xls &bull; <span className="text-red-500 font-semibold">2 Berkas Wajib</span>
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
-              smartStatus.isComplete 
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+              isSmartMandatoryComplete 
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                 : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}>
-              {smartStatus.isComplete ? '✓ Wajib Lengkap' : 'Belum Lengkap'}
+              {isSmartMandatoryComplete ? '✓ Wajib Lengkap' : 'Belum Lengkap'}
             </span>
 
             {isSmartExpanded ? (
@@ -294,36 +324,45 @@ const UploadReport = () => {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="p-6 border-t border-slate-100"
+              className="p-6 space-y-3 border-t border-slate-100"
             >
-              {/* Mandatory Checklist Indicators */}
-              <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <div className={`flex items-center gap-1.5 font-medium ${smartStatus.hasDetailSmart ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                  {smartStatus.hasDetailSmart ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />}
-                  <span className="truncate">detail smart.xlsx</span>
-                </div>
-                <div className={`flex items-center gap-1.5 font-medium ${smartStatus.hasRingkasanPembayaran ? 'text-emerald-700 font-semibold' : 'text-slate-500'}`}>
-                  {smartStatus.hasRingkasanPembayaran ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />}
-                  <span className="truncate">ringkasan pembayaran logo.xlsx</span>
-                </div>
+              <div className="flex items-center justify-between pb-1">
+                <h4 className="text-xs font-extrabold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🔥 BERKAS WAJIB SMART</span>
+                </h4>
+                <span className="text-[10px] text-slate-400 font-semibold">Harus diisi semua</span>
               </div>
 
-              <UploadZone
-                categoryTitle="SMART"
-                accept=".xlsx,.xls"
-                onFilesAdded={handleAddSmartFiles}
-                files={smartFiles}
-                onRemoveFile={handleRemoveSmartFile}
-                isOmi={false}
-              />
+              <div className="space-y-2.5">
+                <FileSlotRow
+                  title="detail smart.xlsx"
+                  description="Data POS 163151 (LOGO) & POS 163152 (TOKO)"
+                  accept=".xlsx,.xls"
+                  isMandatory={true}
+                  uploadedFiles={smartDetail}
+                  onUpload={(files) => setSmartDetail(files)}
+                  onRemove={() => setSmartDetail([])}
+                />
+
+                <FileSlotRow
+                  title="ringkasan pembayaran logo.xlsx"
+                  description="Ringkasan pembayaran kategori TOKO & LOGO"
+                  accept=".xlsx,.xls"
+                  isMandatory={true}
+                  uploadedFiles={smartRingkasan}
+                  onUpload={(files) => setSmartRingkasan(files)}
+                  onRemove={() => setSmartRingkasan([])}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Summary Completeness Bar & Action Button */}
+      {/* ======================================================== */}
+      {/* SUMMARY STATUS & ACTION BUTTON */}
+      {/* ======================================================== */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Status Text & Indicators */}
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
             isAllMandatoryComplete ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
@@ -332,48 +371,35 @@ const UploadReport = () => {
           </div>
           <div>
             <h4 className="text-sm font-bold text-slate-900">
-              {isAllMandatoryComplete ? 'Semua Berkas Wajib Siap!' : 'File Wajib Belum Lengkap'}
+              {isAllMandatoryComplete ? 'Semua Berkas Wajib Siap Diproses!' : 'File Wajib Belum Lengkap'}
             </h4>
             <p className="text-xs text-slate-500 mt-0.5">
-              OMI: <span className={omiStatus.isComplete ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>{omiFiles.length} file terupload</span> &bull; SMART: <span className={smartStatus.isComplete ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>{smartFiles.length} file terupload</span>
+              Status OMI: <span className={isOmiMandatoryComplete ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>{isOmiMandatoryComplete ? 'LENGKAP' : 'BELUM LENGKAP'}</span> &bull; Status SMART: <span className={isSmartMandatoryComplete ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>{isSmartMandatoryComplete ? 'LENGKAP' : 'BELUM LENGKAP'}</span>
             </p>
           </div>
         </div>
 
-        {/* Process Button */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          {(omiFiles.length > 0 || smartFiles.length > 0) && (
-            <button
-              onClick={handleResetAll}
-              disabled={isProcessing}
-              className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
-            >
-              Reset All
-            </button>
+        <button
+          onClick={handleProcessReport}
+          disabled={!isAllMandatoryComplete || isProcessing}
+          className={`w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all ${
+            isAllMandatoryComplete && !isProcessing
+              ? 'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95 cursor-pointer'
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+          }`}
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Memproses Laporan...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4" />
+              <span>Proses Laporan</span>
+            </>
           )}
-
-          <button
-            onClick={handleProcessReport}
-            disabled={!isAllMandatoryComplete || isProcessing}
-            className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all ${
-              isAllMandatoryComplete && !isProcessing
-                ? 'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95 cursor-pointer'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-            }`}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Memproses Laporan...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Proses Laporan</span>
-              </>
-            )}
-          </button>
-        </div>
+        </button>
       </div>
     </div>
   );
