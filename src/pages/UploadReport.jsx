@@ -47,8 +47,7 @@ const UploadReport = () => {
   const isOmiMandatoryComplete = 
     omiPerTanggal.length > 0 &&
     omiPerMember.length > 0 &&
-    omiDiscItem.length > 0 &&
-    omiStrukTxt.length > 0;
+    omiDiscItem.length > 0;
 
   const isSmartMandatoryComplete = 
     smartDetail.length > 0 &&
@@ -122,7 +121,7 @@ const UploadReport = () => {
                 LAPORAN OMI
               </h3>
               <p className="text-[11px] text-slate-400">
-                Ekstensi: .xls, .xlsx, .txt &bull; <span className="text-red-500 font-semibold">4 Berkas Wajib + 5 Opsional</span>
+                Ekstensi: .xls, .xlsx, .txt &bull; <span className="text-red-500 font-semibold">3 Berkas Wajib + 6 Opsional</span>
               </p>
             </div>
           </div>
@@ -175,7 +174,7 @@ const UploadReport = () => {
 
                   <FileSlotRow
                     title="LAPORAN PENJUALAN ANGGOTA PER MEMBER.xls"
-                    description="Total kredit pegawai / anggota koperasibar"
+                    description="Total kredit pegawai / anggota koperasi"
                     accept=".xls,.xlsx"
                     isMandatory={true}
                     uploadedFiles={omiPerMember}
@@ -192,24 +191,6 @@ const UploadReport = () => {
                     onUpload={(files) => setOmiDiscItem(files)}
                     onRemove={() => setOmiDiscItem([])}
                   />
-
-                  <FileSlotRow
-                    title="BERKAS STRUK TXT (*.txt)"
-                    description="Bisa upload lebih dari 1 file struk (.txt) sekaligus"
-                    accept=".txt"
-                    isMandatory={true}
-                    isMulti={true}
-                    isStruk={true}
-                    uploadedFiles={omiStrukTxt}
-                    onUpload={(files) => setOmiStrukTxt(prev => [...prev, ...files])}
-                    onRemove={(singleIdx) => {
-                      if (typeof singleIdx === 'number') {
-                        setOmiStrukTxt(prev => prev.filter((_, idx) => idx !== singleIdx));
-                      } else {
-                        setOmiStrukTxt([]);
-                      }
-                    }}
-                  />
                 </div>
               </div>
 
@@ -223,6 +204,24 @@ const UploadReport = () => {
                 </div>
 
                 <div className="space-y-2.5">
+                  <FileSlotRow
+                    title="BERKAS STRUK TXT (*.txt)"
+                    description="Bisa upload lebih dari 1 file struk (.txt) sekaligus jika diperlukan"
+                    accept=".txt"
+                    isMandatory={false}
+                    isMulti={true}
+                    isStruk={true}
+                    uploadedFiles={omiStrukTxt}
+                    onUpload={(files) => setOmiStrukTxt(prev => [...prev, ...files])}
+                    onRemove={(singleIdx) => {
+                      if (typeof singleIdx === 'number') {
+                        setOmiStrukTxt(prev => prev.filter((_, idx) => idx !== singleIdx));
+                      } else {
+                        setOmiStrukTxt([]);
+                      }
+                    }}
+                  />
+
                   <FileSlotRow
                     title="LAPORAN PARETO.xls"
                     description="Validasi silang total penjualan barang"
