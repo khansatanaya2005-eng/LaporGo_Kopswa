@@ -1,8 +1,23 @@
 @import "tailwindcss";
 
+@theme {
+  --color-kopswa-teal-50: #e6f5f7;
+  --color-kopswa-teal-100: #ccebf0;
+  --color-kopswa-teal-500: #008392;
+  --color-kopswa-teal-600: #00606b;
+  --color-kopswa-teal-700: #004b54;
+  --color-kopswa-teal-800: #00373e;
+  --color-kopswa-teal-900: #00252a;
+  --color-kopswa-teal-950: #001518;
+
+  --color-kopswa-orange-500: #ff5000;
+  --color-kopswa-orange-600: #e04600;
+  --color-kopswa-orange-700: #c23c00;
+}
+
 @layer base {
   body {
-    background-color: #f8fafc;
+    background-color: #f4f8f9;
     color: #0f172a;
     font-family: ui-sans-serif, system-ui, sans-serif;
     min-height: 100vh;
@@ -15,12 +30,13 @@
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #e6f5f7;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #008392;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #00606b;
 }
+

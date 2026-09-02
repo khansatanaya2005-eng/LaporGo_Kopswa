@@ -45,16 +45,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-[#001518] via-[#00252a] to-[#004b54] flex items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Background Decor */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"></div>
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl"></div>
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#00606b]/30 rounded-full blur-3xl"></div>
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#ff5000]/20 rounded-full blur-3xl"></div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 z-10"
+        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-teal-100 z-10"
       >
         <div className="p-8">
           {/* Logo & Title */}
@@ -70,13 +70,13 @@ const Login = () => {
 
             {/* Sub-Logos: SMART & OMI */}
             <div className="flex items-center justify-center gap-4 mb-3">
-              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg">
-                <span className="text-[10px] text-slate-500 font-semibold uppercase">Unit</span>
+              <div className="flex items-center gap-1.5 bg-teal-50/70 border border-teal-100 px-3 py-1 rounded-lg">
+                <span className="text-[10px] text-teal-800 font-semibold uppercase">Unit</span>
                 <img src="/smartlogo.png" alt="SMART" className="h-5 object-contain" />
               </div>
-              <span className="text-slate-300 font-bold">&</span>
-              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg">
-                <span className="text-[10px] text-slate-500 font-semibold uppercase">Mitra</span>
+              <span className="text-teal-300 font-bold">&</span>
+              <div className="flex items-center gap-1.5 bg-teal-50/70 border border-teal-100 px-3 py-1 rounded-lg">
+                <span className="text-[10px] text-teal-800 font-semibold uppercase">Mitra</span>
                 <img src="/logo_omi.png" alt="OMI" className="h-5 object-contain" />
               </div>
             </div>
@@ -84,7 +84,6 @@ const Login = () => {
             <h1 className="text-xl font-bold text-slate-900 mt-1">LaporGo System</h1>
             <p className="text-xs text-slate-500 mt-0.5">Penggabungan Laporan Harian Toko OMI & SMART</p>
           </div>
-
 
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded">
@@ -103,7 +102,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@kopswa.id"
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00606b] focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -117,7 +116,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00606b] focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -125,7 +124,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-sm rounded-lg shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-[#00606b] to-[#004b54] hover:from-[#004b54] hover:to-[#00373e] text-white font-bold text-sm rounded-lg shadow-md shadow-teal-900/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
               {submitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -147,14 +146,14 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => fillQuickAcc('staff')}
-                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded text-center transition"
+                className="text-xs bg-teal-50 hover:bg-teal-100 text-[#00606b] font-semibold py-1.5 px-3 rounded text-center transition"
               >
                 Staff Demo
               </button>
               <button
                 type="button"
                 onClick={() => fillQuickAcc('admin')}
-                className="text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 font-medium py-1.5 px-3 rounded text-center transition"
+                className="text-xs bg-orange-50 hover:bg-orange-100 text-[#ff5000] font-semibold py-1.5 px-3 rounded text-center transition"
               >
                 Admin Demo
               </button>
@@ -171,6 +170,7 @@ const Login = () => {
       </motion.div>
     </div>
   );
+
 };
 
 export default Login;

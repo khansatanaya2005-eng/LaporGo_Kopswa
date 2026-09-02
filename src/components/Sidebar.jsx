@@ -25,11 +25,11 @@ const Sidebar = () => {
   navItems.push({ label: 'Pengaturan', path: '/pengaturan', icon: Settings });
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-full shadow-xl border-r border-slate-800 z-20">
+    <aside className="w-64 bg-[#00252a] text-teal-100 flex flex-col h-full shadow-xl border-r border-[#00373e] z-20">
       {/* Brand Header with Corporate Logos */}
-      <div className="p-5 border-b border-slate-800 bg-slate-950/50">
+      <div className="p-5 border-b border-[#00373e] bg-[#001518]">
         {/* Utama: Logo Koperasi Swadharma */}
-        <div className="bg-white p-2.5 rounded-xl shadow-md border border-slate-800 flex items-center justify-center">
+        <div className="bg-white p-2.5 rounded-xl shadow-md border border-[#00373e] flex items-center justify-center">
           <img 
             src="/Logo_Kopswa.png" 
             alt="Koperasi Swadharma" 
@@ -38,28 +38,27 @@ const Sidebar = () => {
         </div>
 
         {/* Sub-Brand Logos: OMI & SMART */}
-        <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800/80">
-          <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg flex-1 justify-center border border-slate-700/50">
-            <span className="text-[9px] text-slate-400 font-semibold uppercase">Unit:</span>
+        <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-[#00373e]/80">
+          <div className="flex items-center gap-1.5 bg-[#00373e]/60 px-2.5 py-1 rounded-lg flex-1 justify-center border border-teal-800/40">
+            <span className="text-[9px] text-teal-300 font-semibold uppercase">Unit:</span>
             <img src="/smartlogo.png" alt="SMART" className="h-4 object-contain" />
           </div>
-          <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg flex-1 justify-center border border-slate-700/50">
-            <span className="text-[9px] text-slate-400 font-semibold uppercase">Mitra:</span>
+          <div className="flex items-center gap-1.5 bg-[#00373e]/60 px-2.5 py-1 rounded-lg flex-1 justify-center border border-teal-800/40">
+            <span className="text-[9px] text-teal-300 font-semibold uppercase">Mitra:</span>
             <img src="/logo_omi.png" alt="OMI" className="h-4 object-contain" />
           </div>
         </div>
 
         <div className="mt-3 text-center">
-          <span className="inline-block px-2.5 py-0.5 bg-blue-900/60 text-blue-300 text-[10px] font-bold rounded-full border border-blue-700/50">
+          <span className="inline-block px-2.5 py-0.5 bg-[#ff5000] text-white text-[10px] font-bold rounded-full shadow-sm">
             LaporGo System
           </span>
         </div>
       </div>
 
-
       {/* Navigation Links */}
       <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-        <div className="px-3 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="px-3 pb-2 text-xs font-semibold text-teal-300/60 uppercase tracking-wider">
           Menu Utama
         </div>
         {navItems.map((item) => {
@@ -71,8 +70,8 @@ const Sidebar = () => {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                    ? 'bg-[#00606b] text-white shadow-md shadow-teal-900/50 font-semibold border-l-4 border-[#ff5000]'
+                    : 'text-teal-200/80 hover:text-white hover:bg-[#00373e]/70'
                 }`
               }
             >
@@ -84,11 +83,12 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer info */}
-      <div className="p-4 border-t border-slate-800 text-xs text-slate-400 text-center">
-        <span className="font-medium text-slate-300">KOPSWA System</span> &copy; 2026
+      <div className="p-4 border-t border-[#00373e] text-xs text-teal-300/60 text-center bg-[#001518]">
+        <span className="font-medium text-teal-100">KOPSWA System</span> &copy; 2026
       </div>
     </aside>
   );
+
 };
 
 export default Sidebar;
