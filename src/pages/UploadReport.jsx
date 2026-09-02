@@ -17,9 +17,9 @@ import { useNavigate } from 'react-router-dom';
 const UploadReport = () => {
   const navigate = useNavigate();
 
-  // Accordion Expand / Collapse
-  const [isOmiExpanded, setIsOmiExpanded] = useState(true);
-  const [isSmartExpanded, setIsSmartExpanded] = useState(true);
+  // Accordion Expand / Collapse (Default collapsed / closed)
+  const [isOmiExpanded, setIsOmiExpanded] = useState(false);
+  const [isSmartExpanded, setIsSmartExpanded] = useState(false);
 
   // Loading State
   const [isProcessing, setIsProcessing] = useState(false);
