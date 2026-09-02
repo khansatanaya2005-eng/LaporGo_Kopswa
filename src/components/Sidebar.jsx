@@ -14,7 +14,7 @@ const Sidebar = () => {
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Upload Laporan', path: '/upload', icon: FilePlus },
+    { label: 'Proses Laporan', path: '/upload', icon: FilePlus },
     { label: 'Riwayat Laporan', path: '/riwayat', icon: History },
   ];
 
