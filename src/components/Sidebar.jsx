@@ -6,8 +6,7 @@ import {
   FilePlus, 
   History, 
   Users, 
-  Settings, 
-  FileSpreadsheet 
+  Settings 
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -27,16 +26,36 @@ const Sidebar = () => {
 
   return (
     <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-full shadow-xl border-r border-slate-800 z-20">
-      {/* Brand Header */}
-      <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-          <FileSpreadsheet className="w-6 h-6" />
+      {/* Brand Header with Corporate Logos */}
+      <div className="p-5 border-b border-slate-800 bg-slate-950/50">
+        {/* Utama: Logo Koperasi Swadharma */}
+        <div className="bg-white p-2.5 rounded-xl shadow-md border border-slate-800 flex items-center justify-center">
+          <img 
+            src="/Logo_Kopswa.png" 
+            alt="Koperasi Swadharma" 
+            className="h-9 object-contain"
+          />
         </div>
-        <div>
-          <h1 className="font-bold text-white text-lg leading-none">LaporGo</h1>
-          <p className="text-xs text-slate-400 mt-1">OMI & SMART Integration</p>
+
+        {/* Sub-Brand Logos: OMI & SMART */}
+        <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800/80">
+          <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg flex-1 justify-center border border-slate-700/50">
+            <span className="text-[9px] text-slate-400 font-semibold uppercase">Unit:</span>
+            <img src="/smartlogo.png" alt="SMART" className="h-4 object-contain" />
+          </div>
+          <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg flex-1 justify-center border border-slate-700/50">
+            <span className="text-[9px] text-slate-400 font-semibold uppercase">Mitra:</span>
+            <img src="/logo_omi.png" alt="OMI" className="h-4 object-contain" />
+          </div>
+        </div>
+
+        <div className="mt-3 text-center">
+          <span className="inline-block px-2.5 py-0.5 bg-blue-900/60 text-blue-300 text-[10px] font-bold rounded-full border border-blue-700/50">
+            LaporGo System
+          </span>
         </div>
       </div>
+
 
       {/* Navigation Links */}
       <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">

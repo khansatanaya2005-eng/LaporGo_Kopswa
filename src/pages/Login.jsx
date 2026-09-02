@@ -58,13 +58,33 @@ const Login = () => {
       >
         <div className="p-8">
           {/* Logo & Title */}
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30 mb-3">
-              <FileSpreadsheet className="w-8 h-8" />
+          <div className="flex flex-col items-center text-center mb-6">
+            {/* Logo Utama: Koperasi Swadharma */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm mb-4">
+              <img 
+                src="/Logo_Kopswa.png" 
+                alt="Koperasi Swadharma" 
+                className="h-12 object-contain"
+              />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">LaporGo</h1>
-            <p className="text-sm text-slate-500 mt-1">Sistem Penggabungan Laporan OMI & SMART</p>
+
+            {/* Sub-Logos: SMART & OMI */}
+            <div className="flex items-center justify-center gap-4 mb-3">
+              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg">
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">Unit</span>
+                <img src="/smartlogo.png" alt="SMART" className="h-5 object-contain" />
+              </div>
+              <span className="text-slate-300 font-bold">&</span>
+              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg">
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">Mitra</span>
+                <img src="/logo_omi.png" alt="OMI" className="h-5 object-contain" />
+              </div>
+            </div>
+
+            <h1 className="text-xl font-bold text-slate-900 mt-1">LaporGo System</h1>
+            <p className="text-xs text-slate-500 mt-0.5">Penggabungan Laporan Harian Toko OMI & SMART</p>
           </div>
+
 
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded">

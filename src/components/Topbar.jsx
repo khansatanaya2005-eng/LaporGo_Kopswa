@@ -9,11 +9,20 @@ const Topbar = () => {
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm z-10">
-      <div className="flex items-center gap-3">
-        <h2 className="text-sm font-semibold text-slate-700 hidden sm:block">
+      <div className="flex items-center gap-4">
+        {/* Topbar Logo Swadharma */}
+        <div className="hidden sm:block border-r border-slate-200 pr-4">
+          <img 
+            src="/Logo_Kopswa.png" 
+            alt="Koperasi Swadharma" 
+            className="h-8 object-contain"
+          />
+        </div>
+        <h2 className="text-sm font-semibold text-slate-700 hidden lg:block">
           Sistem Penggabungan Laporan Harian Toko OMI & SMART
         </h2>
       </div>
+
 
       <div className="flex items-center gap-4">
         {/* Supabase Connection Status Badge */}
