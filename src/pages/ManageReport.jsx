@@ -304,9 +304,9 @@ const ManageReport = () => {
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
             <FileText className="w-4 h-4 text-[#0A4D68]" />
-            <span>Dokumen Mentah Yang Di-upload (laporan_files)</span>
+            <span>Dokumen Sumber Laporan (OMI & SMART)</span>
           </h3>
-          <span className="text-[11px] text-slate-400 font-medium">5 File Mentah Tersimpan</span>
+          <span className="text-[11px] text-slate-400 font-medium">5 Berkas Tersimpan</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
