@@ -33,4 +33,18 @@
   background: #051923;
 }
 
+/* Print CSS Rule */
+@media print {
+  aside, button, header, nav {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  img {
+    max-width: 200px !important;
+    max-height: 50px !important;
+  }
+}
+
 
