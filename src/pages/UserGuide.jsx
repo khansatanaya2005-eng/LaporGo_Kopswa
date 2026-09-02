@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   ArrowLeft, 
   UserCheck, 
   ShieldCheck, 
+  Code2,
   FileSpreadsheet, 
   CheckCircle2, 
   AlertTriangle, 
@@ -12,17 +13,25 @@ import {
   Search, 
   Sliders, 
   Users, 
-  HelpCircle, 
   Download, 
   Printer, 
   FileText,
   Sparkles,
-  Info
+  Server,
+  Database,
+  Terminal,
+  Layers,
+  Cpu,
+  Workflow,
+  Key,
+  FolderTree,
+  GitBranch,
+  Rocket
 } from 'lucide-react';
 
 const UserGuide = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('staff'); // 'staff' | 'admin'
+  const [activeTab, setActiveTab] = useState('staff'); // 'staff' | 'admin' | 'it'
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-16">
@@ -35,7 +44,7 @@ const UserGuide = () => {
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm text-[#0A4D68]">LaporGo System</span>
               <span className="text-[10px] font-bold bg-[#0A4D68]/10 text-[#0A4D68] px-2 py-0.5 rounded-full">
-                Dokumen Panduan Penggunaan
+                Pusat Panduan & Dokumentasi Teknikal
               </span>
             </div>
           </div>
@@ -61,22 +70,22 @@ const UserGuide = () => {
           <div className="relative z-10 max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-teal-200">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Panduan Resmi Pengoperasian Sistem</span>
+              <span>Dokumentasi Resmi Penggunaan & Handover IT</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Panduan Penggunaan LaporGo System
+              Pusat Panduan & Arsitektur LaporGo
             </h1>
             <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-              Panduan lengkap langkah demi langkah pengoperasian sistem penggabungan dan rekonsiliasi laporan harian Toko OMI & SMART Koperasi Swadharma.
+              Dokumentasi terpadu panduan operasional Staff, Administrator, serta panduan arsitektur teknis handover untuk Developer / Tim IT Koperasi Swadharma.
             </p>
           </div>
         </div>
 
         {/* Tab Navigation Roles */}
-        <div className="flex border-b border-slate-200 gap-2">
+        <div className="flex border-b border-slate-200 gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('staff')}
-            className={`flex items-center gap-2 px-6 py-3 font-bold text-xs sm:text-sm border-b-2 transition cursor-pointer ${
+            className={`flex items-center gap-2 px-5 py-3 font-bold text-xs sm:text-sm border-b-2 transition shrink-0 cursor-pointer ${
               activeTab === 'staff'
                 ? 'border-[#FF5000] text-[#FF5000] bg-white rounded-t-xl shadow-xs'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -88,7 +97,7 @@ const UserGuide = () => {
 
           <button
             onClick={() => setActiveTab('admin')}
-            className={`flex items-center gap-2 px-6 py-3 font-bold text-xs sm:text-sm border-b-2 transition cursor-pointer ${
+            className={`flex items-center gap-2 px-5 py-3 font-bold text-xs sm:text-sm border-b-2 transition shrink-0 cursor-pointer ${
               activeTab === 'admin'
                 ? 'border-[#FF5000] text-[#FF5000] bg-white rounded-t-xl shadow-xs'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -97,12 +106,25 @@ const UserGuide = () => {
             <ShieldCheck className="w-4 h-4" />
             <span>2. Panduan Administrator</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('it')}
+            className={`flex items-center gap-2 px-5 py-3 font-bold text-xs sm:text-sm border-b-2 transition shrink-0 cursor-pointer ${
+              activeTab === 'it'
+                ? 'border-[#0A4D68] text-[#0A4D68] bg-white rounded-t-xl shadow-xs'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Code2 className="w-4 h-4 text-[#0A4D68]" />
+            <span>3. Panduan IT & Handover Developer</span>
+          </button>
         </div>
 
-        {/* TAB 1: PANDUAN STAFF */}
+        {/* ======================================================== */}
+        {/* TAB 1: PANDUAN STAFF OPERASIONAL */}
+        {/* ======================================================== */}
         {activeTab === 'staff' && (
           <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-10">
-            {/* Daftar Isi Staff */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
               <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <BookOpen className="w-4 h-4 text-[#0A4D68]" />
@@ -120,7 +142,6 @@ const UserGuide = () => {
               </ul>
             </div>
 
-            {/* Step 1: Login */}
             <section id="staff-1" className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">1</span>
@@ -137,7 +158,6 @@ const UserGuide = () => {
               </div>
             </section>
 
-            {/* Step 2: Dashboard */}
             <section id="staff-2" className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">2</span>
@@ -157,7 +177,6 @@ const UserGuide = () => {
               </div>
             </section>
 
-            {/* Step 3: Prosedur Upload */}
             <section id="staff-3" className="space-y-4">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">3</span>
@@ -167,7 +186,6 @@ const UserGuide = () => {
                 Buka menu **"Buat Laporan"**. Halaman ini memiliki 2 folder kategori: **LAPORAN OMI** dan **LAPORAN SMART**.
               </p>
 
-              {/* Tabel Ketentuan Berkas */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border border-slate-200">
                   <thead className="bg-[#0A4D68] text-white">
@@ -235,7 +253,6 @@ const UserGuide = () => {
               </div>
             </section>
 
-            {/* Step 4: Memproses Laporan */}
             <section id="staff-4" className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">4</span>
@@ -249,7 +266,6 @@ const UserGuide = () => {
               </ol>
             </section>
 
-            {/* Step 5: Preview & Unbalance Action */}
             <section id="staff-5" className="space-y-4">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">5</span>
@@ -264,7 +280,6 @@ const UserGuide = () => {
                 <li>**Tab Detail Toko SMART**: Menampilkan rincian kalkulasi khusus Toko SMART.</li>
               </ul>
 
-              {/* Box Langkah Unbalance */}
               <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2">
                 <h4 className="text-xs font-bold text-red-800 flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4 text-red-600" />
@@ -282,7 +297,6 @@ const UserGuide = () => {
               </div>
             </section>
 
-            {/* Step 6: Download & Print */}
             <section id="staff-6" className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">6</span>
@@ -297,7 +311,6 @@ const UserGuide = () => {
               </ul>
             </section>
 
-            {/* Step 7: Riwayat Laporan */}
             <section id="staff-7" className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">7</span>
@@ -311,7 +324,6 @@ const UserGuide = () => {
               </ol>
             </section>
 
-            {/* Step 8: Troubleshooting Staff */}
             <section id="staff-8" className="space-y-4">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">8</span>
@@ -350,10 +362,11 @@ const UserGuide = () => {
           </div>
         )}
 
+        {/* ======================================================== */}
         {/* TAB 2: PANDUAN ADMINISTRATOR */}
+        {/* ======================================================== */}
         {activeTab === 'admin' && (
           <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-10">
-            {/* Notification Admin */}
             <div className="p-4 bg-[#0A4D68]/10 border border-[#0A4D68]/20 rounded-xl flex items-center gap-3">
               <ShieldCheck className="w-6 h-6 text-[#0A4D68] shrink-0" />
               <div className="text-xs text-[#0A4D68]">
@@ -362,7 +375,6 @@ const UserGuide = () => {
               </div>
             </div>
 
-            {/* Section Admin 1: User Management */}
             <section className="space-y-4">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <Users className="w-5 h-5 text-[#0A4D68]" />
@@ -386,7 +398,6 @@ const UserGuide = () => {
               </div>
             </section>
 
-            {/* Section Admin 2: Keyword Settings */}
             <section className="space-y-4">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <Sliders className="w-5 h-5 text-[#0A4D68]" />
@@ -407,7 +418,6 @@ const UserGuide = () => {
               </div>
             </section>
 
-            {/* Section Admin 3: Unbalance Investigation */}
             <section className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <Search className="w-5 h-5 text-[#0A4D68]" />
@@ -419,20 +429,188 @@ const UserGuide = () => {
                 <li>Periksa apakah ada nama metode pembayaran baru di file kasir OMI yang belum terdaftar di menu **Pengaturan Keyword Filter**. Jika ada, tambahkan kata kunci tersebut.</li>
               </ol>
             </section>
+          </div>
+        )}
 
-            {/* Section Admin 4: Escalation to Dev */}
+        {/* ======================================================== */}
+        {/* TAB 3: PANDUAN IT & HANDOVER DEVELOPER */}
+        {/* ======================================================== */}
+        {activeTab === 'it' && (
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-10">
+            {/* Banner Handover IT */}
+            <div className="p-4 bg-[#0A4D68] text-white rounded-xl flex items-center gap-3 shadow-md">
+              <Cpu className="w-6 h-6 text-teal-300 shrink-0" />
+              <div className="text-xs">
+                <p className="font-bold text-sm">Dokumentasi Teknis & Handover Developer</p>
+                <p className="text-slate-200 mt-0.5">Panduan arsitektur, skema database, instruksi deployment, dan checklist pengerjaan backend untuk pengembang baru.</p>
+              </div>
+            </div>
+
+            {/* Section IT 1: Arsitektur Sistem */}
             <section className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
-                <HelpCircle className="w-5 h-5 text-[#0A4D68]" />
-                <span>4. Kontak Eskalasi Tim Developer</span>
+                <Workflow className="w-5 h-5 text-[#0A4D68]" />
+                <span>1. Arsitektur Sistem & Alasan Pemisahan Layer</span>
+              </h2>
+              <div className="p-4 bg-slate-900 text-slate-100 rounded-xl font-mono text-xs overflow-x-auto space-y-2 border border-slate-800">
+                <p className="text-teal-400 font-bold">// DIAGRAM ALUR ARSITEKTUR LAPORGO</p>
+                <p>[ Client Browser (React + Vite) ]</p>
+                <p>   ├── Auth & Session  ──▶ [ Supabase Auth (JWT & RLS) ]</p>
+                <p>   ├── Process Upload ──▶ [ Node.js Express Backend (/api/process-laporan) ]</p>
+                <p>   │                           ├── ExcelJS / Multer File Parser</p>
+                <p>   │                           └── Formula & Rekonsiliasi DPP PPN</p>
+                <p>   └── Save & History ──▶ [ Supabase PostgreSQL DB & Storage Bucket ]</p>
+              </div>
+
+              <div className="text-xs text-slate-600 space-y-2 leading-relaxed">
+                <p><strong>Alasan Pemisahan Layer Arsitektur:</strong></p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>**Frontend (React + Vite)**: Berfokus penuh pada pengalaman pengguna (UI/UX), animasi interaktif, dan validasi form client-side agar responsif di Vercel CDN.</li>
+                  <li>**Node.js / Express Backend (`server.js`)**: Diperlukan khusus untuk pemrosesan file berat (`.xls`, `.xlsx`, `.txt`) menggunakan `multer` dan `exceljs` yang tidak efisien jika dijalankan langsung di browser.</li>
+                  <li>**Supabase (PostgreSQL + Auth + Storage)**: Menyediakan backend-as-a-service yang aman untuk otentikasi JWT, manajemen peran user, penyimpan file fisik laporan, dan panyimpanan database terstruktur.</li>
+                </ul>
+              </div>
+            </section>
+
+            {/* Section IT 2: Struktur Folder */}
+            <section className="space-y-3">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
+                <FolderTree className="w-5 h-5 text-[#0A4D68]" />
+                <span>2. Struktur Folder & Fungsi Komponen</span>
+              </h2>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-700 space-y-1.5 overflow-x-auto">
+                <p className="font-bold text-[#0A4D68]">LaporGo_Kopswa/</p>
+                <p>├── public/                # Asset statis, logo Kopswa, OMI, SMART & favicon.svg</p>
+                <p>├── src/</p>
+                <p>│   ├── components/        # Komponen UI Reusable (Layout, Topbar, Sidebar, FileSlotRow, UploadZone)</p>
+                <p>│   ├── context/           # AuthContext.jsx (State autentikasi Supabase & session user)</p>
+                <p>│   ├── data/              # mockData.js (Data simulasi awal dashboard & preview)</p>
+                <p>│   ├── pages/             # Halaman Utama (Login, Dashboard, UploadReport, ReportPreview, ReportHistory, UserManagement, Settings, UserGuide)</p>
+                <p>│   ├── App.jsx            # Routing React Router DOM (Public vs Protected Routes)</p>
+                <p>│   └── main.jsx           # Entry point React 18</p>
+                <p>├── server.js              # Express Backend Server (Parser file excel, multer & exceljs generator)</p>
+                <p>├── supabase_schema.sql    # DDL Script tabel PostgreSQL, RLS Policies, dan Trigger User Profile</p>
+                <p>└── tailwind.config.js     # Konfigurasi Tailwind CSS v4 & custom colors</p>
+              </div>
+            </section>
+
+            {/* Section IT 3: Skema Database */}
+            <section className="space-y-3">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
+                <Database className="w-5 h-5 text-[#0A4D68]" />
+                <span>3. Skema Database PostgreSQL (Supabase)</span>
               </h2>
               <p className="text-xs text-slate-600">
-                Jika ditemukan kendala sistemik (bug aplikasi, error database Supabase, atau kegagalan server deployment), silakan hubungi tim developer internal:
+                Skema database terdiri dari 3 tabel utama (tersedia script DDL lengkap pada <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[#0A4D68]">supabase_schema.sql</code>):
               </p>
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1 text-slate-700 font-mono">
-                <p><strong>Tim IT & Developer LaporGo KOPSWA</strong></p>
-                <p>Email Support: <span className="text-[#0A4D68] underline">it-support@kopswa.id</span></p>
-                <p>Repository: <span className="text-slate-500">khansatanaya2005-eng/LaporGo_Kopswa</span></p>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border border-slate-200">
+                  <thead className="bg-slate-100 text-slate-700">
+                    <tr>
+                      <th className="p-2.5">Nama Tabel</th>
+                      <th className="p-2.5">Kolom Utama</th>
+                      <th className="p-2.5">Status Kolom yang Belum Terisi/Dipakai Backend</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-600">
+                    <tr>
+                      <td className="p-2.5 font-mono font-bold text-[#0A4D68]">public.profiles</td>
+                      <td className="p-2.5 font-mono">id, email, full_name, role</td>
+                      <td className="p-2.5 font-medium text-emerald-600">✓ Sudah Terpakai (Auto trigger Supabase Auth)</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2.5 font-mono font-bold text-[#0A4D68]">public.laporan</td>
+                      <td className="p-2.5 font-mono">id, tanggal, status_balance, total_debit, total_kredit, selisih, file_output_url</td>
+                      <td className="p-2.5 text-amber-700 font-semibold">⚠️ `file_output_url` dan kalkulasi `selisih` masih menunggu API penggabungan backend nyata.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2.5 font-mono font-bold text-[#0A4D68]">public.laporan_files</td>
+                      <td className="p-2.5 font-mono">id, laporan_id, nama_file, tipe, storage_path</td>
+                      <td className="p-2.5 text-amber-700 font-semibold">⚠️ `storage_path` masih menunggu pengunggahan berkas fisik ke Supabase Storage Bucket `laporan-files`.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* Section IT 4: Status Pengerjaan (Checklist Handover) */}
+            <section className="space-y-3">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span>4. Status Pengerjaan & Checklist Priorities Handover</span>
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                {/* Selesai */}
+                <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
+                  <h4 className="font-bold text-emerald-800 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>SELESAI (Frontend & UI/UX Ready)</span>
+                  </h4>
+                  <ul className="list-disc pl-5 text-emerald-700 space-y-1">
+                    <li>Desain UI/UX & Tema Korporat Swadharma Teal (`#0A4D68`) & Orange (`#FF5000`).</li>
+                    <li>Sistem Autentikasi Supabase & Role Guard (Admin/Staff).</li>
+                    <li>Halaman Buat Laporan dengan Slot Baris & Multi-Struk TXT.</li>
+                    <li>Halaman Dashboard, Preview Multi-Tab, Riwayat, & User Management.</li>
+                    <li>Favicon & Titling Tab Browser Swadharma.</li>
+                  </ul>
+                </div>
+
+                {/* Belum Selesai (Prioritas Tim Baru) */}
+                <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2">
+                  <h4 className="font-bold text-amber-800 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <span>BELUM SELESAI (Prioritas Backend Developer Baru)</span>
+                  </h4>
+                  <ul className="list-disc pl-5 text-amber-700 space-y-1">
+                    <li>**Parser File `.xls` / `.xlsx` Real**: Membaca sel-sel tabel dari file OMI & SMART di `server.js`.</li>
+                    <li>**Formula Rekonsiliasi DPP & PPN**: Menyusun formula matematika pemisah PPN WAPU/PK dan BTKP.</li>
+                    <li>**Integrasi Keyword Mapping Real**: Menghubungkan keyword di database ke logic parsing.</li>
+                    <li>**Upload Storage Bucket**: Pengunggahan berkas fisik ke Supabase Storage Bucket.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Section IT 5: Running & Deployment */}
+            <section className="space-y-3">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
+                <Rocket className="w-5 h-5 text-[#0A4D68]" />
+                <span>5. Cara Menjalankan di Lokal & Panduan Deployment</span>
+              </h2>
+
+              <div className="space-y-3 text-xs text-slate-600">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                  <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <Terminal className="w-4 h-4 text-[#0A4D68]" />
+                    <span>A. Cara Run Local Development:</span>
+                  </h4>
+                  <ol className="list-decimal pl-5 space-y-1 font-mono">
+                    <li>Clone repository: <code className="bg-white px-1 py-0.5 border rounded">git clone https://github.com/khansatanaya2005-eng/LaporGo_Kopswa.git</code></li>
+                    <li>Install dependencies: <code className="bg-white px-1 py-0.5 border rounded">npm install</code></li>
+                    <li>Buat file <code className="bg-white px-1 py-0.5 border rounded">.env</code> dan masukkan Environment Variables:
+                      <div className="p-2 bg-slate-900 text-teal-300 rounded mt-1 text-[11px]">
+                        VITE_SUPABASE_URL=https://your-supabase-url.supabase.co<br />
+                        VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+                      </div>
+                    </li>
+                    <li>Jalankan Frontend React: <code className="bg-white px-1 py-0.5 border rounded">npm run dev</code> (Buka http://localhost:5173)</li>
+                    <li>Jalankan Express Backend Stub: <code className="bg-white px-1 py-0.5 border rounded">node server.js</code> (Port 5000)</li>
+                  </ol>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                  <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <GitBranch className="w-4 h-4 text-[#0A4D68]" />
+                    <span>B. Deployment Vercel & Supabase:</span>
+                  </h4>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>**Vercel CI/CD**: Terhubung otomatis ke branch `main`. Setiap `git push origin main` akan mentrigger auto-build.</li>
+                    <li>**Environment Variables di Vercel**: Pastikan variabel `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` tersimpan pada pengaturan *Environment Variables* di dashboard Vercel.</li>
+                    <li>**Supabase DDL Setup**: Eksekusi seluruh script di <code className="bg-white px-1 py-0.5 border rounded font-mono">supabase_schema.sql</code> melalui SQL Editor Supabase untuk membuat tabel dan trigger profiles.</li>
+                  </ul>
+                </div>
               </div>
             </section>
           </div>
