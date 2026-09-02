@@ -97,15 +97,24 @@ const ReportPreview = () => {
     <div className="space-y-6">
       {/* Top Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Preview Hasil Penggabungan Laporan</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Tanggal Laporan: {new Date().toLocaleDateString('id-ID')}</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer shrink-0"
+            title="Kembali ke Halaman Sebelumnya"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Preview Hasil Penggabungan Laporan</h1>
+            <p className="text-xs text-slate-500 mt-0.5">Tanggal Laporan: {new Date().toLocaleDateString('id-ID')}</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/upload')}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Proses Ulang</span>
