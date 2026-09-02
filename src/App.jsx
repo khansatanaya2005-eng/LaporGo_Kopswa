@@ -10,14 +10,16 @@ import ReportPreview from './pages/ReportPreview';
 import ReportHistory from './pages/ReportHistory';
 import UserManagement from './pages/UserManagement';
 import Settings from './pages/Settings';
+import UserGuide from './pages/UserGuide';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Route */}
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/panduan" element={<UserGuide />} />
 
           {/* Protected Routes (Staff & Admin) */}
           <Route element={<ProtectedRoute allowedRoles={['Admin', 'Staff']} />}>
