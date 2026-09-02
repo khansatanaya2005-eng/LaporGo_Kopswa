@@ -1,11 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   UploadCloud, 
   FileSpreadsheet, 
   FileText, 
   Trash2, 
   CheckCircle2, 
-  AlertCircle, 
   Plus, 
   FileCheck
 } from 'lucide-react';
@@ -17,7 +16,7 @@ const FileSlotRow = ({
   isMandatory, 
   isMulti = false, 
   isStruk = false,
-  uploadedFiles = [], // Array of File objects for this slot
+  uploadedFiles = [], 
   onUpload, 
   onRemove 
 }) => {
@@ -63,7 +62,7 @@ const FileSlotRow = ({
           : isDragOver 
           ? 'bg-[#0A4D68]/10 border-[#0A4D68] scale-[1.005]' 
           : isMandatory 
-          ? 'bg-white border-slate-200 shadow-sm hover:border-slate-300' 
+          ? 'bg-white border-slate-200 border-l-4 border-l-[#0A4D68] shadow-sm hover:border-slate-300' 
           : 'bg-slate-50/50 border-slate-200/80 hover:border-slate-300'
       }`}
     >
@@ -74,28 +73,21 @@ const FileSlotRow = ({
             isUploaded 
               ? 'bg-emerald-100 text-emerald-700' 
               : isMandatory 
-              ? 'bg-red-50 text-red-600 border border-red-100' 
+              ? 'bg-[#0A4D68]/10 text-[#0A4D68]' 
               : 'bg-slate-100 text-slate-500'
           }`}>
             {isStruk ? <FileText className="w-5 h-5" /> : <FileSpreadsheet className="w-5 h-5" />}
           </div>
 
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-xs font-bold text-slate-800 tracking-wide">{title}</h4>
-              
-              {isMandatory ? (
-                <span className="text-[10px] font-extrabold bg-red-100 text-red-700 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  🔥 Wajib
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold bg-slate-200/80 text-slate-600 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  ⭕ Opsional
-                </span>
-              )}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h4 className="text-xs font-bold text-slate-800 tracking-wide flex items-center gap-1">
+                <span>{title}</span>
+                {isMandatory && <span className="text-red-500 font-extrabold text-sm leading-none" title="Wajib Diisi">*</span>}
+              </h4>
 
               {isStruk && (
-                <span className="text-[10px] font-bold bg-sky-100 text-sky-700 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                <span className="text-[10px] font-bold bg-sky-100 text-sky-700 px-2 py-0.5 rounded-md uppercase tracking-wider ml-1">
                   📄 Multi-Struk TXT
                 </span>
               )}
@@ -155,7 +147,7 @@ const FileSlotRow = ({
         </div>
       </div>
 
-      {/* Detail Uploaded Files List (If uploaded) */}
+      {/* Detail Uploaded Files List */}
       {isUploaded && (
         <div className="mt-3 pt-3 border-t border-emerald-200/60 space-y-1.5">
           {uploadedFiles.map((file, idx) => (

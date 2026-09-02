@@ -8,8 +8,7 @@ import {
   RotateCcw, 
   Sparkles, 
   Loader2, 
-  FileCheck2,
-  ListCheck
+  FileCheck2
 } from 'lucide-react';
 import FileSlotRow from '../components/FileSlotRow';
 import { useNavigate } from 'react-router-dom';
@@ -17,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 const UploadReport = () => {
   const navigate = useNavigate();
 
-  // Accordion Expand / Collapse (Default collapsed / closed)
+  // Accordion Expand / Collapse (Default closed)
   const [isOmiExpanded, setIsOmiExpanded] = useState(false);
   const [isSmartExpanded, setIsSmartExpanded] = useState(false);
 
@@ -25,13 +24,11 @@ const UploadReport = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // --- STATE SLOT FILE OMI ---
-  // Mandatory OMI
   const [omiPerTanggal, setOmiPerTanggal] = useState([]);
   const [omiPerMember, setOmiPerMember] = useState([]);
   const [omiDiscItem, setOmiDiscItem] = useState([]);
   const [omiStrukTxt, setOmiStrukTxt] = useState([]);
 
-  // Optional OMI
   const [omiPareto, setOmiPareto] = useState([]);
   const [omiAnalisa, setOmiAnalisa] = useState([]);
   const [omiPerStruk, setOmiPerStruk] = useState([]);
@@ -39,7 +36,6 @@ const UploadReport = () => {
   const [omiTutupHarian, setOmiTutupHarian] = useState([]);
 
   // --- STATE SLOT FILE SMART ---
-  // Mandatory SMART
   const [smartDetail, setSmartDetail] = useState([]);
   const [smartRingkasan, setSmartRingkasan] = useState([]);
 
@@ -92,7 +88,7 @@ const UploadReport = () => {
             <span>📤 Buat Laporan Harian</span>
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Unggah berkas laporan sesuai slot baris yang telah ditentukan untuk Toko OMI dan SMART.
+            Unggah berkas laporan sesuai slot baris yang telah ditentukan untuk Toko OMI dan SMART. <span className="text-red-500 font-bold">* Tanda bintang menandakan berkas wajib</span>
           </p>
         </div>
 
@@ -121,7 +117,7 @@ const UploadReport = () => {
                 LAPORAN OMI
               </h3>
               <p className="text-[11px] text-slate-400">
-                Ekstensi: .xls, .xlsx, .txt &bull; <span className="text-red-500 font-semibold">3 Berkas Wajib + 6 Opsional</span>
+                Ekstensi: .xls, .xlsx, .txt
               </p>
             </div>
           </div>
@@ -132,7 +128,7 @@ const UploadReport = () => {
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                 : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}>
-              {isOmiMandatoryComplete ? '✓ Wajib Lengkap' : 'Belum Lengkap'}
+              {isOmiMandatoryComplete ? '✓ Lengkap' : 'Belum Lengkap'}
             </span>
 
             {isOmiExpanded ? (
@@ -152,13 +148,13 @@ const UploadReport = () => {
               transition={{ duration: 0.25 }}
               className="p-6 space-y-6 border-t border-slate-100"
             >
-              {/* SECTION FILE WAJIB OMI */}
+              {/* BERKAS UTAMA OMI */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between pb-1">
-                  <h4 className="text-xs font-extrabold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>🔥 BERKAS WAJIB OMI</span>
+                <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                  <h4 className="text-xs font-extrabold text-[#0A4D68] uppercase tracking-wider">
+                    BERKAS UTAMA
                   </h4>
-                  <span className="text-[10px] text-slate-400 font-semibold">Harus diisi semua</span>
+                  <span className="text-[10px] text-slate-400">Diperlukan untuk pemrosesan</span>
                 </div>
 
                 <div className="space-y-2.5">
@@ -194,13 +190,13 @@ const UploadReport = () => {
                 </div>
               </div>
 
-              {/* SECTION FILE OPSIONAL OMI */}
+              {/* BERKAS PENDUKUNG OMI */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between pb-1 border-t border-slate-100 pt-4">
-                  <h4 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>⭕ BERKAS OPSIONAL OMI</span>
+                <div className="flex items-center justify-between pb-1 border-b border-slate-100 pt-2">
+                  <h4 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">
+                    BERKAS PENDUKUNG
                   </h4>
-                  <span className="text-[10px] text-slate-400">Tambahan pendukung</span>
+                  <span className="text-[10px] text-slate-400">Tambahan opsional</span>
                 </div>
 
                 <div className="space-y-2.5">
@@ -294,7 +290,7 @@ const UploadReport = () => {
                 LAPORAN SMART
               </h3>
               <p className="text-[11px] text-slate-400">
-                Ekstensi: .xlsx, .xls &bull; <span className="text-red-500 font-semibold">2 Berkas Wajib</span>
+                Ekstensi: .xlsx, .xls
               </p>
             </div>
           </div>
@@ -305,7 +301,7 @@ const UploadReport = () => {
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                 : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}>
-              {isSmartMandatoryComplete ? '✓ Wajib Lengkap' : 'Belum Lengkap'}
+              {isSmartMandatoryComplete ? '✓ Lengkap' : 'Belum Lengkap'}
             </span>
 
             {isSmartExpanded ? (
@@ -325,11 +321,11 @@ const UploadReport = () => {
               transition={{ duration: 0.25 }}
               className="p-6 space-y-3 border-t border-slate-100"
             >
-              <div className="flex items-center justify-between pb-1">
-                <h4 className="text-xs font-extrabold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>🔥 BERKAS WAJIB SMART</span>
+              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                <h4 className="text-xs font-extrabold text-[#0A4D68] uppercase tracking-wider">
+                  BERKAS UTAMA
                 </h4>
-                <span className="text-[10px] text-slate-400 font-semibold">Harus diisi semua</span>
+                <span className="text-[10px] text-slate-400">Diperlukan untuk pemrosesan</span>
               </div>
 
               <div className="space-y-2.5">
@@ -370,7 +366,7 @@ const UploadReport = () => {
           </div>
           <div>
             <h4 className="text-sm font-bold text-slate-900">
-              {isAllMandatoryComplete ? 'Semua Berkas Wajib Siap Diproses!' : 'File Wajib Belum Lengkap'}
+              {isAllMandatoryComplete ? 'Semua Berkas Utama Siap Diproses!' : 'Berkas Utama Belum Lengkap'}
             </h4>
             <p className="text-xs text-slate-500 mt-0.5">
               Status OMI: <span className={isOmiMandatoryComplete ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>{isOmiMandatoryComplete ? 'LENGKAP' : 'BELUM LENGKAP'}</span> &bull; Status SMART: <span className={isSmartMandatoryComplete ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>{isSmartMandatoryComplete ? 'LENGKAP' : 'BELUM LENGKAP'}</span>
