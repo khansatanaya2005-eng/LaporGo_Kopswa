@@ -187,16 +187,19 @@ const ManageReport = () => {
         </div>
       </div>
 
-      {/* Daftar File Yang Digunakan (from laporan_files) */}
+      {/* Daftar File Yang Digunakan (from laporan_files) - Scroll Down Section */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          <FileText className="w-4 h-4 text-[#0A4D68]" />
-          <span>Daftar File Berkas Yang Digunakan (laporan_files)</span>
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#0A4D68]" />
+            <span>Dokumen Mentah Yang Di-upload (laporan_files)</span>
+          </h3>
+          <span className="text-[11px] text-slate-400 font-medium">5 File Mentah Tersimpan</span>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
           {uploadedFilesList.map((file) => (
-            <div key={file.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+            <div key={file.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between hover:border-slate-300 transition">
               <div className="flex items-center gap-2.5 truncate">
                 {file.type === 'omi' ? (
                   <Store className="w-4 h-4 text-[#FF5000] shrink-0" />
@@ -208,9 +211,14 @@ const ManageReport = () => {
                   <p className="text-[10px] text-slate-400 font-mono uppercase">{file.type} &bull; {file.size}</p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
-                Terverifikasi
-              </span>
+              
+              <button
+                onClick={() => alert(`Mengunduh berkas mentah: ${file.name}`)}
+                className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-slate-200 transition cursor-pointer shrink-0 ml-2"
+                title={`Download berkas mentah ${file.name}`}
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
             </div>
           ))}
         </div>

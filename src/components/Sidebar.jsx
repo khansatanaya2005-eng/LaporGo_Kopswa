@@ -16,8 +16,7 @@ const Sidebar = () => {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Proses Laporan', path: '/upload', icon: Upload },
-    { label: 'Hasil Penggabungan', path: '/preview', icon: FileSpreadsheet },
-    { label: 'Arsip Dokumen', path: '/riwayat', icon: FolderArchive },
+    { label: 'Riwayat & Kelola', path: '/riwayat', icon: FolderArchive },
   ];
 
   if (user?.role === 'Admin') {
