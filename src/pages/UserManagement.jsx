@@ -5,10 +5,7 @@ import {
   Shield, 
   Trash2, 
   Edit3, 
-  X,
-  CheckCircle2,
-  Mail,
-  UserCheck
+  X
 } from 'lucide-react';
 import { MOCK_USERS } from '../data/mockData';
 
@@ -71,7 +68,7 @@ const UserManagement = () => {
 
         <button
           onClick={handleOpenAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-md transition"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#0A4D68] hover:bg-[#088395] text-white font-semibold text-xs rounded-xl shadow-md transition"
         >
           <UserPlus className="w-4 h-4" />
           <span>Tambah User Baru</span>
@@ -95,7 +92,7 @@ const UserManagement = () => {
               {users.map((usr) => (
                 <tr key={usr.id} className="hover:bg-slate-50 transition">
                   <td className="py-3.5 px-5 font-semibold text-slate-900 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                    <div className="w-7 h-7 rounded-full bg-[#0A4D68]/10 text-[#0A4D68] flex items-center justify-center font-bold text-xs">
                       {usr.full_name.charAt(0)}
                     </div>
                     <span>{usr.full_name}</span>
@@ -104,7 +101,7 @@ const UserManagement = () => {
                   <td className="py-3.5 px-5">
                     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                       usr.role === 'Admin' 
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200' 
+                        ? 'bg-[#FF5000]/10 text-[#FF5000] border border-[#FF5000]/20' 
                         : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     }`}>
                       <Shield className="w-3 h-3" />
@@ -116,7 +113,7 @@ const UserManagement = () => {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handleOpenEdit(usr)}
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        className="p-1.5 text-slate-500 hover:text-[#0A4D68] hover:bg-[#0A4D68]/10 rounded-lg transition"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
@@ -157,7 +154,7 @@ const UserManagement = () => {
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   placeholder="Contoh: Ahmad Subagyo"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
                 />
               </div>
 
@@ -169,7 +166,7 @@ const UserManagement = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="user@kopswa.id"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
                 />
               </div>
 
@@ -178,7 +175,7 @@ const UserManagement = () => {
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
                 >
                   <option value="Staff">Staff (Input & View Laporan)</option>
                   <option value="Admin">Admin (Full Access & User Management)</option>
@@ -195,7 +192,7 @@ const UserManagement = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-[#0A4D68] hover:bg-[#088395] rounded-lg shadow-sm"
                 >
                   {editingUser ? 'Simpan Perubahan' : 'Tambah User'}
                 </button>

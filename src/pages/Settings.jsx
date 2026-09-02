@@ -50,7 +50,7 @@ const Settings = () => {
       {/* Form Konfigurasi Keyword */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-2.5 bg-[#0A4D68]/10 text-[#0A4D68] rounded-xl">
             <Sliders className="w-5 h-5" />
           </div>
           <div>
@@ -66,13 +66,13 @@ const Settings = () => {
             placeholder="Tambah keyword (mis. BNI, QRIS)..."
             value={newKeyword}
             onChange={(e) => setNewKeyword(e.target.value)}
-            className="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
           />
 
           <select
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
-            className="px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
           >
             <option value="EDC / Bank">EDC / Bank</option>
             <option value="Digital Payment">Digital Payment</option>
@@ -83,7 +83,7 @@ const Settings = () => {
 
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition shrink-0"
+            className="px-4 py-2 bg-[#0A4D68] hover:bg-[#088395] text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah</span>
@@ -104,7 +104,7 @@ const Settings = () => {
             <tbody className="divide-y divide-slate-100">
               {keywords.map((kw) => (
                 <tr key={kw.id} className="hover:bg-slate-50">
-                  <td className="py-3 px-4 font-bold text-blue-700 font-mono">{kw.keyword}</td>
+                  <td className="py-3 px-4 font-bold text-[#0A4D68] font-mono">{kw.keyword}</td>
                   <td className="py-3 px-4 text-slate-700">{kw.category}</td>
                   <td className="py-3 px-4">
                     <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-semibold rounded text-[10px]">
@@ -130,7 +130,7 @@ const Settings = () => {
           <button
             type="button"
             onClick={handleSaveAll}
-            className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-md flex items-center gap-2 transition"
+            className="px-6 py-2.5 bg-[#0A4D68] hover:bg-[#088395] text-white font-semibold text-xs rounded-xl shadow-md flex items-center gap-2 transition"
           >
             <Save className="w-4 h-4" />
             <span>Simpan Konfigurasi</span>

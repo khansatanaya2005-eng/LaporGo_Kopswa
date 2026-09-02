@@ -117,23 +117,23 @@ const UploadReport = () => {
       {/* Two Dropzones */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Dropzone OMI */}
-        <div className="bg-white p-6 rounded-2xl border-2 border-dashed border-blue-200 hover:border-blue-400 transition-colors shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-2xl border-2 border-dashed border-[#0A4D68]/20 hover:border-[#0A4D68]/40 transition-colors shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full uppercase">
+              <span className="px-3 py-1 bg-[#0A4D68]/10 text-[#0A4D68] text-xs font-bold rounded-full uppercase">
                 Toko OMI (Franchise)
               </span>
               <span className="text-xs text-slate-400">Format: .xls, .xlsx, .txt</span>
             </div>
 
             <div className="text-center py-6">
-              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <div className="w-14 h-14 bg-[#0A4D68]/5 text-[#0A4D68] rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <UploadCloud className="w-8 h-8" />
               </div>
               <p className="text-sm font-semibold text-slate-700">Pilih atau Tarik File OMI</p>
               <p className="text-xs text-slate-400 mt-1 mb-4">Dapat memilih lebih dari satu file</p>
               
-              <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-xl cursor-pointer transition">
+              <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#0A4D68]/5 hover:bg-[#0A4D68]/10 text-[#0A4D68] font-semibold text-xs rounded-xl cursor-pointer transition">
                 <span>Browse File OMI</span>
                 <input
                   type="file"
@@ -153,7 +153,7 @@ const UploadReport = () => {
               {omiFiles.map(file => (
                 <div key={file.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg text-xs">
                   <div className="flex items-center gap-2 truncate">
-                    <FileSpreadsheet className="w-4 h-4 text-blue-600 shrink-0" />
+                    <FileSpreadsheet className="w-4 h-4 text-[#0A4D68] shrink-0" />
                     <span className="font-medium text-slate-700 truncate">{file.name}</span>
                     <span className="text-slate-400 text-[10px]">({file.size})</span>
                   </div>

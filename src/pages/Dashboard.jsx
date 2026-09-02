@@ -46,7 +46,7 @@ const Dashboard = () => {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Ringkasan Laporan Harian</h1>
             <p className="text-teal-100/90 text-sm mt-1">
-              Pantau status sinkronisasi laporan keuangan OMI & SMART KOPWA.
+              Pantau status sinkronisasi laporan keuangan OMI & SMART KOPSWA.
             </p>
           </div>
           <Link
@@ -78,7 +78,7 @@ const Dashboard = () => {
               <span className="text-xs text-slate-500">{formatRupiah(latestReport.total_debit)}</span>
             </div>
           </div>
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-3 bg-[#0A4D68]/10 text-[#0A4D68] rounded-xl">
             <Clock className="w-6 h-6" />
           </div>
         </div>
@@ -93,7 +93,7 @@ const Dashboard = () => {
               <span className="text-emerald-600 font-semibold">+12%</span> dibanding bulan lalu
             </p>
           </div>
-          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+          <div className="p-3 bg-[#0A4D68]/10 text-[#0A4D68] rounded-xl">
             <FileSpreadsheet className="w-6 h-6" />
           </div>
         </div>
@@ -130,8 +130,8 @@ const Dashboard = () => {
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorOmset" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#0A4D68" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#0A4D68" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -144,10 +144,10 @@ const Dashboard = () => {
               />
               <Tooltip 
                 formatter={(val) => [formatRupiah(val), "Total Omset"]}
-                contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff' }}
-                itemStyle={{ color: '#60a5fa' }}
+                contentStyle={{ backgroundColor: '#051923', borderRadius: '8px', border: 'none', color: '#fff' }}
+                itemStyle={{ color: '#FF5000' }}
               />
-              <Area type="monotone" dataKey="omset" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorOmset)" />
+              <Area type="monotone" dataKey="omset" stroke="#0A4D68" strokeWidth={3} fillOpacity={1} fill="url(#colorOmset)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -156,8 +156,8 @@ const Dashboard = () => {
       {/* Recent Reports Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">5-10 Laporan Terbaru</h2>
-          <Link to="/riwayat" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+          <h2 className="text-base font-bold text-slate-900">Laporan Terbaru</h2>
+          <Link to="/riwayat" className="text-xs font-semibold text-[#0A4D68] hover:text-[#088395] flex items-center gap-1">
             <span>Lihat Semua</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
@@ -195,7 +195,7 @@ const Dashboard = () => {
                   <td className="py-3.5 px-5 text-right">
                     <Link
                       to={`/preview?id=${row.id}`}
-                      className="text-xs font-semibold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 transition"
+                      className="text-xs font-semibold text-[#0A4D68] hover:bg-[#0A4D68]/10 px-3 py-1.5 rounded-lg border border-[#0A4D68]/30 transition"
                     >
                       Preview
                     </Link>

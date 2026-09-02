@@ -80,8 +80,8 @@ const ReportHistory = () => {
                 reports.map((row) => (
                   <tr key={row.id} className="hover:bg-slate-50 transition">
                     <td className="py-4 px-5 font-semibold text-slate-900 flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-blue-600" />
-                      <span>{row.tanggal}</span>
+                      <Calendar className="w-4 h-4 text-[#0A4D68]" />
+                      <span className="font-bold text-slate-900">{row.tanggal}</span>
                     </td>
                     <td className="py-4 px-5">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
@@ -103,7 +103,7 @@ const ReportHistory = () => {
                         <Link
                           to={`/preview?id=${row.id}`}
                           title="Preview Ulang"
-                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition"
+                          className="flex items-center gap-1 text-xs font-semibold text-[#0A4D68] bg-[#0A4D68]/10 hover:bg-[#0A4D68]/20 px-3 py-1.5 rounded-lg border border-[#0A4D68]/20 transition"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>Preview</span>
