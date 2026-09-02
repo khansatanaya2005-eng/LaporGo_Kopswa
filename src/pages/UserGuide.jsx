@@ -116,7 +116,7 @@ const UserGuide = () => {
             }`}
           >
             <Code2 className="w-4 h-4 text-[#0A4D68]" />
-            <span>3. Panduan IT & Handover Developer</span>
+            <span>3. Spesifikasi Teknis & Handover Developer</span>
           </button>
         </div>
 
