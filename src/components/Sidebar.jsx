@@ -26,34 +26,31 @@ const Sidebar = () => {
 
   return (
     <aside className="w-64 bg-[#051923] text-slate-300 flex flex-col h-full shadow-xl border-r border-[#0A4D68]/30 z-20">
-      {/* Compact Brand Header with Corporate Logos */}
-      <div className="px-4 py-3.5 border-b border-[#0A4D68]/30 bg-[#030F16]">
-        {/* Utama: Logo Koperasi Swadharma */}
-        <div className="bg-white px-2.5 py-1.5 rounded-lg shadow-sm flex items-center justify-center">
+      {/* Balanced Corporate Brand Header */}
+      <div className="p-4 border-b border-[#0A4D68]/30 bg-[#030F16]">
+        {/* Logo Utama: Koperasi Swadharma */}
+        <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100 flex items-center justify-center">
           <img 
             src="/Logo_Kopswa.png" 
             alt="Koperasi Swadharma" 
-            className="h-6 object-contain"
+            className="h-8 object-contain"
           />
         </div>
 
-        {/* Sub-Brand Logos: SMART & OMI in 1 slim bar */}
-        <div className="flex items-center justify-between gap-1.5 mt-2">
-          <div className="flex items-center justify-center gap-1 bg-[#0A4D68]/30 px-2 py-0.5 rounded flex-1 border border-slate-700/30">
-            <span className="text-[8px] text-slate-400 font-bold uppercase">SMART</span>
-            <img src="/smartlogo.png" alt="SMART" className="h-2.5 object-contain" />
+        {/* Sub-Brand Logos: SMART & OMI */}
+        <div className="grid grid-cols-2 gap-2 mt-2.5">
+          <div className="bg-white/95 px-2 py-1.5 rounded-lg flex items-center justify-center border border-slate-200/20 shadow-inner">
+            <img src="/smartlogo.png" alt="SMART" className="h-5 object-contain" />
           </div>
-          <span className="text-[10px] text-slate-600 font-bold">&</span>
-          <div className="flex items-center justify-center gap-1 bg-[#0A4D68]/30 px-2 py-0.5 rounded flex-1 border border-slate-700/30">
-            <span className="text-[8px] text-slate-400 font-bold uppercase">OMI</span>
-            <img src="/logo_omi.png" alt="OMI" className="h-2.5 object-contain" />
+          <div className="bg-white/95 px-2 py-1.5 rounded-lg flex items-center justify-center border border-slate-200/20 shadow-inner">
+            <img src="/logo_omi.png" alt="OMI" className="h-5 object-contain" />
           </div>
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <div className="px-3 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+        <div className="px-3 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
           Menu Utama
         </div>
         {navItems.map((item) => {
@@ -63,7 +60,7 @@ const Sidebar = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? 'bg-[#0A4D68] text-white shadow-md font-semibold border-l-4 border-[#FF5000]'
                     : 'text-slate-400 hover:text-white hover:bg-[#0A4D68]/30'
@@ -77,8 +74,8 @@ const Sidebar = () => {
         })}
       </nav>
 
-      {/* Compact Footer info */}
-      <div className="p-3 border-t border-[#0A4D68]/30 text-[10px] text-slate-400 text-center bg-[#030F16]">
+      {/* Footer info */}
+      <div className="p-3.5 border-t border-[#0A4D68]/30 text-[11px] text-slate-400 text-center bg-[#030F16]">
         <span className="font-semibold text-slate-300">LaporGo</span> &copy; 2026 Koperasi Swadharma
       </div>
     </aside>
