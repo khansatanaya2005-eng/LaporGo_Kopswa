@@ -3,8 +3,9 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, 
-  FilePlus, 
-  History, 
+  Upload, 
+  FileSpreadsheet, 
+  FolderArchive, 
   Users, 
   Settings 
 } from 'lucide-react';
@@ -14,8 +15,9 @@ const Sidebar = () => {
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Proses Laporan', path: '/upload', icon: FilePlus },
-    { label: 'Riwayat Laporan', path: '/riwayat', icon: History },
+    { label: 'Proses Laporan', path: '/upload', icon: Upload },
+    { label: 'Hasil Penggabungan', path: '/preview', icon: FileSpreadsheet },
+    { label: 'Arsip Dokumen', path: '/riwayat', icon: FolderArchive },
   ];
 
   if (user?.role === 'Admin') {
