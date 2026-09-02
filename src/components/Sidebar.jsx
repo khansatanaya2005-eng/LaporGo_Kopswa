@@ -30,23 +30,23 @@ const Sidebar = () => {
       {/* Brand Header with Corporate Logos */}
       <div className="p-5 border-b border-[#0A4D68]/30 bg-[#030F16]">
         {/* Utama: Logo Koperasi Swadharma */}
-        <div className="bg-white p-2.5 rounded-xl shadow-md border border-slate-100 flex items-center justify-center overflow-hidden">
+        <div className="bg-white p-2.5 rounded-xl shadow-md border border-slate-100 flex items-center justify-center">
           <img 
             src="/Logo_Kopswa.png" 
             alt="Koperasi Swadharma" 
-            className="h-9 max-h-9 w-auto object-contain shrink-0"
+            className="h-9 object-contain"
           />
         </div>
 
         {/* Sub-Brand Logos: OMI & SMART */}
         <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800/80">
-          <div className="flex items-center gap-1.5 bg-[#0A4D68]/40 px-2.5 py-1 rounded-lg flex-1 justify-center border border-slate-700/40 overflow-hidden">
+          <div className="flex items-center gap-1.5 bg-[#0A4D68]/40 px-2.5 py-1 rounded-lg flex-1 justify-center border border-slate-700/40">
             <span className="text-[9px] text-slate-400 font-semibold uppercase">Unit:</span>
-            <img src="/smartlogo.png" alt="SMART" className="h-4 max-h-4 w-auto object-contain shrink-0" />
+            <img src="/smartlogo.png" alt="SMART" className="h-4 object-contain" />
           </div>
-          <div className="flex items-center gap-1.5 bg-[#0A4D68]/40 px-2.5 py-1 rounded-lg flex-1 justify-center border border-slate-700/40 overflow-hidden">
+          <div className="flex items-center gap-1.5 bg-[#0A4D68]/40 px-2.5 py-1 rounded-lg flex-1 justify-center border border-slate-700/40">
             <span className="text-[9px] text-slate-400 font-semibold uppercase">Mitra:</span>
-            <img src="/logo_omi.png" alt="OMI" className="h-4 max-h-4 w-auto object-contain shrink-0" />
+            <img src="/logo_omi.png" alt="OMI" className="h-4 object-contain" />
           </div>
         </div>
 
