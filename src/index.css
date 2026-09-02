@@ -1,42 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --color-kopswa-teal-50: #e6f5f7;
-  --color-kopswa-teal-100: #ccebf0;
-  --color-kopswa-teal-500: #008392;
-  --color-kopswa-teal-600: #00606b;
-  --color-kopswa-teal-700: #004b54;
-  --color-kopswa-teal-800: #00373e;
-  --color-kopswa-teal-900: #00252a;
-  --color-kopswa-teal-950: #001518;
-
-  --color-kopswa-orange-500: #ff5000;
-  --color-kopswa-orange-600: #e04600;
-  --color-kopswa-orange-700: #c23c00;
+  --color-kopswa-teal: #0A4D68;
+  --color-kopswa-teal-dark: #051923;
+  --color-kopswa-teal-light: #088395;
+  --color-kopswa-orange: #FF5000;
+  --color-kopswa-bg: #F8FAFC;
 }
 
 @layer base {
   body {
-    background-color: #f4f8f9;
-    color: #0f172a;
+    background-color: #F8FAFC;
+    color: #0F172A;
     font-family: ui-sans-serif, system-ui, sans-serif;
     min-height: 100vh;
   }
 }
 
-/* Custom scrollbar for tables */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   height: 8px;
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #e6f5f7;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #008392;
+  background: #0A4D68;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #00606b;
+  background: #051923;
 }
+
 

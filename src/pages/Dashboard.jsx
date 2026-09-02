@@ -39,21 +39,24 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-blue-950 p-6 rounded-2xl text-white shadow-lg">
-        <div>
-          <h1 className="text-2xl font-bold">Ringkasan Laporan Harian</h1>
-          <p className="text-slate-300 text-sm mt-1">
-            Pantau status sinkronisasi laporan keuangan OMI & SMART KOPSWA.
-          </p>
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-r from-[#051923] via-[#0A4D68] to-[#088395] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-full bg-white/5 transform skew-x-12 pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Ringkasan Laporan Harian</h1>
+            <p className="text-teal-100/90 text-sm mt-1">
+              Pantau status sinkronisasi laporan keuangan OMI & SMART KOPWA.
+            </p>
+          </div>
+          <Link
+            to="/upload"
+            className="inline-flex items-center justify-center gap-2 bg-[#FF5000] hover:bg-[#e04600] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all shrink-0 active:scale-95"
+          >
+            <FilePlus className="w-4 h-4" />
+            <span>Buat Laporan Baru</span>
+          </Link>
         </div>
-        <Link
-          to="/upload"
-          className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all shrink-0 text-sm"
-        >
-          <FilePlus className="w-4 h-4" />
-          <span>Buat Laporan Baru</span>
-        </Link>
       </div>
 
       {/* Stats Cards */}
