@@ -119,11 +119,18 @@ const ReportPreview = () => {
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Proses Ulang</span>
           </button>
+
+          <button
+            onClick={() => alert("Laporan berhasil disimpan ke Database & Riwayat!")}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#FF5000] hover:bg-[#e04600] text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer active:scale-95"
+          >
+            <span>💾 Simpan Ke Database</span>
+          </button>
           
           <button
             onClick={handleDownloadExcel}
             disabled={downloading}
-            className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition disabled:opacity-50 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>{downloading ? 'Mengunduh...' : 'Download Excel (.xlsx)'}</span>

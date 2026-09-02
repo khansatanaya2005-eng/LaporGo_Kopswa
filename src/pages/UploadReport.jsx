@@ -90,28 +90,27 @@ const UploadReport = () => {
     }
   };
 
-  // Process Report Action (Simulasi backend merge)
+  // Process Report Action (Navigasi ke Halaman 2: Hasil Penggabungan / Preview)
   const handleProcessReport = () => {
     if (!isAllMandatoryComplete) return;
 
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
-      setHasProcessed(true);
-      setReportResult({
-        summary: {
-          totalDebit: 43490000,
-          totalKredit: 43490000,
-          selisih: 0,
-          jumlahTransaksi: 142,
-          statusBalance: 'Balance'
-        },
-        omsetRows: MOCK_OMSET_DATA
+      navigate('/preview', {
+        state: {
+          reportData: {
+            summary: {
+              totalDebit: 43490000,
+              totalKredit: 43490000,
+              selisih: 0,
+              jumlahTransaksi: 142,
+              statusBalance: 'Balance'
+            },
+            omsetRows: MOCK_OMSET_DATA
+          }
+        }
       });
-      // Scroll to result table
-      setTimeout(() => {
-        document.getElementById('hasil-gabungan-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
     }, 1800);
   };
 
