@@ -150,9 +150,13 @@ const UploadReport = () => {
                   <FileSlotRow title="LAPORAN PENJUALAN PER TANGGAL.xls" isMandatory
                     description="Sumber: HPP, PPN, Cash, Kredit, E-Money" accept=".xls,.xlsx"
                     uploadedFiles={omiPerTanggal} onUpload={setOmiPerTanggal} onRemove={() => setOmiPerTanggal([])} />
-                  <FileSlotRow title="LAPORAN TUTUP HARIAN.txt" isMandatory
+                  <FileSlotRow title="LAPORAN TUTUP HARIAN (.txt)" isMandatory isMulti
                     description="Sumber: Diskon (Pot.Produk) dan Tunai aktual" accept=".txt" isStruk
-                    uploadedFiles={omiTutupHarian} onUpload={setOmiTutupHarian} onRemove={() => setOmiTutupHarian([])} />
+                    uploadedFiles={omiTutupHarian}
+                    onUpload={(f) => setOmiTutupHarian(p => [...p, ...f])}
+                    onRemove={(idx) => typeof idx === 'number'
+                      ? setOmiTutupHarian(p => p.filter((_, i) => i !== idx))
+                      : setOmiTutupHarian([])} />
                 </div>
               </div>
 
