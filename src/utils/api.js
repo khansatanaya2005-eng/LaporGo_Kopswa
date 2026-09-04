@@ -12,10 +12,20 @@ const OMSET_COL_DEFS = [
 const COLS_DEBIT  = [5, 6, 7, 14, 15, 19, 20, 21, 22];
 const COLS_KREDIT = [8, 9, 10, 11, 12, 13, 16, 17, 18];
 
+function cleanNum(val) {
+  if (val === undefined || val === null || val === '') return 0;
+  if (typeof val === 'number') return val;
+  const str = String(val).trim();
+  if (!str || str === '-') return 0;
+  // If format is Indonesian like "15.400.000" or "1.694.000,00"
+  const cleaned = str.replace(/Rp\s*/gi, '').replace(/\./g, '').replace(',', '.').trim();
+  return parseFloat(cleaned) || 0;
+}
+
 async function parseOmiPerTanggal(file) {
   if (!file) return { bkpBersih: 0, bkpPpn: 0, bkpTotal: 0, nonBkpBersih: 0, grandTotalBersih: 0, dppTotal: 0 };
   const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: 'array' });
+  const wb = XLSX.read(buffer, { type: 'array', raw: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
@@ -27,13 +37,13 @@ async function parseOmiPerTanggal(file) {
     const colB = String(row[1] || '').trim().toUpperCase();
 
     if (colB.includes('BRG KENA PAJAK (BKP)')) {
-      bkpBersih = parseFloat(row[7]) || 0;
-      bkpPpn    = parseFloat(row[8]) || 0;
-      bkpTotal  = parseFloat(row[9]) || 0;
+      bkpBersih = cleanNum(row[7]);
+      bkpPpn    = cleanNum(row[8]);
+      bkpTotal  = cleanNum(row[9]);
     } else if (colB.includes('BRG TDK KENA PAJAK (NON BKP)')) {
-      nonBkpBersih = parseFloat(row[7]) || 0;
+      nonBkpBersih = cleanNum(row[7]);
     } else if (colB.includes('GRAND TOTAL')) {
-      grandTotalBersih = parseFloat(row[7]) || 0;
+      grandTotalBersih = cleanNum(row[7]);
     }
   }
 
@@ -54,8 +64,7 @@ async function parseOmiTutupHarian(files = []) {
   const findVal = (pattern) => {
     const m = fullText.match(pattern);
     if (!m) return 0;
-    const cleanStr = m[1].replace(/\./g, '').replace(',', '.').trim();
-    return parseFloat(cleanStr) || 0;
+    return cleanNum(m[1]);
   };
 
   const promo      = findVal(/PROMO\s*:\s*([\d.,]+)/i);
@@ -70,7 +79,7 @@ async function parseOmiTutupHarian(files = []) {
 async function parseSmartFile(file) {
   if (!file) return { kategori: 'TOKO', totalBni: 0, totalQris: 0, totalSmart: 0 };
   const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: 'array' });
+  const wb = XLSX.read(buffer, { type: 'array', raw: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
@@ -90,7 +99,7 @@ async function parseSmartFile(file) {
   let totalBni = 0, totalQris = 0;
   for (let r = 0; r < rows.length; r++) {
     const label = String(rows[r][1] || rows[r][0] || '').trim().toUpperCase();
-    const val   = parseFloat(rows[r][4] || rows[r][3] || rows[r][2]) || 0;
+    const val   = cleanNum(rows[r][4] || rows[r][3] || rows[r][2]);
     if (label.includes('BNI') && !label.includes('QRIS')) totalBni += val;
     else if (label.includes('QRIS')) totalQris += val;
   }
