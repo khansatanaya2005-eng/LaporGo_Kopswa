@@ -41,11 +41,18 @@ async function parseOmiPerTanggal(file) {
   return { bkpBersih, bkpPpn, bkpTotal, nonBkpBersih, grandTotalBersih, dppTotal };
 }
 
-async function parseOmiTutupHarian(file) {
-  if (!file) return { promo: 0, kreditPgw: 0, emoney: 0, tunaiAktual: 0, totalOmset: 0 };
-  const text = await file.text();
+async function parseOmiTutupHarian(files = []) {
+  const fileArray = Array.isArray(files) ? files : [files];
+  let fullText = '';
+  for (const f of fileArray) {
+    if (f && typeof f.text === 'function') {
+      fullText += '\n' + (await f.text());
+    }
+  }
+  if (!fullText.trim()) return { promo: 0, kreditPgw: 0, emoney: 0, tunaiAktual: 0, totalOmset: 0 };
+
   const findVal = (pattern) => {
-    const m = text.match(pattern);
+    const m = fullText.match(pattern);
     if (!m) return 0;
     const cleanStr = m[1].replace(/\./g, '').replace(',', '.').trim();
     return parseFloat(cleanStr) || 0;
@@ -186,11 +193,13 @@ export async function processLaporan(fileSlots) {
   const {
     omiPerTanggal = [],
     omiTutupHarian = [],
+    omiStrukTxt = [],
     smartFiles = [],
   } = fileSlots;
 
+  const allTxtFiles = [...omiTutupHarian, ...omiStrukTxt];
   const omiXls = await parseOmiPerTanggal(omiPerTanggal[0]);
-  const omiTxt = await parseOmiTutupHarian(omiTutupHarian[0]);
+  const omiTxt = await parseOmiTutupHarian(allTxtFiles);
 
   let smartToko = { totalSmart: 0 }, smartLogo = { totalSmart: 0 };
   for (const f of smartFiles) {
