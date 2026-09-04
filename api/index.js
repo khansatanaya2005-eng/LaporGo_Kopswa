@@ -2,17 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const XLSX = require('xlsx');
-const ExcelJS = require('exceljs');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json());
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }
-});
+const upload = multer({ storage: multer.memoryStorage() });
 
 const OMSET_COL_DEFS = [
   'no', 'nama_ref', 'jenis_transaksi', 'kwitansi', 'keterangan',
@@ -25,10 +20,6 @@ const OMSET_COL_DEFS = [
 
 const COLS_DEBIT  = [5, 6, 7, 14, 15, 19, 20, 21, 22];
 const COLS_KREDIT = [8, 9, 10, 11, 12, 13, 16, 17, 18];
-
-// ─────────────────────────────────────────────
-// PARSERS
-// ─────────────────────────────────────────────
 
 function parseOmiPerTanggal(buffer) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
@@ -114,13 +105,11 @@ function buildOmsetRows(parsedData) {
   const { omiXls, omiTxt, smartToko, smartLogo } = parsedData;
   const rows = [];
 
-  // Baris 1: promo
   const r1 = buildEmptyRow(1, 'promo', '', '', 'Potongan Produk / Diskon');
   r1.tag_promo = omiTxt.promo;
   r1.kas_uks   = omiTxt.promo;
   rows.push(r1);
 
-  // Baris 2: omset omi
   const r2 = buildEmptyRow(2, 'omset omi', '', '', 'Penjualan Toko OMI');
   r2.pendapatan_toko = omiXls.bkpBersih;
   r2.non_pajak       = omiXls.nonBkpBersih;
@@ -129,7 +118,6 @@ function buildOmsetRows(parsedData) {
   r2.persediaan_toko = omiXls.dppTotal;
   rows.push(r2);
 
-  // Baris 3: omset smart
   const r3 = buildEmptyRow(3, 'omset smart', '', '', 'Penjualan SMART TOKO');
   if (smartToko.totalSmart > 0) {
     const dpp = Math.round(smartToko.totalSmart / 1.11);
@@ -141,7 +129,6 @@ function buildOmsetRows(parsedData) {
   }
   rows.push(r3);
 
-  // Baris 4: omset logo
   const r4 = buildEmptyRow(4, 'omset logo', '', '', 'Penjualan SMART LOGO');
   if (smartLogo.totalSmart > 0) {
     const dpp = Math.round(smartLogo.totalSmart / 1.11);
@@ -153,27 +140,22 @@ function buildOmsetRows(parsedData) {
   }
   rows.push(r4);
 
-  // Baris 5: pegawai
   const r5 = buildEmptyRow(5, 'pegawai', '', '', 'Kredit Anggota Pegawai');
   r5.piutang = omiTxt.kreditPgw;
   rows.push(r5);
 
-  // Baris 6: e-money
   const r6 = buildEmptyRow(6, 'e-money', '', '', 'Transaksi E-Money OMI');
   r6.piutang_edc = omiTxt.emoney;
   rows.push(r6);
 
-  // Baris 7: tunai
   const r7 = buildEmptyRow(7, 'tunai', '', '', 'Kas Tunai Aktual');
   r7.kas_uks = omiTxt.tunaiAktual;
   rows.push(r7);
 
-  // Baris 8: QRIS BNI BNI
   const r8 = buildEmptyRow(8, 'QRIS BNI BNI', 'QRIS BNI', '', 'Pembayaran SMART TOKO');
   r8.piutang_edc = smartToko.totalSmart;
   rows.push(r8);
 
-  // Baris 9: BNI DIVISI INS1 BNI DIVISI INS1
   const r9 = buildEmptyRow(9, 'BNI DIVISI INS1 BNI DIVISI INS1', 'BNI DIVISI INS1', '', 'Pembelian SMART LOGO');
   r9.piutang = smartLogo.totalSmart;
   rows.push(r9);
@@ -201,25 +183,17 @@ function calculateSummary(rows) {
   };
 }
 
-// ─────────────────────────────────────────────
-// ENDPOINTS
-// ─────────────────────────────────────────────
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'LaporGo Vercel Serverless Function active', version: '2.0.0' });
-});
-
 app.post('/api/process-laporan', upload.fields([
   { name: 'omi_per_tanggal',  maxCount: 1 },
   { name: 'omi_tutup_harian', maxCount: 1 },
   { name: 'smart_files',      maxCount: 5 },
   { name: 'omi_member',       maxCount: 1 },
   { name: 'detail_smart',     maxCount: 1 },
-]), async (req, res) => {
+]), (req, res) => {
   try {
     const files = req.files || {};
     if (!files['omi_per_tanggal']?.[0] || !files['omi_tutup_harian']?.[0]) {
-      return res.status(400).json({ error: 'File wajib OMI (Per Tanggal .xls & Tutup Harian .txt) belum lengkap.' });
+      return res.status(400).json({ error: 'File wajib OMI belum lengkap.' });
     }
 
     const omiXls = parseOmiPerTanggal(files['omi_per_tanggal'][0].buffer);
@@ -237,7 +211,7 @@ app.post('/api/process-laporan', upload.fields([
     const omsetRows = buildOmsetRows({ omiXls, omiTxt, smartToko, smartLogo });
     const summary   = calculateSummary(omsetRows);
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       data: { omsetRows, summary, warnings: [] }
     });
