@@ -150,13 +150,9 @@ const UploadReport = () => {
                   <FileSlotRow title="LAPORAN PENJUALAN PER TANGGAL.xls" isMandatory
                     description="Sumber: HPP, PPN, Cash, Kredit, E-Money" accept=".xls,.xlsx"
                     uploadedFiles={omiPerTanggal} onUpload={setOmiPerTanggal} onRemove={() => setOmiPerTanggal([])} />
-                  <FileSlotRow title="LAPORAN TUTUP HARIAN / STRUK (.txt)" isMandatory isMulti
-                    description="Sumber: Diskon (Pot.Produk), Tunai aktual, & Struk Kasir" accept=".txt" isStruk
-                    uploadedFiles={omiTutupHarian}
-                    onUpload={(f) => setOmiTutupHarian(p => [...p, ...f])}
-                    onRemove={(idx) => typeof idx === 'number'
-                      ? setOmiTutupHarian(p => p.filter((_, i) => i !== idx))
-                      : setOmiTutupHarian([])} />
+                  <FileSlotRow title="LAPORAN TUTUP HARIAN.txt" isMandatory
+                    description="Sumber: Diskon (Pot.Produk) dan Tunai aktual" accept=".txt" isStruk
+                    uploadedFiles={omiTutupHarian} onUpload={setOmiTutupHarian} onRemove={() => setOmiTutupHarian([])} />
                 </div>
               </div>
 
@@ -174,7 +170,7 @@ const UploadReport = () => {
                     description="Rincian diskon per item" accept=".xls,.xlsx"
                     uploadedFiles={omiDiscItem} onUpload={setOmiDiscItem} onRemove={() => setOmiDiscItem([])} />
                   <FileSlotRow title="BERKAS STRUK (.txt)" isMulti isStruk
-                    description="Upload lebih dari 1 file struk sekaligus" accept=".txt"
+                    description="Upload lebih dari 1 file struk kasir/anggota sekaligus" accept=".txt"
                     uploadedFiles={omiStrukTxt}
                     onUpload={(f) => setOmiStrukTxt(p => [...p, ...f])}
                     onRemove={(idx) => typeof idx === 'number'
