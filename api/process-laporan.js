@@ -1,14 +1,35 @@
-const multer = require('multer');
+const Busboy = require('busboy');
 const XLSX = require('xlsx');
 
-const upload = multer({ storage: multer.memoryStorage() });
-
-function runMiddleware(req, res, fn) {
+function parseForm(req) {
   return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) return reject(result);
-      return resolve(result);
+    const busboy = Busboy({ headers: req.headers });
+    const files = {};
+
+    busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+      const fileBuffers = [];
+      file.on('data', (data) => fileBuffers.push(data));
+      file.on('end', () => {
+        const fileBuffer = Buffer.concat(fileBuffers);
+        const fileObj = {
+          buffer: fileBuffer,
+          originalname: typeof filename === 'object' ? filename.filename : filename,
+        };
+        if (!files[fieldname]) {
+          files[fieldname] = [];
+        }
+        files[fieldname].push(fileObj);
+      });
     });
+
+    busboy.on('finish', () => resolve(files));
+    busboy.on('error', (err) => reject(err));
+
+    if (req.rawBody) {
+      busboy.end(req.rawBody);
+    } else {
+      req.pipe(busboy);
+    }
   });
 }
 
@@ -196,8 +217,7 @@ module.exports = async function handler(req, res) {
   );
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
@@ -205,17 +225,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const multerUpload = upload.fields([
-      { name: 'omi_per_tanggal',  maxCount: 1 },
-      { name: 'omi_tutup_harian', maxCount: 1 },
-      { name: 'smart_files',      maxCount: 5 },
-      { name: 'omi_member',       maxCount: 1 },
-      { name: 'detail_smart',     maxCount: 1 },
-    ]);
+    const files = await parseForm(req);
 
-    await runMiddleware(req, res, multerUpload);
-
-    const files = req.files || {};
     if (!files['omi_per_tanggal']?.[0] || !files['omi_tutup_harian']?.[0]) {
       return res.status(400).json({ error: 'File wajib OMI (Per Tanggal .xls & Tutup Harian .txt) belum lengkap.' });
     }
