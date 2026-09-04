@@ -12,43 +12,48 @@ const OMSET_COL_DEFS = [
 const COLS_DEBIT  = [5, 6, 7, 14, 15, 19, 20, 21, 22];
 const COLS_KREDIT = [8, 9, 10, 11, 12, 13, 16, 17, 18];
 
-function cleanNum(val) {
-  if (val === undefined || val === null || val === '') return 0;
-  if (typeof val === 'number') return val;
-  const str = String(val).trim();
-  if (!str || str === '-') return 0;
-  // If format is Indonesian like "15.400.000" or "1.694.000,00"
-  const cleaned = str.replace(/Rp\s*/gi, '').replace(/\./g, '').replace(',', '.').trim();
-  return parseFloat(cleaned) || 0;
+function getCellVal(ws, r, c) {
+  const cellAddress = XLSX.utils.encode_cell({ r, c });
+  return ws[cellAddress]?.v ?? null;
+}
+
+function findRowByText(ws, text, colIdx = 1, maxRow = 150) {
+  const ref = ws['!ref'] || 'A1:AJ150';
+  const range = XLSX.utils.decode_range(ref);
+  for (let r = range.s.r; r <= Math.min(range.e.r, maxRow); r++) {
+    const v = String(getCellVal(ws, r, colIdx) ?? '');
+    if (v.toUpperCase().includes(text.toUpperCase())) return r;
+  }
+  return -1;
+}
+
+function parseRupiah(str) {
+  if (str == null) return 0;
+  return parseInt(String(str).replace(/Rp\s*/i, '').replace(/\./g, '').replace(/,.*$/, '').trim()) || 0;
+}
+
+function parseTxtAmount(line) {
+  const m = line.match(/([\d.]+)\s*$/);
+  return m ? parseInt(m[1].replace(/\./g, '')) || 0 : 0;
 }
 
 async function parseOmiPerTanggal(file) {
   if (!file) return { bkpBersih: 0, bkpPpn: 0, bkpTotal: 0, nonBkpBersih: 0, grandTotalBersih: 0, dppTotal: 0 };
   const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: 'array', raw: true });
+  const wb = XLSX.read(buffer, { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-  let bkpBersih = 0, bkpPpn = 0, bkpTotal = 0;
-  let nonBkpBersih = 0, grandTotalBersih = 0;
+  const rowBKP   = findRowByText(ws, 'BRG KENA PAJAK');
+  const rowCukai = findRowByText(ws, 'BRG KENA CUKAI');
 
-  for (let r = 0; r < rows.length; r++) {
-    const row = rows[r];
-    const colB = String(row[1] || '').trim().toUpperCase();
+  const g = (r, c) => Number(getCellVal(ws, r, c)) || 0;
 
-    if (colB.includes('BRG KENA PAJAK (BKP)')) {
-      bkpBersih = cleanNum(row[7]);
-      bkpPpn    = cleanNum(row[8]);
-      bkpTotal  = cleanNum(row[9]);
-    } else if (colB.includes('BRG TDK KENA PAJAK (NON BKP)')) {
-      nonBkpBersih = cleanNum(row[7]);
-    } else if (colB.includes('GRAND TOTAL')) {
-      grandTotalBersih = cleanNum(row[7]);
-    }
-  }
+  const bkpBersih    = rowBKP !== -1 ? g(rowBKP, 33) : 0;
+  const nonBkpBersih = rowCukai !== -1 ? g(rowCukai, 33) : 0;
+  const bkpPpn       = rowBKP !== -1 ? g(rowBKP, 23) : 0;
 
   const dppTotal = bkpBersih + nonBkpBersih;
-  return { bkpBersih, bkpPpn, bkpTotal, nonBkpBersih, grandTotalBersih, dppTotal };
+  return { bkpBersih, bkpPpn, bkpTotal: bkpBersih + bkpPpn, nonBkpBersih, dppTotal };
 }
 
 async function parseOmiTutupHarian(files = []) {
@@ -61,50 +66,40 @@ async function parseOmiTutupHarian(files = []) {
   }
   if (!fullText.trim()) return { promo: 0, kreditPgw: 0, emoney: 0, tunaiAktual: 0, totalOmset: 0 };
 
-  const findVal = (pattern) => {
-    const m = fullText.match(pattern);
-    if (!m) return 0;
-    return cleanNum(m[1]);
-  };
+  const lines = fullText.split('\n');
+  let potProduk = 0, tunai = 0, kredit = 0, emoney = 0;
 
-  const promo      = findVal(/PROMO\s*:\s*([\d.,]+)/i);
-  const kreditPgw  = findVal(/KREDIT\s+PEGAWAI\s*:\s*([\d.,]+)/i);
-  const emoney     = findVal(/E-MONEY\s*:\s*([\d.,]+)/i);
-  const tunaiAktual= findVal(/KAS\s+AKTUALL?\s*:\s*([\d.,]+)/i);
-  const totalOmset = findVal(/TOTAL\s+OMSET\s*:\s*([\d.,]+)/i);
+  for (const raw of lines) {
+    const line = raw.replace(/\r/, '').trim();
+    if (/Pot\.Produk/i.test(line)) potProduk = parseTxtAmount(line);
+    else if (/^-\s*Tunai/i.test(line)) tunai = parseTxtAmount(line);
+    else if (/^-\s*Kredit/i.test(line)) kredit = parseTxtAmount(line);
+    else if (/^-\s*E-Money/i.test(line)) emoney = parseTxtAmount(line);
+  }
 
-  return { promo, kreditPgw, emoney, tunaiAktual, totalOmset };
+  return { promo: potProduk, kreditPgw: kredit, emoney, tunaiAktual: tunai, totalOmset: tunai + kredit + emoney };
 }
 
 async function parseSmartFile(file) {
   if (!file) return { kategori: 'TOKO', totalBni: 0, totalQris: 0, totalSmart: 0 };
   const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: 'array', raw: true });
+  const wb = XLSX.read(buffer, { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-  let kategori = null;
-  for (let r = 0; r < Math.min(10, rows.length); r++) {
-    const rowStr = rows[r].join(' ').toUpperCase();
-    if (rowStr.includes('KATEGORI TOKO') || rowStr.includes('RINGKASAN TOKO')) { kategori = 'TOKO'; break; }
-    if (rowStr.includes('KATEGORI LOGO') || rowStr.includes('RINGKASAN LOGO')) { kategori = 'LOGO'; break; }
-  }
-  if (!kategori) {
-    const fname = (file.name || '').toUpperCase();
-    if (fname.includes('TOKO')) kategori = 'TOKO';
-    else if (fname.includes('LOGO')) kategori = 'LOGO';
-    else kategori = 'TOKO';
+  const header = String(ws['B5']?.v || '');
+  let kategori = 'TOKO';
+  if (header.includes('Kategori LOGO') || wb.SheetNames[0].toUpperCase().includes('LOGO')) {
+    kategori = 'LOGO';
   }
 
-  let totalBni = 0, totalQris = 0;
-  for (let r = 0; r < rows.length; r++) {
-    const label = String(rows[r][1] || rows[r][0] || '').trim().toUpperCase();
-    const val   = cleanNum(rows[r][4] || rows[r][3] || rows[r][2]);
-    if (label.includes('BNI') && !label.includes('QRIS')) totalBni += val;
-    else if (label.includes('QRIS')) totalQris += val;
-  }
+  const parseLine = (v) => {
+    const m = String(v || '').match(/([\d.,]+)\s*$/);
+    return m ? parseRupiah('Rp ' + m[1]) : 0;
+  };
 
-  return { kategori, totalBni, totalQris, totalSmart: totalBni + totalQris };
+  const totalSmart = parseLine(ws['B12']?.v) || parseLine(ws['B13']?.v) || 0;
+
+  return { kategori, totalBni: totalSmart, totalQris: 0, totalSmart };
 }
 
 function buildEmptyRow(no, namaRef, jenisTx, kwitansi, keterangan) {
@@ -195,9 +190,6 @@ function calculateSummary(rows) {
   };
 }
 
-/**
- * Client-Side Browser Parsing sesuai Opsi A saran AI Agent lama
- */
 export async function processLaporan(fileSlots) {
   const {
     omiPerTanggal = [],
