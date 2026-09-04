@@ -1,312 +1,306 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Download, 
-  RefreshCw, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Search, 
-  ArrowUpDown, 
-  FileSpreadsheet,
-  Layers,
-  ChevronLeft,
-  ChevronRight
+import {
+  Download, RefreshCw, CheckCircle2, AlertTriangle,
+  Search, ArrowUpDown, Layers, ChevronLeft, ChevronRight,
+  Save, Loader2, Check, Info
 } from 'lucide-react';
-import { MOCK_OMSET_DATA } from '../data/mockData';
 import { formatRupiah } from '../utils/cn';
+import { downloadExcel } from '../utils/api';
+import { saveLaporanToSupabase, uploadOutputExcel, updateLaporan, isSupabaseConfigured } from '../lib/supabaseClient';
+
+const OMSET_HEADERS = [
+  'NO','NAMA DAN REF','JENIS TRANSAKSI','KWITANSI','KETERANGAN',
+  'TAG PROMO','GIRO UDP','PIUTANG',
+  'PENDAPATAN TOKO','PENDAPATAN LOGO','PENDAPATAN KERJASAMA',
+  'NON PAJAK','PPN PK','PPN WAPU',
+  'BEBAN TOKO','BEBAN LOGO',
+  'PERSEDIAAN TOKO','PERSEDIAAN LOGO',
+  'SIMSEM UKS','KAS UKS','PIUTANG PADI','PIUTANG EDC','BEBAN PROMOSI'
+];
+
+const OMSET_KEYS = [
+  'no','nama_ref','jenis_transaksi','kwitansi','keterangan',
+  'tag_promo','giro_udp','piutang',
+  'pendapatan_toko','pendapatan_logo','pendapatan_kerjasama',
+  'non_pajak','ppn_pk','ppn_wapu',
+  'beban_toko','beban_logo',
+  'persediaan_toko','persediaan_logo',
+  'simsem_uks','kas_uks','piutang_padi','piutang_edc','beban_promosi'
+];
+
+const NUMERIC_COLS = new Set(OMSET_KEYS.slice(5)); // kolom 6–23 adalah angka
 
 const ReportPreview = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
-  // Load state or fallback mock data
-  const reportData = location.state?.reportData || {
-    summary: {
-      totalDebit: 43490000,
-      totalKredit: 43490000,
-      selisih: 0,
-      jumlahTransaksi: 142,
-      statusBalance: 'Balance'
-    },
-    omsetRows: MOCK_OMSET_DATA
-  };
+  const { reportData, sourceFiles } = location.state || {};
 
-  const [activeTab, setActiveTab] = useState('OMSET');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortAsc, setSortAsc] = useState(true);
-  const [downloading, setDownloading] = useState(false);
+  // Redirect jika tidak ada data
+  if (!reportData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4 text-slate-500">
+        <Layers className="w-12 h-12 text-slate-300" />
+        <p className="font-semibold">Tidak ada data laporan.</p>
+        <button onClick={() => navigate('/upload')}
+          className="px-5 py-2 bg-[#FF5000] text-white text-xs font-bold rounded-xl cursor-pointer">
+          Kembali ke Upload
+        </button>
+      </div>
+    );
+  }
+
+  const { omsetRows = [], summary = {}, warnings = [] } = reportData;
+  const isBalance = summary.statusBalance === 'Balance';
+
+  const [activeTab,    setActiveTab]    = useState('OMSET');
+  const [searchTerm,   setSearchTerm]   = useState('');
+  const [sortAsc,      setSortAsc]      = useState(true);
+  const [downloading,  setDownloading]  = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [saved,        setSaved]        = useState(false);
 
   const tabs = [
-    { id: 'OMSET', label: 'Sheet OMSET' },
-    { id: 'DETAIL_SMART', label: 'Detail SMART' },
-    { id: 'RINGKASAN_TOKO', label: 'Ringkasan Toko' },
-    { id: 'RINGKASAN_LOGO', label: 'Ringkasan Logo' },
-    { id: 'OMI_PERTANGGAL', label: 'OMI Pertanggal' },
-    { id: 'OMI_MEMBER', label: 'OMI Member' },
+    { id: 'OMSET',  label: 'Sheet OMSET' },
+    { id: 'DETAIL', label: 'Ringkasan' },
   ];
 
-  // Filtering & Sorting OMSET
-  const filteredRows = reportData.omsetRows.filter((row) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      row.nama_ref.toLowerCase().includes(term) ||
-      row.jenis_transaksi.toLowerCase().includes(term) ||
-      row.kwitansi.toLowerCase().includes(term) ||
-      row.keterangan.toLowerCase().includes(term)
-    );
+  const filteredRows = omsetRows.filter(r => {
+    const t = searchTerm.toLowerCase();
+    return r.nama_ref?.toLowerCase().includes(t) ||
+           r.jenis_transaksi?.toLowerCase().includes(t) ||
+           r.keterangan?.toLowerCase().includes(t);
   });
+  const sortedRows = [...filteredRows].sort((a, b) => sortAsc ? a.no - b.no : b.no - a.no);
 
-  const sortedRows = [...filteredRows].sort((a, b) => {
-    if (sortAsc) return a.no - b.no;
-    return b.no - a.no;
-  });
-
+  // Download Excel dari backend
   const handleDownloadExcel = async () => {
     setDownloading(true);
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${apiBase}/download-excel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reportData)
-      }).catch(() => null);
-
-      if (response && response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Laporan_Gabungan_${new Date().toISOString().split('T')[0]}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      } else {
-        // Fallback simulation download
-        alert("Simulasi Download Excel: Endpoint backend Express dapat dipanggil untuk menggenerate file .xlsx sesungguhnya.");
-      }
+      const tanggal = summary.tanggal || new Date().toISOString().split('T')[0];
+      await downloadExcel(`Laporan_Gabungan_${tanggal}.xlsx`);
     } catch (e) {
-      alert("Terjadi kesalahan saat download.");
+      alert('Gagal mengunduh Excel: ' + e.message);
     } finally {
       setDownloading(false);
     }
   };
 
-  const isBalance = reportData.summary.statusBalance === 'Balance';
+  // Simpan ke Supabase (laporan + omset_rows + warnings)
+  const handleSave = async () => {
+    if (saved) return;
+    setSaving(true);
+    try {
+      if (isSupabaseConfigured()) {
+        // Buat file metadata dari sourceFiles
+        const filesMeta = [
+          sourceFiles?.omiPerTanggal  && { nama_file: sourceFiles.omiPerTanggal,  kategori: 'omi_per_tanggal'  },
+          sourceFiles?.omiTutupHarian && { nama_file: sourceFiles.omiTutupHarian, kategori: 'omi_tutup_harian' },
+          ...(sourceFiles?.smartFiles || []).map(n => ({ nama_file: n, kategori: 'smart_toko' })),
+        ].filter(Boolean);
+
+        await saveLaporanToSupabase(
+          { tanggal: summary.tanggal, summary, omsetRows, warnings },
+          filesMeta
+        );
+      }
+      setSaved(true);
+    } catch (e) {
+      alert('Gagal menyimpan: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Top Header Controls */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer shrink-0"
-            title="Kembali ke Halaman Sebelumnya"
-          >
+          <button onClick={() => navigate(-1)}
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-900">Preview Hasil Penggabungan Laporan</h1>
-            <p className="text-xs text-slate-500 mt-0.5">Tanggal Laporan: {new Date().toLocaleDateString('id-ID')}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Tanggal: <span className="font-semibold">{summary.tanggal || '—'}</span>
+              {' · '}{omsetRows.length} baris OMSET
+            </p>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/upload')}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
-          >
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <button onClick={() => navigate('/upload')}
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer">
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Proses Ulang</span>
           </button>
-
-          <button
-            onClick={() => alert("Laporan berhasil disimpan ke Database & Riwayat!")}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#FF5000] hover:bg-[#e04600] text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer active:scale-95"
-          >
-            <span>💾 Simpan Ke Database</span>
+          <button onClick={handleSave} disabled={saving || saved}
+            className={`flex items-center gap-1.5 px-4 py-2 font-bold text-xs rounded-xl shadow-md transition cursor-pointer ${
+              saved ? 'bg-emerald-500 text-white' : 'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95'}`}>
+            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Menyimpan...</span></>
+              : saved ? <><Check className="w-3.5 h-3.5" /><span>Tersimpan</span></>
+              : <><Save className="w-3.5 h-3.5" /><span>Simpan ke Database</span></>}
           </button>
-          
-          <button
-            onClick={handleDownloadExcel}
-            disabled={downloading}
-            className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition disabled:opacity-50 cursor-pointer"
-          >
+          <button onClick={handleDownloadExcel} disabled={downloading}
+            className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer">
             <Download className="w-4 h-4" />
-            <span>{downloading ? 'Mengunduh...' : 'Download Excel (.xlsx)'}</span>
+            <span>{downloading ? 'Mengunduh...' : 'Download Excel'}</span>
           </button>
         </div>
       </div>
 
-      {/* Summary Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase">Total Debit</p>
-          <p className="text-lg font-bold text-slate-900 mt-1 font-mono">{formatRupiah(reportData.summary.totalDebit)}</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase">Total Kredit</p>
-          <p className="text-lg font-bold text-slate-900 mt-1 font-mono">{formatRupiah(reportData.summary.totalKredit)}</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase">Jumlah Transaksi</p>
-          <p className="text-lg font-bold text-slate-900 mt-1">{reportData.summary.jumlahTransaksi} Item</p>
-        </div>
-
-        <div className={`p-4 rounded-xl border shadow-sm flex items-center justify-between ${
-          isBalance ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900' : 'bg-amber-50/60 border-amber-200 text-amber-900'
-        }`}>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Status Balance</p>
-            <div className="flex items-center gap-1.5 mt-1 font-bold text-base">
-              {isBalance ? (
-                <>
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  <span className="text-emerald-700">BALANCE ✅</span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
-                  <span className="text-amber-700">UNBALANCE ⚠️</span>
-                </>
-              )}
-            </div>
+      {/* Warning Banner */}
+      {warnings.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+          <div className="flex items-center gap-2 text-amber-700 font-bold text-sm">
+            <AlertTriangle className="w-4 h-4" />
+            <span>{warnings.length} Peringatan Validasi</span>
           </div>
-          {!isBalance && (
-            <div className="text-right">
-              <span className="text-[10px] text-amber-600 block">Selisih:</span>
-              <span className="font-mono font-bold text-xs text-amber-800">{formatRupiah(reportData.summary.selisih)}</span>
+          {warnings.map((w, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs text-amber-700">
+              <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${
+                w.severity === 'ERROR' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                {w.severity}
+              </span>
+              <span>{w.message}</span>
             </div>
-          )}
+          ))}
+        </div>
+      )}
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Debit',  val: formatRupiah(summary.totalDebit),  color: 'text-slate-900' },
+          { label: 'Total Kredit', val: formatRupiah(summary.totalKredit), color: 'text-slate-900' },
+          { label: 'Selisih',      val: formatRupiah(summary.selisih),     color: summary.selisih === 0 ? 'text-emerald-700' : 'text-red-600' },
+          { label: 'Jumlah Baris', val: `${summary.jumlahTransaksi || omsetRows.length} item`, color: 'text-slate-900' },
+        ].map((c, i) => (
+          <div key={i} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase">{c.label}</p>
+            <p className={`text-lg font-bold mt-1 font-mono ${c.color}`}>{c.val}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Status Balance */}
+      <div className={`flex items-center gap-3 p-4 rounded-2xl border ${
+        isBalance ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+        {isBalance
+          ? <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+          : <AlertTriangle className="w-6 h-6 text-red-500 shrink-0" />}
+        <div>
+          <p className={`font-bold text-sm ${isBalance ? 'text-emerald-700' : 'text-red-600'}`}>
+            {isBalance ? '✅ BALANCE — Debit = Kredit' : '⚠️ UNBALANCE — Debit ≠ Kredit'}
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {isBalance
+              ? 'Laporan siap untuk didownload dan disimpan.'
+              : `Selisih: ${formatRupiah(summary.selisih)}. Periksa kembali file sumber.`}
+          </p>
         </div>
       </div>
 
-      {/* Tabs Bar */}
+      {/* Tabs + Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 pt-2 gap-1 scrollbar-none">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition shrink-0 ${
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition shrink-0 cursor-pointer ${
                 activeTab === tab.id
                   ? 'bg-white text-blue-600 border-t-2 border-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
-              }`}
-            >
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}>
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'OMSET' ? (
+        {/* OMSET Table */}
+        {activeTab === 'OMSET' && (
           <div>
-            {/* Table Controls (Search & Sort) */}
             <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
               <div className="relative w-full sm:w-72">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Cari transaksi, kwitansi, ref..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" placeholder="Cari nama ref, keterangan..."
+                  value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button
-                  onClick={() => setSortAsc(!sortAsc)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
-                >
-                  <ArrowUpDown className="w-3.5 h-3.5" />
-                  <span>Urutan NO ({sortAsc ? 'Asc' : 'Desc'})</span>
-                </button>
-              </div>
+              <button onClick={() => setSortAsc(!sortAsc)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer">
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                <span>Urutan ({sortAsc ? 'Asc' : 'Desc'})</span>
+              </button>
             </div>
 
-            {/* Render OMSET Table (23 Columns) */}
             <div className="overflow-x-auto max-h-[500px]">
               <table className="w-full text-left text-xs whitespace-nowrap">
                 <thead className="bg-slate-900 text-white sticky top-0 font-semibold z-10">
                   <tr>
-                    <th className="p-3 border-b border-slate-700">NO</th>
-                    <th className="p-3 border-b border-slate-700">NAMA DAN REF</th>
-                    <th className="p-3 border-b border-slate-700">JENIS TRANSAKSI</th>
-                    <th className="p-3 border-b border-slate-700">KWITANSI</th>
-                    <th className="p-3 border-b border-slate-700">KETERANGAN</th>
-                    <th className="p-3 border-b border-slate-700">TAG PROMO</th>
-                    <th className="p-3 border-b border-slate-700">GIRO UDP</th>
-                    <th className="p-3 border-b border-slate-700">PIUTANG</th>
-                    <th className="p-3 border-b border-slate-700">PENDAPATAN TOKO</th>
-                    <th className="p-3 border-b border-slate-700">PENDAPATAN LOGO</th>
-                    <th className="p-3 border-b border-slate-700">PENDAPATAN KERJASAMA</th>
-                    <th className="p-3 border-b border-slate-700">NON PAJAK</th>
-                    <th className="p-3 border-b border-slate-700">PPN PK</th>
-                    <th className="p-3 border-b border-slate-700">PPN WAPU</th>
-                    <th className="p-3 border-b border-slate-700">BEBAN TOKO</th>
-                    <th className="p-3 border-b border-slate-700">BEBAN LOGO</th>
-                    <th className="p-3 border-b border-slate-700">PERSEDIAAN TOKO</th>
-                    <th className="p-3 border-b border-slate-700">PERSEDIAAN LOGO</th>
-                    <th className="p-3 border-b border-slate-700">SIMSEM UKS</th>
-                    <th className="p-3 border-b border-slate-700">KAS UKS</th>
-                    <th className="p-3 border-b border-slate-700">PIUTANG PADI</th>
-                    <th className="p-3 border-b border-slate-700">PIUTANG EDC</th>
-                    <th className="p-3 border-b border-slate-700">BEBAN PROMOSI</th>
+                    {OMSET_HEADERS.map(h => (
+                      <th key={h} className="p-3 border-b border-slate-700">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {sortedRows.map((row) => (
-                    <tr key={row.no} className="hover:bg-blue-50/50 transition font-sans">
-                      <td className="p-3 font-semibold text-slate-700">{row.no}</td>
-                      <td className="p-3 font-semibold text-slate-900">{row.nama_ref}</td>
-                      <td className="p-3"><span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded">{row.jenis_transaksi}</span></td>
-                      <td className="p-3 font-mono text-slate-600">{row.kwitansi}</td>
-                      <td className="p-3 text-slate-600 max-w-xs truncate">{row.keterangan}</td>
-                      <td className="p-3 text-slate-500">{row.tag_promo}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.giro_udp)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.piutang)}</td>
-                      <td className="p-3 font-mono text-emerald-700 font-medium">{formatRupiah(row.pendapatan_toko)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.pendapatan_logo)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.pendapatan_kerjasama)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.non_pajak)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.ppn_pk)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.ppn_wapu)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.beban_toko)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.beban_logo)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.persediaan_toko)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.persediaan_logo)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.simsem_uks)}</td>
-                      <td className="p-3 font-mono text-blue-700 font-medium">{formatRupiah(row.kas_uks)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.piutang_padi)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.piutang_edc)}</td>
-                      <td className="p-3 font-mono">{formatRupiah(row.beban_promosi)}</td>
+                  {sortedRows.map(row => (
+                    <tr key={row.no} className="hover:bg-blue-50/50 transition">
+                      {OMSET_KEYS.map(k => (
+                        <td key={k} className={`p-3 ${
+                          k === 'nama_ref' ? 'font-semibold text-slate-900' :
+                          k === 'pendapatan_toko' ? 'font-mono text-emerald-700 font-medium' :
+                          k === 'kas_uks' ? 'font-mono text-blue-700 font-medium' :
+                          NUMERIC_COLS.has(k) ? 'font-mono text-right' : ''}`}>
+                          {NUMERIC_COLS.has(k)
+                            ? (row[k] && row[k] !== 0 ? formatRupiah(row[k]) : '-')
+                            : (row[k] || '')}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination Footer */}
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
-              <span>Menampilkan {sortedRows.length} dari {reportData.omsetRows.length} entri</span>
+              <span>Menampilkan {sortedRows.length} dari {omsetRows.length} baris</span>
               <div className="flex items-center gap-1">
-                <button disabled className="p-1 border rounded bg-white opacity-50 cursor-not-allowed"><ChevronLeft className="w-4 h-4" /></button>
+                <button disabled className="p-1 border rounded bg-white opacity-40"><ChevronLeft className="w-4 h-4" /></button>
                 <span className="px-3 py-1 font-semibold text-slate-800">1</span>
-                <button disabled className="p-1 border rounded bg-white opacity-50 cursor-not-allowed"><ChevronRight className="w-4 h-4" /></button>
+                <button disabled className="p-1 border rounded bg-white opacity-40"><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="p-12 text-center text-slate-500">
-            <Layers className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-            <p className="font-semibold text-slate-700">Halaman Sheet: {tabs.find(t => t.id === activeTab)?.label}</p>
-            <p className="text-xs mt-1 max-w-sm mx-auto">
-              Data sheet ini akan diisi secara otomatis oleh backend service setelah proses penggabungan selesai.
-            </p>
+        )}
+
+        {/* Ringkasan Tab */}
+        {activeTab === 'DETAIL' && (
+          <div className="p-6 space-y-4">
+            <h3 className="font-bold text-slate-800 text-sm">Ringkasan Per Baris OMSET</h3>
+            <div className="space-y-2">
+              {omsetRows.map(row => {
+                const debit  = (row.tag_promo||0)+(row.giro_udp||0)+(row.piutang||0)+(row.beban_toko||0)+(row.beban_logo||0)+(row.kas_uks||0)+(row.piutang_padi||0)+(row.piutang_edc||0)+(row.beban_promosi||0);
+                const kredit = (row.pendapatan_toko||0)+(row.pendapatan_logo||0)+(row.pendapatan_kerjasama||0)+(row.non_pajak||0)+(row.ppn_pk||0)+(row.ppn_wapu||0)+(row.persediaan_toko||0)+(row.persediaan_logo||0)+(row.simsem_uks||0);
+                return (
+                  <div key={row.no} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl text-xs">
+                    <span className="w-6 h-6 bg-[#051923] text-white rounded-full flex items-center justify-center font-bold text-[10px] shrink-0">{row.no}</span>
+                    <span className="font-semibold text-slate-800 w-40 truncate">{row.nama_ref}</span>
+                    {debit > 0 && <span className="text-red-600 font-mono">D: {formatRupiah(debit)}</span>}
+                    {kredit > 0 && <span className="text-emerald-600 font-mono">K: {formatRupiah(kredit)}</span>}
+                  </div>
+                );
+              })}
+            </div>
+
+            {sourceFiles && (
+              <div className="mt-4 p-4 bg-slate-100 rounded-xl text-xs text-slate-600 space-y-1">
+                <p className="font-bold text-slate-700 flex items-center gap-1"><Info className="w-3.5 h-3.5" /> File Sumber</p>
+                <p>OMI Per Tanggal: <span className="font-mono">{sourceFiles.omiPerTanggal}</span></p>
+                <p>OMI Tutup Harian: <span className="font-mono">{sourceFiles.omiTutupHarian}</span></p>
+                <p>SMART: <span className="font-mono">{sourceFiles.smartFiles?.join(', ')}</span></p>
+              </div>
+            )}
           </div>
         )}
       </div>

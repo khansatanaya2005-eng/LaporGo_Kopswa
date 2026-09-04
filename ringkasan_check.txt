@@ -1,0 +1,37 @@
+﻿
+============================================================
+FILE: 31 agustsu 2026 ringkasan pembayaran logo.xlsx
+============================================================
+Sheets: [ 'LOGO' ]
+
+  Sheet: "LOGO" (16 rows x 4 cols)
+  R  5: [B5]="Laporan Ringkasan Pembayaran : Kategori LOGO"
+  R  6: [B6]="Periode 31/08/2026 - 31/08/2026"
+  R  8: [B8]="Pembayaran"  |  [C8]="Pelanggan"  |  [D8]="Total"
+  R  9: [B9]="* Piutang"
+  R 10: [B10]="  - Voucher:BNI DIVISI INS1"  |  [C10]="BNI DIVISI INS1 BNI DIVISI INS1"  |  [D10]="Rp 1.200.000"
+  R 12: [B12]="Penjualan : Rp 1.200.000"
+  R 13: [B13]="DPP : Rp 1.081.081"
+  R 14: [B14]="PPN : Rp 118.919"
+  R 15: [B15]="HPP : Rp 898.930"
+  R 16: [B16]="Profit : Rp 182.151"
+
+============================================================
+FILE: 31 agustsu 2026 ringkasan pembayaran logo .xlsx
+============================================================
+Sheets: [ 'TOKO' ]
+
+  Sheet: "TOKO" (16 rows x 4 cols)
+  R  5: [B5]="Laporan Ringkasan Pembayaran : Kategori TOKO"
+  R  6: [B6]="Periode 31/08/2026 - 31/08/2026"
+  R  8: [B8]="Pembayaran"  |  [C8]="Pelanggan"  |  [D8]="Total"
+  R  9: [B9]="* Piutang"
+  R 10: [B10]="  - Voucher:QRIS BNI"  |  [C10]="QRIS BNI BNI"  |  [D10]="Rp 20.100"
+  R 12: [B12]="Penjualan : Rp 20.100"
+  R 13: [B13]="DPP : Rp 18.108"
+  R 14: [B14]="PPN : Rp 1.992"
+  R 15: [B15]="HPP : Rp 13.649"
+  R 16: [B16]="Profit : Rp 4.459"
+
+
+Done!
