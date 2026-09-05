@@ -679,6 +679,19 @@ export async function createUserInSupabase({ full_name, email, role, password })
 export async function deleteUserFromSupabase(userId) {
   if (!isSupabaseConfigured()) return true;
 
+  // 1. Coba panggil RPC delete_user_by_admin agar terhapus juga dari auth.users
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('delete_user_by_admin', {
+      target_user_id: userId
+    });
+    if (!rpcErr && rpcRes?.success) {
+      return true;
+    }
+  } catch (e) {
+    console.warn('[Supabase] RPC delete_user_by_admin gagal, fallback ke delete profiles');
+  }
+
+  // 2. Fallback: hapus dari tabel profiles
   const { error } = await supabase
     .from('profiles')
     .delete()
@@ -691,12 +704,28 @@ export async function deleteUserFromSupabase(userId) {
   return true;
 }
 
-export async function updateUserProfile(userId, { full_name, role }) {
+export async function updateUserProfile(userId, { full_name, email, role }) {
   if (!isSupabaseConfigured()) return null;
 
+  // 1. Coba panggil RPC update_user_by_admin agar ter-update di auth.users & profiles
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('update_user_by_admin', {
+      target_user_id: userId,
+      new_email: email,
+      new_full_name: full_name,
+      new_role: role
+    });
+    if (!rpcErr && rpcRes?.success) {
+      return { id: userId, full_name, email, role };
+    }
+  } catch (e) {
+    console.warn('[Supabase] RPC update_user_by_admin gagal, fallback ke update profiles');
+  }
+
+  // 2. Fallback: update tabel profiles
   const { data, error } = await supabase
     .from('profiles')
-    .update({ full_name, role, updated_at: new Date().toISOString() })
+    .update({ full_name, email, role, updated_at: new Date().toISOString() })
     .eq('id', userId)
     .select()
     .single();

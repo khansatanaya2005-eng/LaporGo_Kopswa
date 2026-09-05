@@ -121,6 +121,7 @@ const UserManagement = () => {
         // Update user
         await updateUserProfile(editingUser.id, {
           full_name: formData.full_name,
+          email: finalEmail,
           role: formData.role
         });
         setUsers(prev => prev.map(u => u.id === editingUser.id ? { 
@@ -129,6 +130,7 @@ const UserManagement = () => {
           role: formData.role,
           email: finalEmail
         } : u));
+        fetchUsers();
       } else {
         // Create user in Supabase
         const result = await createUserInSupabase({
