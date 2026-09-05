@@ -56,11 +56,29 @@ const ReportHistory = () => {
         }
       }
       // Fallback ke mock data
-      setReports(MOCK_HISTORY_LAPORAN);
+      const mappedMock = MOCK_HISTORY_LAPORAN.map(r => {
+        const calculatedSelisih = Math.abs((Number(r.total_debit) || 0) - (Number(r.total_kredit) || 0));
+        const calculatedStatus  = calculatedSelisih === 0 ? 'Balance' : 'Unbalance';
+        return {
+          ...r,
+          status_balance: r.status_balance === 'Draft' ? 'Draft' : calculatedStatus,
+          selisih: calculatedSelisih
+        };
+      });
+      setReports(mappedMock);
       setUsingMock(true);
     } catch (err) {
       console.error('Error fetching reports:', err);
-      setReports(MOCK_HISTORY_LAPORAN);
+      const mappedMock = MOCK_HISTORY_LAPORAN.map(r => {
+        const calculatedSelisih = Math.abs((Number(r.total_debit) || 0) - (Number(r.total_kredit) || 0));
+        const calculatedStatus  = calculatedSelisih === 0 ? 'Balance' : 'Unbalance';
+        return {
+          ...r,
+          status_balance: r.status_balance === 'Draft' ? 'Draft' : calculatedStatus,
+          selisih: calculatedSelisih
+        };
+      });
+      setReports(mappedMock);
       setUsingMock(true);
     } finally {
       setLoading(false);
