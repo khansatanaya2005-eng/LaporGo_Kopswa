@@ -147,7 +147,7 @@ const ReportPreview = () => {
     if (!customDate) return alert("Pilih tanggal laporan terlebih dahulu!");
     setDownloading(true);
     try {
-      await downloadExcel(`Laporan_Gabungan_${customDate}.xlsx`);
+      await downloadExcel(present, dynamicSummary, customDate, `Laporan_Gabungan_${customDate}.xlsx`);
     } catch (e) {
       alert('Gagal mengunduh Excel: ' + e.message);
     } finally {

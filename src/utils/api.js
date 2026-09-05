@@ -56,11 +56,11 @@ export async function processLaporan(fileSlots) {
  * Memanfaatkan data yang sudah diproses sebelumnya (tersimpan di app.locals.lastResult).
  * @param {string} filename - Nama file yang akan didownload
  */
-export async function downloadExcel(filename = 'Laporan_Gabungan.xlsx') {
+export async function downloadExcel(omsetRows, summary, tanggal, filename = 'Laporan_Gabungan.xlsx') {
   const res = await fetch(`${BASE_URL}/api/download-excel`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ omsetRows, summary, tanggal }),
   });
 
   if (!res.ok) {

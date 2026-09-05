@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 const app = express();
 app.use(cors());
@@ -278,6 +279,110 @@ app.post('/api/process-laporan', upload.fields([
   } catch (err) {
     console.error('[process-laporan]', err);
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GENERATE EXCEL (1 SHEET: OMSET)
+// ─────────────────────────────────────────────
+const OMSET_COL_DEFS = [
+  { header: 'NO',                        key: 'no',                   width: 5  },
+  { header: 'NAMA DAN REF',              key: 'nama_ref',             width: 30 },
+  { header: 'JENIS TRANSAKSI',           key: 'jenis_transaksi',      width: 20 },
+  { header: 'KWITANSI',                  key: 'kwitansi',             width: 12 },
+  { header: 'KETERANGAN',               key: 'keterangan',            width: 25 },
+  { header: 'TAG PROMO SMART KOTA (D)', key: 'tag_promo',             width: 14 },
+  { header: 'GIRO UDP (D)',             key: 'giro_udp',              width: 12 },
+  { header: 'PIUTANG (D)',              key: 'piutang',               width: 15 },
+  { header: 'PENDAPATAN TOKO (K)',      key: 'pendapatan_toko',       width: 15 },
+  { header: 'PENDAPATAN LOGO (K)',      key: 'pendapatan_logo',       width: 15 },
+  { header: 'PENDAPATAN KERJASAMA (K)',key: 'pendapatan_kerjasama',   width: 16 },
+  { header: 'NON PAJAK (K)',            key: 'non_pajak',             width: 12 },
+  { header: 'PPN PK (K)',              key: 'ppn_pk',                 width: 12 },
+  { header: 'PPN WAPU (K)',            key: 'ppn_wapu',               width: 12 },
+  { header: 'BEBAN TOKO (D)',          key: 'beban_toko',             width: 15 },
+  { header: 'BEBAN LOGO (D)',          key: 'beban_logo',             width: 15 },
+  { header: 'PERSEDIAAN TOKO (K)',     key: 'persediaan_toko',        width: 15 },
+  { header: 'PERSEDIAAN LOGO (K)',     key: 'persediaan_logo',        width: 15 },
+  { header: 'SIMSEM UKS (K)',         key: 'simsem_uks',             width: 12 },
+  { header: 'KAS UKS (D)',            key: 'kas_uks',                width: 12 },
+  { header: 'PIUTANG PADI (D)',       key: 'piutang_padi',           width: 12 },
+  { header: 'PIUTANG EDC (D)',        key: 'piutang_edc',            width: 15 },
+  { header: 'BEBAN PROMOSI (D)',      key: 'beban_promosi',          width: 12 },
+];
+
+async function generateExcel({ omsetRows, summary }) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('OMSET');
+  ws.columns = OMSET_COL_DEFS;
+
+  const hRow = ws.getRow(1);
+  hRow.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+  hRow.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF051923' } };
+  hRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  hRow.height    = 35;
+
+  omsetRows.forEach(row => {
+    const r = ws.addRow(row);
+    r.eachCell({ includeEmpty: false }, (cell, colNum) => {
+      if (colNum >= 6) { cell.numFmt = '#,##0'; cell.alignment = { horizontal: 'right' }; }
+    });
+  });
+
+  ws.addRow({});
+
+  const addTotalRow = (label, cols, bgColor, fontColor = 'FF000000') => {
+    const r = ws.addRow({});
+    r.getCell(2).value = label;
+    cols.forEach(col => {
+      const colDef = OMSET_COL_DEFS.find(d => d.key === col);
+      if (!colDef) return;
+      const idx = OMSET_COL_DEFS.indexOf(colDef) + 1;
+      r.getCell(idx).value  = sumCol(omsetRows, col);
+      r.getCell(idx).numFmt = '#,##0';
+      r.getCell(idx).alignment = { horizontal: 'right' };
+    });
+    r.font = { bold: true, color: { argb: fontColor } };
+    r.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+    return r;
+  };
+
+  addTotalRow('TOTAL DEBIT',  COLS_DEBIT,  'FFDBEAFE');
+  addTotalRow('TOTAL KREDIT', COLS_KREDIT, 'FFD1FAE5');
+
+  const selRow = ws.addRow({});
+  selRow.getCell(2).value  = 'SELISIH';
+  selRow.getCell(OMSET_COL_DEFS.length).value  = summary.selisih;
+  selRow.getCell(OMSET_COL_DEFS.length).numFmt = '#,##0';
+  selRow.font = { bold: true, color: { argb: summary.selisih === 0 ? 'FF16A34A' : 'FFDC2626' } };
+  selRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: summary.selisih === 0 ? 'FFF0FDF4' : 'FFFEF2F2' } };
+
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
+}
+
+// ─────────────────────────────────────────────
+// ENDPOINT: POST /api/download-excel
+// ─────────────────────────────────────────────
+app.post('/api/download-excel', async (req, res) => {
+  try {
+    const { omsetRows, summary, tanggal } = req.body || {};
+    
+    if (!omsetRows || !summary) {
+      return res.status(400).json({ error: 'Data laporan tidak lengkap' });
+    }
+
+    const excelBuf = await generateExcel({ omsetRows, summary });
+    const filename = `Laporan_Gabungan_${tanggal || 'export'}.xlsx`.replace(/[/\\]/g, '-');
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(excelBuf);
+  } catch (err) {
+    console.error('[download-excel] ERROR:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
