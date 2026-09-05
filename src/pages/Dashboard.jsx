@@ -27,6 +27,7 @@ import { formatRupiah } from '../utils/cn';
 const Dashboard = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState('7d'); // '7d', '30d', '3m', '6m', '1y'
 
   useEffect(() => {
     fetchData();
@@ -56,23 +57,61 @@ const Dashboard = () => {
   // Hitung Laporan Unbalance
   const unbalanceCount = reports.filter(l => l.status_balance === 'Unbalance').length;
 
-  // Olah Data Chart (7-8 Laporan Terakhir diurutkan berdasarkan tanggal lama -> baru)
-  const chartReports = [...reports]
-    .slice(0, 8)
-    .reverse();
+  // Filter Data Grafik Berdasarkan Rentang Waktu
+  const getFilteredChartReports = () => {
+    if (reports.length === 0) return [];
 
-  const chartData = chartReports.map(r => {
-    // Format tanggal singkat e.g., '16 Sep'
+    const sorted = [...reports].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+    const latestDate = new Date(sorted[sorted.length - 1].tanggal);
+
+    let startDate = new Date(latestDate);
+
+    if (timeRange === '7d') {
+      startDate.setDate(startDate.getDate() - 7);
+    } else if (timeRange === '30d') {
+      startDate.setDate(startDate.getDate() - 30);
+    } else if (timeRange === '3m') {
+      startDate.setMonth(startDate.getMonth() - 3);
+    } else if (timeRange === '6m') {
+      startDate.setMonth(startDate.getMonth() - 6);
+    } else if (timeRange === '1y') {
+      startDate.setFullYear(startDate.getFullYear() - 1);
+    }
+
+    const filtered = sorted.filter(r => {
+      const itemDate = new Date(r.tanggal);
+      return itemDate >= startDate;
+    });
+
+    // Jika hasil filter kosong (misal data sedikit), fallback tampilkan seluruh data
+    return filtered.length > 0 ? filtered : sorted;
+  };
+
+  const filteredReports = getFilteredChartReports();
+
+  const chartData = filteredReports.map(r => {
     const dateObj = new Date(r.tanggal);
-    const shortDate = isNaN(dateObj.getTime()) 
-      ? r.tanggal 
-      : dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+    let shortDate = r.tanggal;
+    if (!isNaN(dateObj.getTime())) {
+      shortDate = dateObj.toLocaleDateString('id-ID', { 
+        day: '2-digit', 
+        month: timeRange === '1y' || timeRange === '6m' ? 'short' : 'short' 
+      });
+    }
 
     return {
       tgl: shortDate,
       omset: Number(r.total_debit) || 0
     };
   });
+
+  const rangeButtons = [
+    { id: '7d', label: '7 Hari' },
+    { id: '30d', label: '30 Hari' },
+    { id: '3m', label: '3 Bulan' },
+    { id: '6m', label: '6 Bulan' },
+    { id: '1y', label: '1 Tahun' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -171,18 +210,32 @@ const Dashboard = () => {
       </div>
 
       {/* Chart Section */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-base font-bold text-slate-900">Tren Omset Harian</h2>
             <p className="text-xs text-slate-500">Visualisasi total transaksi debit harian gabungan OMI & SMART</p>
           </div>
-          <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-medium flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" /> Data Real Supabase
-          </span>
+
+          {/* Filter Time Range Buttons */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 self-start sm:self-auto">
+            {rangeButtons.map(btn => (
+              <button
+                key={btn.id}
+                onClick={() => setTimeRange(btn.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  timeRange === btn.id
+                    ? 'bg-[#0A4D68] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="h-64 w-full">
+        <div className="h-64 w-full pt-2">
           {loading ? (
             <div className="h-full flex items-center justify-center text-slate-400 text-xs">
               <Loader2 className="w-6 h-6 animate-spin mr-2" /> Memuat grafik omset...
