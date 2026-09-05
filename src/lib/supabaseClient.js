@@ -620,19 +620,21 @@ export async function createUserInSupabase({ full_name, email, role, password })
 
   let authUserId = null;
   if (password) {
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name, role }
-        }
-      });
-      if (authData?.user) {
-        authUserId = authData.user.id;
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name, role }
       }
-    } catch (e) {
-      console.warn('[Supabase] Auth signUp warning:', e);
+    });
+
+    if (authError) {
+      console.error('[Supabase] Auth signUp error:', authError);
+      throw new Error(`Gagal mendaftarkan ke Supabase Auth: ${authError.message}`);
+    }
+
+    if (authData?.user) {
+      authUserId = authData.user.id;
     }
   }
 
@@ -653,7 +655,7 @@ export async function createUserInSupabase({ full_name, email, role, password })
 
   if (error) {
     console.error('[Supabase] insert profile error:', error);
-    return { id: userId, email, full_name, role, created_at: new Date().toISOString().split('T')[0] };
+    throw new Error(`Gagal menyimpan profil user: ${error.message}`);
   }
 
   return data;
