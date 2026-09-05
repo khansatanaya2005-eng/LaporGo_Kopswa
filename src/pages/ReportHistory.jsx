@@ -121,17 +121,28 @@ const ReportHistory = () => {
     );
   };
 
-  // ── Soft Delete Selected ──────────────────────────────────
-  const handleSoftDeleteSelected = async () => {
-    if (selectedIds.length === 0) return;
-    if (!confirm(`Pindahkan ${selectedIds.length} laporan terpilih ke Tempat Sampah?`)) return;
+  // State modal konfirmasi custom
+  const [confirmModal, setConfirmModal] = useState(null); // { title, message, type: 'danger'|'warning'|'info', action: () => {} }
 
+  // ── Soft Delete Selected ──────────────────────────────────
+  const requestSoftDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    setConfirmModal({
+      title: "Pindahkan ke Tempat Sampah?",
+      message: `Apakah Anda yakin ingin memindahkan ${selectedIds.length} laporan terpilih ke Tempat Sampah? Laporan dapat dipulihkan kembali sebelum 30 hari.`,
+      confirmLabel: "Pindahkan",
+      type: "warning",
+      action: executeSoftDeleteSelected
+    });
+  };
+
+  const executeSoftDeleteSelected = async () => {
     setProcessing(true);
+    setConfirmModal(null);
     try {
       if (isSupabaseConfigured()) {
         await softDeleteLaporan(selectedIds);
       }
-      // Update local state
       const deletedItems = reports.filter(r => selectedIds.includes(r.id));
       setReports(prev => prev.filter(r => !selectedIds.includes(r.id)));
       setTrashReports(prev => [
@@ -181,11 +192,20 @@ const ReportHistory = () => {
   };
 
   // ── Delete Permanently Selected ──────────────────────────
-  const handlePermanentDeleteSelected = async (targetIds = trashSelectedIds) => {
+  const requestPermanentDeleteSelected = (targetIds = trashSelectedIds) => {
     if (targetIds.length === 0) return;
-    if (!confirm(`HAPUS PERMANEN ${targetIds.length} laporan? Data yang terhapus tidak dapat dikembalikan dari database!`)) return;
+    setConfirmModal({
+      title: "Hapus Permanen Laporan?",
+      message: `HAPUS PERMANEN ${targetIds.length} laporan terpilih? Tindakan ini tidak dapat dibatalkan dan data akan terhapus selamanya dari database!`,
+      confirmLabel: "Hapus Permanen",
+      type: "danger",
+      action: () => executePermanentDeleteSelected(targetIds)
+    });
+  };
 
+  const executePermanentDeleteSelected = async (targetIds) => {
     setProcessing(true);
+    setConfirmModal(null);
     try {
       if (isSupabaseConfigured()) {
         await deleteLaporanPermanently(targetIds);
@@ -200,11 +220,20 @@ const ReportHistory = () => {
   };
 
   // ── Empty Trash (Hapus Semua Sampah) ────────────────────
-  const handleEmptyTrash = async () => {
+  const requestEmptyTrash = () => {
     if (trashReports.length === 0) return;
-    if (!confirm(`APAKAH ANDA YAKIN ingin mengosongkan tempat sampah? Seluruh ${trashReports.length} laporan akan dihapus PERMANEN dari database!`)) return;
+    setConfirmModal({
+      title: "Kosongkan Tempat Sampah?",
+      message: `Peringatan! Anda akan menghapus PERMANEN seluruh ${trashReports.length} laporan dari Tempat Sampah. Seluruh data laporan dan file pendukungnya akan terhapus selamanya dari database.`,
+      confirmLabel: "Kosongkan Sampah",
+      type: "danger",
+      action: executeEmptyTrash
+    });
+  };
 
+  const executeEmptyTrash = async () => {
     setProcessing(true);
+    setConfirmModal(null);
     try {
       const allTrashIds = trashReports.map(r => r.id);
       if (isSupabaseConfigured()) {
@@ -310,7 +339,7 @@ const ReportHistory = () => {
           {/* Tombol Hapus Terpilih (Hanya jika Mode Pilih aktif & ada terpilih) */}
           {isSelectMode && selectedIds.length > 0 && (
             <button
-              onClick={handleSoftDeleteSelected}
+              onClick={requestSoftDeleteSelected}
               disabled={processing}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer disabled:opacity-50 shrink-0"
             >
@@ -472,7 +501,7 @@ const ReportHistory = () => {
                   </button>
 
                   <button
-                    onClick={() => handlePermanentDeleteSelected()}
+                    onClick={() => requestPermanentDeleteSelected()}
                     disabled={trashSelectedIds.length === 0 || processing}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition disabled:opacity-40 cursor-pointer"
                   >
@@ -482,7 +511,7 @@ const ReportHistory = () => {
                 </div>
 
                 <button
-                  onClick={handleEmptyTrash}
+                  onClick={requestEmptyTrash}
                   disabled={processing}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 font-bold rounded-lg transition cursor-pointer"
                 >
@@ -556,7 +585,7 @@ const ReportHistory = () => {
                                   <span>Pulihkan</span>
                                 </button>
                                 <button
-                                  onClick={() => handlePermanentDeleteSelected([item.id])}
+                                  onClick={() => requestPermanentDeleteSelected([item.id])}
                                   className="flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 font-bold rounded-lg transition cursor-pointer"
                                   title="Hapus Permanen"
                                 >
@@ -581,6 +610,53 @@ const ReportHistory = () => {
                 className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL KONFIRMASI MODERN (CUSTOM DIALOG) ───────────────── */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden p-6 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-start gap-4">
+              <div className={`p-3 rounded-2xl shrink-0 ${
+                confirmModal.type === 'danger' 
+                  ? 'bg-red-100 text-red-600' 
+                  : 'bg-amber-100 text-amber-600'
+              }`}>
+                {confirmModal.type === 'danger' ? (
+                  <AlertOctagon className="w-6 h-6" />
+                ) : (
+                  <AlertTriangle className="w-6 h-6" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-900 text-base">{confirmModal.title}</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">{confirmModal.message}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setConfirmModal(null)}
+                disabled={processing}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmModal.action}
+                disabled={processing}
+                className={`flex items-center gap-1.5 px-4 py-2 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer disabled:opacity-50 ${
+                  confirmModal.type === 'danger'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                {processing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{confirmModal.confirmLabel || 'Ya, Lanjutkan'}</span>
               </button>
             </div>
           </div>
