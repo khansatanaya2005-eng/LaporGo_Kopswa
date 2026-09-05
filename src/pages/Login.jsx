@@ -41,7 +41,7 @@ const Login = () => {
       if (res?.success) {
         navigate('/dashboard');
       } else {
-        setErrorMsg('Login gagal. Periksa kembali email dan password.');
+        setErrorMsg(res?.error || 'Login gagal. Periksa kembali email dan password.');
       }
     } catch (err) {
       setErrorMsg('Terjadi kesalahan saat menghubungi server');

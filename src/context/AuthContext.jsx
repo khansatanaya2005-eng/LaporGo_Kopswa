@@ -51,55 +51,53 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     setLoading(true);
-    try {
-      // Try real Supabase auth first
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (!error && data?.user) {
-        let userRole = data.user.user_metadata?.role;
-        let userName = data.user.user_metadata?.full_name;
 
-        // Fetch profile detail from profiles table
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, full_name')
-            .eq('id', data.user.id)
-            .single();
-          if (profile) {
-            if (profile.role) userRole = profile.role;
-            if (profile.full_name) userName = profile.full_name;
-          }
-        } catch (e) {}
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+          setLoading(false);
+          return { success: false, error: 'Email atau password tidak terdaftar di Supabase' };
+        }
 
-        const inferredRole = userRole || (email.includes('admin') ? 'Admin' : 'Staff');
-        const userObj = {
-          id: data.user.id,
-          email: data.user.email,
-          role: inferredRole,
-          name: userName || email.split('@')[0]
-        };
-        setUser(userObj);
-        localStorage.setItem('laporgo_user', JSON.stringify(userObj));
+        if (data?.user) {
+          let userRole = data.user.user_metadata?.role;
+          let userName = data.user.user_metadata?.full_name;
+
+          // Fetch profile detail from profiles table
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role, full_name')
+              .eq('id', data.user.id)
+              .single();
+            if (profile) {
+              if (profile.role) userRole = profile.role;
+              if (profile.full_name) userName = profile.full_name;
+            }
+          } catch (e) {}
+
+          const inferredRole = userRole || (email.includes('admin') ? 'Admin' : 'Staff');
+          const userObj = {
+            id: data.user.id,
+            email: data.user.email,
+            role: inferredRole,
+            name: userName || email.split('@')[0]
+          };
+          setUser(userObj);
+          localStorage.setItem('laporgo_user', JSON.stringify(userObj));
+          setLoading(false);
+          return { success: true };
+        }
+      } catch (err) {
         setLoading(false);
-        return { success: true };
+        return { success: false, error: 'Gagal terhubung ke Supabase Auth' };
       }
-    } catch (err) {
-      console.warn("Supabase auth unavailable, falling back to mock login");
     }
 
-    // Mock Login Fallback
-    const role = email.toLowerCase().includes('admin') ? 'Admin' : 'Staff';
-    const mockUser = {
-      id: role === 'Admin' ? 'usr-admin-demo' : 'usr-staff-demo',
-      email: email,
-      role: role,
-      name: role === 'Admin' ? 'Administrator LaporGo' : (email.split('@')[0] || 'User Kopswa')
-    };
-    setUser(mockUser);
-    localStorage.setItem('laporgo_user', JSON.stringify(mockUser));
     setLoading(false);
-    return { success: true };
+    return { success: false, error: 'Supabase Auth belum dikonfigurasi' };
   };
 
   const logout = async () => {
