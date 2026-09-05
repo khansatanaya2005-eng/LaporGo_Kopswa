@@ -287,14 +287,7 @@ const ReportPreview = () => {
                       return <td key={k} className="p-3"></td>;
                     })}
                   </tr>
-                  <tr className="bg-amber-100 font-bold border-t border-amber-200">
-                    {OMSET_KEYS.map((k, i) => {
-                      if (k === 'no') return <td key={k} className="p-3"></td>;
-                      if (k === 'nama_ref') return <td key={k} className="p-3 text-amber-900">SELISIH</td>;
-                      if (i === OMSET_KEYS.length - 1) return <td key={k} className="p-3 font-mono text-right text-amber-900">{formatRupiah(summary.selisih || 0)}</td>;
-                      return <td key={k} className="p-3"></td>;
-                    })}
-                  </tr>
+
                 </tbody>
               </table>
             </div>
