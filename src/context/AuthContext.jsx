@@ -53,54 +53,45 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
 
     if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        
-        if (!error && data?.user) {
-          let userRole = data.user.user_metadata?.role;
-          let userName = data.user.user_metadata?.full_name;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        setLoading(false);
+        return { success: false, error: 'Email atau password salah' };
+      }
 
-          // Fetch profile detail safely from profiles table
-          try {
-            const { data: profiles } = await supabase
-              .from('profiles')
-              .select('role, full_name')
-              .eq('id', data.user.id);
-            if (profiles && profiles.length > 0) {
-              if (profiles[0].role) userRole = profiles[0].role;
-              if (profiles[0].full_name) userName = profiles[0].full_name;
-            }
-          } catch (e) {}
+      if (data?.user) {
+        let userRole = data.user.user_metadata?.role;
+        let userName = data.user.user_metadata?.full_name;
 
-          const inferredRole = userRole || (email.includes('admin') ? 'Admin' : 'Staff');
-          const userObj = {
-            id: data.user.id,
-            email: data.user.email,
-            role: inferredRole,
-            name: userName || email.split('@')[0]
-          };
-          setUser(userObj);
-          localStorage.setItem('laporgo_user', JSON.stringify(userObj));
-          setLoading(false);
-          return { success: true };
-        }
-      } catch (err) {
-        console.warn('Supabase auth failed, activating emergency bypass');
+        // Fetch profile detail safely from profiles table
+        try {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('role, full_name')
+            .eq('id', data.user.id);
+          if (profiles && profiles.length > 0) {
+            if (profiles[0].role) userRole = profiles[0].role;
+            if (profiles[0].full_name) userName = profiles[0].full_name;
+          }
+        } catch (e) {}
+
+        const inferredRole = userRole || (email.includes('@admin') ? 'Admin' : 'Staff');
+        const userObj = {
+          id: data.user.id,
+          email: data.user.email,
+          role: inferredRole,
+          name: userName || email.split('@')[0]
+        };
+        setUser(userObj);
+        localStorage.setItem('laporgo_user', JSON.stringify(userObj));
+        setLoading(false);
+        return { success: true };
       }
     }
 
-    // Emergency Master Bypass (Selalu meloloskan Admin & Staff walau akun belum terdaftar di Supabase)
-    const role = email.toLowerCase().includes('admin') ? 'Admin' : 'Staff';
-    const mockUser = {
-      id: role === 'Admin' ? 'usr-admin-demo' : 'usr-staff-demo',
-      email: email,
-      role: role,
-      name: role === 'Admin' ? 'Administrator LaporGo' : (email.split('@')[0] || 'User Kopswa')
-    };
-    setUser(mockUser);
-    localStorage.setItem('laporgo_user', JSON.stringify(mockUser));
     setLoading(false);
-    return { success: true };
+    return { success: false, error: 'Koneksi ke Supabase belum terkonfigurasi.' };
   };
 
   const logout = async () => {
