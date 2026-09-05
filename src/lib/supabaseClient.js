@@ -213,16 +213,12 @@ export async function getLaporanList(limit = 20, filters = {}) {
 
   let query = supabase
     .from('v_laporan_with_profile')
-    .select('*')
+    .select('*, omset_rows(*)')
     .order('tanggal', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (filters.status_balance && filters.status_balance !== 'ALL') {
-    query = query.eq('status_balance', filters.status_balance);
-  }
   if (filters.bulan) {
-    // Filter bulan: "2026-08" → tanggal antara 2026-08-01 dan 2026-08-31
     query = query
       .gte('tanggal', `${filters.bulan}-01`)
       .lte('tanggal', `${filters.bulan}-31`);
@@ -230,7 +226,35 @@ export async function getLaporanList(limit = 20, filters = {}) {
 
   const { data, error } = await query;
   if (error) { console.error('[Supabase] getLaporanList:', error); return null; }
-  return data;
+  
+  const COLS_DEBIT  = ['tag_promo','giro_udp','piutang','beban_toko','beban_logo','kas_uks','piutang_padi','piutang_edc','beban_promosi'];
+  const COLS_KREDIT = ['pendapatan_toko','pendapatan_logo','pendapatan_kerjasama','non_pajak','ppn_pk','ppn_wapu','persediaan_toko','persediaan_logo','simsem_uks'];
+
+  const processedData = (data || []).map(item => {
+    const rows = item.omset_rows || [];
+    if (rows.length > 0) {
+      const sumCol = (col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
+      const computedDebit  = COLS_DEBIT.reduce((s, c) => s + sumCol(c), 0);
+      const computedKredit = COLS_KREDIT.reduce((s, c) => s + sumCol(c), 0);
+      const computedSelisih = Math.abs(computedDebit - computedKredit);
+      const computedStatus = computedSelisih === 0 ? 'Balance' : 'Unbalance';
+
+      return {
+        ...item,
+        total_debit: computedDebit,
+        total_kredit: computedKredit,
+        selisih: computedSelisih,
+        status_balance: item.status_balance === 'Draft' ? 'Draft' : computedStatus
+      };
+    }
+    return item;
+  });
+
+  if (filters.status_balance && filters.status_balance !== 'ALL') {
+    return processedData.filter(r => r.status_balance === filters.status_balance);
+  }
+
+  return processedData;
 }
 
 /**
