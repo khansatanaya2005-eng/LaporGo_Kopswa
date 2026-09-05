@@ -8,7 +8,7 @@ import {
   Pencil, Undo, Redo, Check, Save
 } from 'lucide-react';
 import { formatRupiah } from '../utils/cn';
-import { getLaporanById, updateOmsetRow, isSupabaseConfigured } from '../lib/supabaseClient';
+import { getLaporanById, updateOmsetRow, updateLaporan, isSupabaseConfigured } from '../lib/supabaseClient';
 import { downloadExcel } from '../utils/api';
 import { MOCK_OMSET_DATA } from '../data/mockData';
 
