@@ -618,6 +618,10 @@ export async function updateProfileName(userId, full_name) {
 export async function createUserInSupabase({ full_name, email, role, password }) {
   if (!isSupabaseConfigured()) return null;
 
+  // Save current active admin session so signUp doesn't log the admin out
+  const currentAdminUser = await getCurrentUser();
+  const currentLocalUser = localStorage.getItem('laporgo_user');
+
   let authUserId = null;
   if (password) {
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -630,12 +634,17 @@ export async function createUserInSupabase({ full_name, email, role, password })
 
     if (authError) {
       console.error('[Supabase] Auth signUp error:', authError);
-      throw new Error(`Gagal mendaftarkan ke Supabase Auth: ${authError.message}`);
+      throw new Error(`Gagal mendaftarkan ke Auth: ${authError.message}`);
     }
 
     if (authData?.user) {
       authUserId = authData.user.id;
     }
+  }
+
+  // If signUp changed active auth session, restore local admin user session
+  if (currentLocalUser) {
+    localStorage.setItem('laporgo_user', currentLocalUser);
   }
 
   const userId = authUserId || `usr-${Date.now()}`;

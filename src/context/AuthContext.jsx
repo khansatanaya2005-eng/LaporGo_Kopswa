@@ -13,6 +13,15 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check Supabase session if configured
     const getSession = async () => {
+      // If we already have a saved local user, preserve it
+      const savedUser = localStorage.getItem('laporgo_user');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+          return;
+        } catch (e) {}
+      }
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
