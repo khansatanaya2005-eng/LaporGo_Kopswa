@@ -214,6 +214,7 @@ export async function getLaporanList(limit = 20, filters = {}) {
   let query = supabase
     .from('v_laporan_with_profile')
     .select('*, omset_rows(*)')
+    .is('deleted_at', null)
     .order('tanggal', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -331,6 +332,83 @@ export async function updateLaporan(laporanId, updates = {}) {
     .single();
 
   if (error) { console.error('[Supabase] updateLaporan:', error); throw new Error(error.message); }
+  return data;
+}
+
+/**
+ * Soft Delete laporan (set deleted_at = ISO timestamp)
+ */
+export async function softDeleteLaporan(ids = []) {
+  if (!isSupabaseConfigured() || ids.length === 0) return null;
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('laporan')
+    .update({ deleted_at: now })
+    .in('id', ids);
+  if (error) { console.error('[Supabase] softDeleteLaporan:', error); throw new Error(error.message); }
+  return data;
+}
+
+/**
+ * Ambil daftar laporan di Tempat Sampah (deleted_at IS NOT NULL dan belum 30 hari)
+ */
+export async function getTrashLaporanList() {
+  if (!isSupabaseConfigured()) return [];
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  
+  // Hapus otomatis item yang sudah lewat 30 hari di database
+  try {
+    const { data: expired } = await supabase
+      .from('laporan')
+      .select('id')
+      .not('deleted_at', 'is', null)
+      .lt('deleted_at', thirtyDaysAgo);
+    if (expired && expired.length > 0) {
+      const expiredIds = expired.map(e => e.id);
+      await deleteLaporanPermanently(expiredIds);
+    }
+  } catch (e) {
+    console.error('[Supabase] Error auto-cleaning expired trash:', e);
+  }
+
+  const { data, error } = await supabase
+    .from('v_laporan_with_profile')
+    .select('*')
+    .not('deleted_at', 'is', null)
+    .gte('deleted_at', thirtyDaysAgo)
+    .order('deleted_at', { ascending: false });
+
+  if (error) { console.error('[Supabase] getTrashLaporanList:', error); return []; }
+  return data || [];
+}
+
+/**
+ * Pulihkan laporan dari tempat sampah (deleted_at = NULL)
+ */
+export async function restoreLaporan(ids = []) {
+  if (!isSupabaseConfigured() || ids.length === 0) return null;
+  const { data, error } = await supabase
+    .from('laporan')
+    .update({ deleted_at: null })
+    .in('id', ids);
+  if (error) { console.error('[Supabase] restoreLaporan:', error); throw new Error(error.message); }
+  return data;
+}
+
+/**
+ * Hapus laporan secara permanen dari database
+ */
+export async function deleteLaporanPermanently(ids = []) {
+  if (!isSupabaseConfigured() || ids.length === 0) return null;
+  // Hapus omset_rows & files terlebih dahulu
+  await supabase.from('omset_rows').delete().in('laporan_id', ids);
+  await supabase.from('laporan_warnings').delete().in('laporan_id', ids);
+  await supabase.from('laporan_files').delete().in('laporan_id', ids);
+  const { data, error } = await supabase
+    .from('laporan')
+    .delete()
+    .in('id', ids);
+  if (error) { console.error('[Supabase] deleteLaporanPermanently:', error); throw new Error(error.message); }
   return data;
 }
 
