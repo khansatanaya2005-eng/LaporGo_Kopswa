@@ -10,6 +10,7 @@ import {
 import { formatRupiah } from '../utils/cn';
 import { getLaporanById, updateOmsetRow, updateLaporan, isSupabaseConfigured } from '../lib/supabaseClient';
 import { downloadExcel } from '../utils/api';
+import { exportReportToPdf } from '../utils/pdfGenerator';
 import { MOCK_OMSET_DATA } from '../data/mockData';
 
 const ManageReport = () => {
@@ -329,11 +330,12 @@ const ManageReport = () => {
           </button>
 
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl transition cursor-pointer"
+            onClick={() => exportReportToPdf(report, rows, totalDebit, totalKredit, selisih)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow-sm transition cursor-pointer"
+            title="Unduh Laporan PDF"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Cetak PDF</span>
+            <FileText className="w-3.5 h-3.5" />
+            <span>Unduh PDF</span>
           </button>
 
           <button
