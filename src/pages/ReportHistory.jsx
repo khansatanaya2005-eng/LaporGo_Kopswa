@@ -27,6 +27,7 @@ const StatusBadge = ({ status }) => {
 const ReportHistory = () => {
   const [reports,         setReports]         = useState([]);
   const [trashReports,    setTrashReports]    = useState([]);
+  const [isSelectMode,    setIsSelectMode]    = useState(false);
   const [selectedIds,     setSelectedIds]     = useState([]);
   const [trashSelectedIds,setTrashSelectedIds] = useState([]);
   const [loading,         setLoading]         = useState(true);
@@ -278,23 +279,43 @@ const ReportHistory = () => {
 
       {/* Filter Toolbar & Actions */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative w-full sm:w-80">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             <input type="text" placeholder="Cari tanggal atau pembuat..."
               value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]" />
           </div>
 
-          {/* Tombol Hapus Terpilih */}
-          {selectedIds.length > 0 && (
+          {/* Tombol Pilih Mode */}
+          <button
+            onClick={() => {
+              if (isSelectMode) {
+                setIsSelectMode(false);
+                setSelectedIds([]);
+              } else {
+                setIsSelectMode(true);
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 border ${
+              isSelectMode 
+                ? 'bg-slate-800 text-white border-slate-800' 
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            <span>{isSelectMode ? 'Batal Pilih' : 'Pilih'}</span>
+          </button>
+
+          {/* Tombol Hapus Terpilih (Hanya jika Mode Pilih aktif & ada terpilih) */}
+          {isSelectMode && selectedIds.length > 0 && (
             <button
               onClick={handleSoftDeleteSelected}
               disabled={processing}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer disabled:opacity-50 shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Hapus ({selectedIds.length})</span>
+              <span>Hapus Terpilih ({selectedIds.length})</span>
             </button>
           )}
         </div>
@@ -325,14 +346,16 @@ const ReportHistory = () => {
             <table className="w-full text-left text-sm text-slate-600">
               <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase border-b border-slate-100">
                 <tr>
-                  <th className="py-3.5 px-4 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      checked={filtered.length > 0 && selectedIds.length === filtered.length}
-                      onChange={handleSelectAll}
-                      className="rounded border-slate-300 text-[#0A4D68] focus:ring-[#0A4D68] cursor-pointer"
-                    />
-                  </th>
+                  {isSelectMode && (
+                    <th className="py-3.5 px-4 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                        onChange={handleSelectAll}
+                        className="rounded border-slate-300 text-[#0A4D68] focus:ring-[#0A4D68] cursor-pointer"
+                      />
+                    </th>
+                  )}
                   <th className="py-3.5 px-5">Tanggal</th>
                   <th className="py-3.5 px-5">Status</th>
                   <th className="py-3.5 px-5">Total Debit / Kredit</th>
@@ -346,14 +369,16 @@ const ReportHistory = () => {
                   const isSelected = selectedIds.includes(row.id);
                   return (
                     <tr key={row.id} className={`transition ${isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
-                      <td className="py-4 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleSelectRow(row.id)}
-                          className="rounded border-slate-300 text-[#0A4D68] focus:ring-[#0A4D68] cursor-pointer"
-                        />
-                      </td>
+                      {isSelectMode && (
+                        <td className="py-4 px-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectRow(row.id)}
+                            className="rounded border-slate-300 text-[#0A4D68] focus:ring-[#0A4D68] cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-2 font-bold text-slate-900">
                           <Calendar className="w-4 h-4 text-[#0A4D68]" />
