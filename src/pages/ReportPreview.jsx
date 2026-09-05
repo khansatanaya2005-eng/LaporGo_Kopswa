@@ -161,11 +161,25 @@ const ReportPreview = () => {
     setSaving(true);
     try {
       if (isSupabaseConfigured()) {
-        // Buat file metadata dari sourceFiles
+        // Buat file metadata dari sourceFiles (wajib + opsional)
+        const toFilesMeta = (names, kategori) =>
+          (names || []).filter(Boolean).map(n => ({ nama_file: n, kategori }));
+
         const filesMeta = [
-          sourceFiles?.omiPerTanggal  && { nama_file: sourceFiles.omiPerTanggal,  kategori: 'omi_per_tanggal'  },
-          sourceFiles?.omiTutupHarian && { nama_file: sourceFiles.omiTutupHarian, kategori: 'omi_tutup_harian' },
-          ...(sourceFiles?.smartFiles || []).map(n => ({ nama_file: n, kategori: 'smart_toko' })),
+          // Wajib
+          sourceFiles?.omiPerTanggal && { nama_file: sourceFiles.omiPerTanggal, kategori: 'omi_per_tanggal' },
+          ...toFilesMeta(sourceFiles?.omiTutupHarian, 'omi_tutup_harian'),
+          ...toFilesMeta(sourceFiles?.smartFiles,     'smart_toko'),
+          // Opsional OMI
+          ...toFilesMeta(sourceFiles?.omiPerMember,  'omi_per_member'),
+          ...toFilesMeta(sourceFiles?.omiDiscItem,   'omi_disc_item'),
+          ...toFilesMeta(sourceFiles?.omiStrukTxt,   'omi_struk_txt'),
+          ...toFilesMeta(sourceFiles?.omiPareto,     'omi_pareto'),
+          ...toFilesMeta(sourceFiles?.omiAnalisa,    'omi_analisa'),
+          ...toFilesMeta(sourceFiles?.omiPerStruk,   'omi_per_struk'),
+          ...toFilesMeta(sourceFiles?.omiPersediaan, 'omi_persediaan'),
+          // Opsional SMART
+          ...toFilesMeta(sourceFiles?.smartDetail,   'smart_detail'),
         ].filter(Boolean);
 
         await saveLaporanToSupabase(

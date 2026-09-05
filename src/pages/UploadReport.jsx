@@ -65,9 +65,20 @@ const UploadReport = () => {
         state: {
           reportData: result.data,
           sourceFiles: {
+            // Wajib
             omiPerTanggal:  omiPerTanggal[0]?.name,
-            omiTutupHarian: omiTutupHarian[0]?.name,
+            omiTutupHarian: omiTutupHarian.map(f => f.name),
             smartFiles:     smartFiles.map(f => f.name),
+            // Opsional OMI
+            omiPerMember:  omiPerMember.map(f => f.name),
+            omiDiscItem:   omiDiscItem.map(f => f.name),
+            omiStrukTxt:   omiStrukTxt.map(f => f.name),
+            omiPareto:     omiPareto.map(f => f.name),
+            omiAnalisa:    omiAnalisa.map(f => f.name),
+            omiPerStruk:   omiPerStruk.map(f => f.name),
+            omiPersediaan: omiPersediaan.map(f => f.name),
+            // Opsional SMART
+            smartDetail:   smartDetail.map(f => f.name),
           }
         }
       });
