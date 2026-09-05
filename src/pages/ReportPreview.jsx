@@ -31,6 +31,9 @@ const OMSET_KEYS = [
 
 const NUMERIC_COLS = new Set(OMSET_KEYS.slice(5)); // kolom 6–23 adalah angka
 
+const COLS_DEBIT = ['tag_promo','giro_udp','piutang','beban_toko','beban_logo','kas_uks','piutang_padi','piutang_edc','beban_promosi'];
+const COLS_KREDIT = ['pendapatan_toko','pendapatan_logo','pendapatan_kerjasama','non_pajak','ppn_pk','ppn_wapu','persediaan_toko','persediaan_logo','simsem_uks'];
+
 const ReportPreview = () => {
   const location = useLocation();
   const navigate  = useNavigate();
@@ -65,6 +68,8 @@ const ReportPreview = () => {
     { id: 'OMSET',  label: 'Sheet OMSET' },
     { id: 'DETAIL', label: 'Ringkasan' },
   ];
+
+  const sumCol = (rows, col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
 
   const filteredRows = omsetRows.filter(r => {
     const t = searchTerm.toLowerCase();
@@ -259,6 +264,37 @@ const ReportPreview = () => {
                       ))}
                     </tr>
                   ))}
+                  {/* --- SUMMARY ROWS --- */}
+                  <tr className="bg-blue-50/80 font-bold border-t-2 border-slate-300">
+                    {OMSET_KEYS.map(k => {
+                      if (k === 'no') return <td key={k} className="p-3"></td>;
+                      if (k === 'nama_ref') return <td key={k} className="p-3 text-slate-900">TOTAL DEBIT</td>;
+                      if (NUMERIC_COLS.has(k)) {
+                        const val = COLS_DEBIT.includes(k) ? sumCol(omsetRows, k) : 0;
+                        return <td key={k} className="p-3 font-mono text-right text-slate-800">{val !== 0 ? formatRupiah(val) : '-'}</td>;
+                      }
+                      return <td key={k} className="p-3"></td>;
+                    })}
+                  </tr>
+                  <tr className="bg-blue-50/80 font-bold">
+                    {OMSET_KEYS.map(k => {
+                      if (k === 'no') return <td key={k} className="p-3"></td>;
+                      if (k === 'nama_ref') return <td key={k} className="p-3 text-slate-900">TOTAL KREDIT</td>;
+                      if (NUMERIC_COLS.has(k)) {
+                        const val = COLS_KREDIT.includes(k) ? sumCol(omsetRows, k) : 0;
+                        return <td key={k} className="p-3 font-mono text-right text-slate-800">{val !== 0 ? formatRupiah(val) : '-'}</td>;
+                      }
+                      return <td key={k} className="p-3"></td>;
+                    })}
+                  </tr>
+                  <tr className="bg-amber-100 font-bold border-t border-amber-200">
+                    {OMSET_KEYS.map((k, i) => {
+                      if (k === 'no') return <td key={k} className="p-3"></td>;
+                      if (k === 'nama_ref') return <td key={k} className="p-3 text-amber-900">SELISIH</td>;
+                      if (i === OMSET_KEYS.length - 1) return <td key={k} className="p-3 font-mono text-right text-amber-900">{formatRupiah(summary.selisih || 0)}</td>;
+                      return <td key={k} className="p-3"></td>;
+                    })}
+                  </tr>
                 </tbody>
               </table>
             </div>
