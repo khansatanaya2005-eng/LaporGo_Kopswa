@@ -63,6 +63,12 @@ const ReportPreview = () => {
   const [downloading,  setDownloading]  = useState(false);
   const [saving,       setSaving]       = useState(false);
   const [saved,        setSaved]        = useState(false);
+  const [customDate,   setCustomDate]   = useState('');
+
+  const handleSetToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setCustomDate(today);
+  };
 
   const tabs = [
     { id: 'OMSET',  label: 'Sheet OMSET' },
@@ -81,10 +87,10 @@ const ReportPreview = () => {
 
   // Download Excel dari backend
   const handleDownloadExcel = async () => {
+    if (!customDate) return alert("Pilih tanggal laporan terlebih dahulu!");
     setDownloading(true);
     try {
-      const tanggal = summary.tanggal || new Date().toISOString().split('T')[0];
-      await downloadExcel(`Laporan_Gabungan_${tanggal}.xlsx`);
+      await downloadExcel(`Laporan_Gabungan_${customDate}.xlsx`);
     } catch (e) {
       alert('Gagal mengunduh Excel: ' + e.message);
     } finally {
@@ -106,7 +112,7 @@ const ReportPreview = () => {
         ].filter(Boolean);
 
         await saveLaporanToSupabase(
-          { tanggal: summary.tanggal, summary, omsetRows, warnings },
+          { tanggal: customDate, summary, omsetRows, warnings },
           filesMeta
         );
       }
@@ -128,11 +134,23 @@ const ReportPreview = () => {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Preview Hasil Penggabungan Laporan</h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Tanggal: <span className="font-semibold">{summary.tanggal || '—'}</span>
-              {' · '}{omsetRows.length} baris OMSET
-            </p>
+            <h1 className="text-xl font-bold text-slate-900 mb-1">Preview Hasil Penggabungan Laporan</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <label className="text-xs font-semibold text-slate-600">Tanggal:</label>
+              <input 
+                type="date" 
+                value={customDate} 
+                onChange={e => setCustomDate(e.target.value)} 
+                className="text-xs px-2 py-1 border border-slate-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              />
+              <button 
+                onClick={handleSetToday}
+                className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition cursor-pointer"
+              >
+                Hari Ini
+              </button>
+              <span className="text-xs text-slate-400 ml-2">· {omsetRows.length} baris OMSET</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -141,15 +159,18 @@ const ReportPreview = () => {
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Proses Ulang</span>
           </button>
-          <button onClick={handleSave} disabled={saving || saved}
+          <button onClick={handleSave} disabled={saving || saved || !customDate}
             className={`flex items-center gap-1.5 px-4 py-2 font-bold text-xs rounded-xl shadow-md transition cursor-pointer ${
-              saved ? 'bg-emerald-500 text-white' : 'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95'}`}>
+              saved ? 'bg-emerald-500 text-white' : 
+              !customDate ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 
+              'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95'}`}>
             {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Menyimpan...</span></>
               : saved ? <><Check className="w-3.5 h-3.5" /><span>Tersimpan</span></>
               : <><Save className="w-3.5 h-3.5" /><span>Simpan ke Database</span></>}
           </button>
-          <button onClick={handleDownloadExcel} disabled={downloading}
-            className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer">
+          <button onClick={handleDownloadExcel} disabled={downloading || !customDate}
+            className={`flex items-center gap-2 px-5 py-2 font-bold text-xs rounded-xl shadow-md transition cursor-pointer ${
+              !customDate ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}>
             <Download className="w-4 h-4" />
             <span>{downloading ? 'Mengunduh...' : 'Download Excel'}</span>
           </button>
