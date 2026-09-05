@@ -200,7 +200,7 @@ const UserManagement = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Manajemen User</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Kelola akun pengguna sistem (@admin.kopswa.id vs @staff.kopswa.id).
+            Kelola akun pengguna LaporGo (@admin.kopswa.id vs @staff.kopswa.id).
           </p>
         </div>
 
@@ -235,7 +235,7 @@ const UserManagement = () => {
 
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-medium text-amber-800/80 bg-amber-100/60 px-3 py-1.5 rounded-xl border border-amber-200/80">
-                🔒 Akun dilindungi system (Tidak dapat diubah / dihapus)
+                🔒 Akun dilindungi LaporGo (Tidak dapat diubah / dihapus)
               </span>
               <button
                 onClick={() => handleOpenViewMain(mainAccountUser)}
@@ -252,7 +252,7 @@ const UserManagement = () => {
       {/* Users Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-800">Daftar Pengguna Sistem ({regularUsers.length})</h2>
+          <h2 className="text-sm font-bold text-slate-800">Daftar Pengguna LaporGo ({regularUsers.length})</h2>
           <span className="text-xs text-slate-400 font-mono">Dapat dikelola (Edit / Hapus)</span>
         </div>
 

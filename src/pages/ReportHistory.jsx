@@ -197,7 +197,7 @@ const ReportHistory = () => {
     if (targetIds.length === 0) return;
     setConfirmModal({
       title: "Hapus Permanen Laporan?",
-      message: `HAPUS PERMANEN ${targetIds.length} laporan terpilih? Tindakan ini tidak dapat dibatalkan dan data akan terhapus selamanya dari sistem!`,
+      message: `HAPUS PERMANEN ${targetIds.length} laporan terpilih? Tindakan ini tidak dapat dibatalkan dan data akan terhapus selamanya dari LaporGo!`,
       confirmLabel: "Hapus Permanen",
       type: "danger",
       action: () => executePermanentDeleteSelected(targetIds)
@@ -369,7 +369,7 @@ const ReportHistory = () => {
         {loading ? (
           <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-sm">Memuat data dari sistem...</span>
+            <span className="text-sm">Memuat data LaporGo...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">

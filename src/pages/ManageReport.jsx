@@ -150,7 +150,7 @@ const ManageReport = () => {
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
       console.error('[Save] Gagal menyimpan perubahan:', e);
-      alert('Gagal menyimpan perubahan ke sistem: ' + e.message);
+      alert('Gagal menyimpan perubahan ke LaporGo: ' + e.message);
     } finally {
       setSaving(false);
     }
