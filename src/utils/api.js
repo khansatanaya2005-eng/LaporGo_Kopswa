@@ -6,7 +6,7 @@
 
 // Kalau VITE_API_BASE_URL tidak diset (production Vercel), gunakan '' (relative)
 // Kalau diset (local dev: http://localhost:5000/api), strip /api suffix
-const _raw     = import.meta.env.VITE_API_BASE_URL || '';
+const _raw = import.meta.env.VITE_API_BASE_URL || '';
 const BASE_URL = _raw ? _raw.replace(/\/api\/?$/, '') : '';
 
 /**
@@ -16,24 +16,24 @@ const BASE_URL = _raw ? _raw.replace(/\/api\/?$/, '') : '';
  */
 export async function processLaporan(fileSlots) {
   const {
-    omiPerTanggal  = [],
+    omiPerTanggal = [],
     omiTutupHarian = [],
-    smartFiles     = [],
-    omiMember      = [],
-    detailSmart    = [],
+    smartFiles = [],
+    omiMember = [],
+    detailSmart = [],
   } = fileSlots;
 
   const formData = new FormData();
 
   // File wajib OMI
-  if (omiPerTanggal[0])  formData.append('omi_per_tanggal',  omiPerTanggal[0]);
+  if (omiPerTanggal[0]) formData.append('omi_per_tanggal', omiPerTanggal[0]);
   if (omiTutupHarian[0]) formData.append('omi_tutup_harian', omiTutupHarian[0]);
 
   // File SMART (bisa lebih dari 1 — TOKO + LOGO)
   smartFiles.forEach(f => formData.append('smart_files', f));
 
   // File opsional
-  if (omiMember[0])   formData.append('omi_member',   omiMember[0]);
+  if (omiMember[0]) formData.append('omi_member', omiMember[0]);
   if (detailSmart[0]) formData.append('detail_smart', detailSmart[0]);
 
   const res = await fetch(`${BASE_URL}/api/process-laporan`, {
@@ -70,9 +70,9 @@ export async function downloadExcel(omsetRows, summary, tanggal, filename = 'Lap
 
   // Buat blob dan trigger download otomatis
   const blob = await res.blob();
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();

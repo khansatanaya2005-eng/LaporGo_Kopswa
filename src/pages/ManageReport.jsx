@@ -4,10 +4,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Download, Printer, ArrowLeft, CheckCircle2,
   AlertTriangle, Clock, Search, ArrowUpDown,
-  FileText, Layers, Building, Store, Eye, X, Loader2
+  FileText, Layers, Building, Store, Eye, X, Loader2,
+  Pencil, Undo, Redo, Check, Save
 } from 'lucide-react';
 import { formatRupiah } from '../utils/cn';
-import { getLaporanById, isSupabaseConfigured } from '../lib/supabaseClient';
+import { getLaporanById, updateOmsetRow, isSupabaseConfigured } from '../lib/supabaseClient';
 import { downloadExcel } from '../utils/api';
 import { MOCK_OMSET_DATA } from '../data/mockData';
 
@@ -17,11 +18,21 @@ const ManageReport = () => {
 
   const [loading, setLoading] = useState(true);
   const [report, setReport]   = useState(null);
-  const [activeTab, setActiveTab] = useState('OMSET');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortAsc, setSortAsc] = useState(true);
+  // State edit tabel
+  const [rows, setRows]               = useState([]);   // local editable copy
+  const [originalRows, setOriginalRows] = useState([]); // baseline copy to detect unsaved changes
+  const [past, setPast]               = useState([]);
+  const [future, setFuture]           = useState([]);
+  const [editingCell, setEditingCell] = useState(null); // { rowId, colKey }
+  const [editValue, setEditValue]     = useState('');
+  const [hoveredCell, setHoveredCell] = useState(null);
+  const [saving, setSaving]           = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [activeTab, setActiveTab]     = useState('OMSET');
+  const [searchTerm, setSearchTerm]  = useState('');
+  const [sortAsc, setSortAsc]         = useState(true);
   const [selectedPreviewFile, setSelectedPreviewFile] = useState(null);
-  const [previewData, setPreviewData]  = useState(null);  // { type: 'excel'|'txt', content }
+  const [previewData, setPreviewData]  = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -33,6 +44,8 @@ const ManageReport = () => {
           const data = await getLaporanById(id);
           if (data) {
             setReport(data);
+            setRows(data.omsetRows || []);
+            setOriginalRows(data.omsetRows || []);
             setLoading(false);
             return;
           }
@@ -60,6 +73,8 @@ const ManageReport = () => {
           { id: 4, nama_file: 'ringkasan logo.xlsx', kategori: 'smart_logo', ukuran_bytes: 940000 },
         ],
       });
+      setRows(MOCK_OMSET_DATA);
+      setOriginalRows(MOCK_OMSET_DATA);
       setLoading(false);
     }
 
@@ -75,9 +90,92 @@ const ManageReport = () => {
     );
   }
 
-  const omsetRows = report?.omsetRows || MOCK_OMSET_DATA;
+  const omsetRows = rows;
   const isBalance = report?.status_balance === 'Balance';
   const isDraft   = report?.status_balance === 'Draft';
+
+  // ── Kolom numerik & debit/kredit (sama dgn ReportPreview) ──
+  const NUMERIC_COLS = new Set(['tag_promo','giro_udp','piutang','beban_toko','beban_logo','kas_uks','piutang_padi','piutang_edc','beban_promosi','pendapatan_toko','pendapatan_logo','pendapatan_kerjasama','non_pajak','ppn_pk','ppn_wapu','persediaan_toko','persediaan_logo','simsem_uks']);
+  const COLS_DEBIT  = ['tag_promo','giro_udp','piutang','beban_toko','beban_logo','kas_uks','piutang_padi','piutang_edc','beban_promosi'];
+  const COLS_KREDIT = ['pendapatan_toko','pendapatan_logo','pendapatan_kerjasama','non_pajak','ppn_pk','ppn_wapu','persediaan_toko','persediaan_logo','simsem_uks'];
+  const sumCol = (col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
+  const totalDebit  = COLS_DEBIT.reduce((s, c) => s + sumCol(c), 0);
+  const totalKredit = COLS_KREDIT.reduce((s, c) => s + sumCol(c), 0);
+
+  // Cek apakah ada perubahan belum disimpan
+  const isDirty = JSON.stringify(rows) !== JSON.stringify(originalRows);
+
+  // ── Simpan Perubahan ke Supabase (Tombol Save Manual) ─────────
+  const handleSaveChanges = async () => {
+    if (!isDirty) return;
+    setSaving(true);
+    setSaveSuccess(false);
+    try {
+      if (isSupabaseConfigured()) {
+        for (const row of rows) {
+          const origRow = originalRows.find(r => r.id === row.id);
+          if (origRow && row.id && !String(row.id).startsWith('mock')) {
+            const updates = {};
+            for (const col of Object.keys(row)) {
+              if (row[col] !== origRow[col] && col !== 'id') {
+                updates[col] = row[col];
+              }
+            }
+            if (Object.keys(updates).length > 0) {
+              await updateOmsetRow(row.id, updates);
+            }
+          }
+        }
+      }
+      setOriginalRows(rows);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (e) {
+      console.error('[Save] Gagal menyimpan perubahan:', e);
+      alert('Gagal menyimpan perubahan ke database: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Undo / Redo ──────────────────────────────────────────
+  const handleUndo = () => {
+    if (past.length === 0) return;
+    const prev = past[past.length - 1];
+    setPast(past.slice(0, -1));
+    setFuture([rows, ...future]);
+    setRows(prev);
+    setEditingCell(null);
+  };
+  const handleRedo = () => {
+    if (future.length === 0) return;
+    const next = future[0];
+    setFuture(future.slice(1));
+    setPast([...past, rows]);
+    setRows(next);
+    setEditingCell(null);
+  };
+
+  // ── Edit Cell (Hanya ubah state lokal, simpan dilakukan via tombol Save) ──
+  const startEdit = (rowId, colKey, currentVal) => {
+    setEditingCell({ rowId, colKey });
+    setEditValue(NUMERIC_COLS.has(colKey) ? (currentVal || 0) : (currentVal || ''));
+  };
+
+  const commitEdit = () => {
+    if (!editingCell) return;
+    const { rowId, colKey } = editingCell;
+    const parsedVal = NUMERIC_COLS.has(colKey)
+      ? (parseFloat(String(editValue).replace(/[^0-9.-]/g, '')) || 0)
+      : editValue;
+    const targetRow = rows.find(r => r.id === rowId);
+    if (!targetRow || targetRow[colKey] === parsedVal) { setEditingCell(null); return; }
+    const newRows = rows.map(r => r.id === rowId ? { ...r, [colKey]: parsedVal } : r);
+    setPast([...past, rows]);
+    setRows(newRows);
+    setFuture([]);
+    setEditingCell(null);
+  };
 
   const filteredRows = omsetRows.filter(row => {
     const term = searchTerm.toLowerCase();
@@ -171,6 +269,37 @@ const ManageReport = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Tombol Simpan Perubahan jika data di-edit */}
+          <button
+            onClick={handleSaveChanges}
+            disabled={!isDirty || saving}
+            className={`flex items-center gap-2 px-4 py-2 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+              isDirty 
+                ? 'bg-blue-600 hover:bg-blue-700 animate-pulse' 
+                : saveSuccess 
+                ? 'bg-emerald-600' 
+                : 'bg-slate-700'
+            }`}
+            title={isDirty ? "Simpan Perubahan ke Database" : "Tidak ada perubahan"}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Menyimpan...</span>
+              </>
+            ) : saveSuccess ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Tersimpan!</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>{isDirty ? 'Simpan Perubahan' : 'Tersimpan'}</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={() => navigate('/riwayat')}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
@@ -202,12 +331,12 @@ const ManageReport = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <p className="text-[11px] font-semibold text-slate-400 uppercase">Total Debit</p>
-          <p className="text-lg font-bold text-slate-900 mt-1 font-mono">{formatRupiah(report.total_debit)}</p>
+          <p className="text-lg font-bold text-slate-900 mt-1 font-mono">{formatRupiah(totalDebit)}</p>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <p className="text-[11px] font-semibold text-slate-400 uppercase">Total Kredit</p>
-          <p className="text-lg font-bold text-slate-900 mt-1 font-mono">{formatRupiah(report.total_kredit)}</p>
+          <p className="text-lg font-bold text-slate-900 mt-1 font-mono">{formatRupiah(totalKredit)}</p>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -216,24 +345,17 @@ const ManageReport = () => {
         </div>
 
         <div className={`p-4 rounded-xl border shadow-sm flex items-center justify-between ${
-          isBalance 
+          totalDebit === totalKredit 
             ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900' 
-            : isDraft 
-            ? 'bg-slate-50 border-slate-200 text-slate-800' 
             : 'bg-amber-50/60 border-amber-200 text-amber-900'
         }`}>
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Status Laporan</p>
             <div className="flex items-center gap-1.5 mt-1 font-bold text-base">
-              {isBalance ? (
+              {totalDebit === totalKredit ? (
                 <>
                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                   <span className="text-emerald-700">BALANCE ✅</span>
-                </>
-              ) : isDraft ? (
-                <>
-                  <Clock className="w-5 h-5 text-slate-500" />
-                  <span className="text-slate-700">DRAFT 📑</span>
                 </>
               ) : (
                 <>
@@ -243,12 +365,6 @@ const ManageReport = () => {
               )}
             </div>
           </div>
-          {!isBalance && !isDraft && (
-            <div className="text-right">
-              <span className="text-[10px] text-amber-600 block">Selisih:</span>
-              <span className="font-mono font-bold text-xs text-amber-800">{formatRupiah(report.selisih)}</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -266,13 +382,47 @@ const ManageReport = () => {
             />
           </div>
 
-          <button
-            onClick={() => setSortAsc(!sortAsc)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            <span>Urutan NO ({sortAsc ? 'Asc' : 'Desc'})</span>
-          </button>
+          {/* Save button & Undo/Redo */}
+          <div className="flex items-center gap-3">
+            {isDirty && (
+              <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                Ada perubahan belum disimpan
+              </span>
+            )}
+
+            <button
+              onClick={handleSaveChanges}
+              disabled={!isDirty || saving}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                isDirty 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' 
+                  : saveSuccess 
+                  ? 'bg-emerald-600 text-white' 
+                  : 'bg-slate-100 text-slate-400'
+              }`}
+            >
+              {saving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : saveSuccess ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              <span>{saving ? 'Menyimpan...' : saveSuccess ? 'Tersimpan' : 'Simpan'}</span>
+            </button>
+
+            <div className="h-4 w-px bg-slate-200" />
+
+            <button onClick={handleUndo} disabled={past.length === 0}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition" title="Undo">
+              <Undo className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={handleRedo} disabled={future.length === 0}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition" title="Redo">
+              <Redo className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* 23 Columns OMSET Table */}
@@ -306,33 +456,73 @@ const ManageReport = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {sortedRows.map((row) => (
-                <tr key={row.no || Math.random()} className="hover:bg-slate-50 transition">
+              {sortedRows.map((row) => {
+                const mkCell = (colKey, content, extraClass = '') => {
+                  const isEditing = editingCell?.rowId === row.id && editingCell?.colKey === colKey;
+                  const isHovered = hoveredCell?.rowId === row.id && hoveredCell?.colKey === colKey;
+                  return (
+                    <td key={colKey}
+                      className={`p-3 relative group ${extraClass}`}
+                      onMouseEnter={() => setHoveredCell({ rowId: row.id, colKey })}
+                      onMouseLeave={() => setHoveredCell(null)}
+                    >
+                      {isEditing ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            autoFocus
+                            type={NUMERIC_COLS.has(colKey) ? 'number' : 'text'}
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onBlur={commitEdit}
+                            onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingCell(null); }}
+                            className="w-full text-xs border border-blue-400 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300 font-mono"
+                          />
+                          <button onClick={commitEdit} className="p-1 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-600"><Check className="w-3 h-3" /></button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="flex-1 min-w-0">{content}</span>
+                          {isHovered && (
+                            <button
+                              onClick={() => startEdit(row.id, colKey, row[colKey])}
+                              className="p-0.5 text-slate-300 hover:text-[#0A4D68] rounded transition cursor-pointer shrink-0 opacity-0 group-hover:opacity-100"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  );
+                };
+                return (
+                <tr key={row.id || row.no} className="hover:bg-slate-50/80 transition">
                   <td className="p-3 font-semibold text-slate-700">{row.no}</td>
-                  <td className="p-3 font-semibold text-slate-900">{row.nama_ref}</td>
-                  <td className="p-3"><span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded">{row.jenis_transaksi || '-'}</span></td>
-                  <td className="p-3 font-mono text-slate-600">{row.kwitansi || '-'}</td>
-                  <td className="p-3 text-slate-600 max-w-xs truncate">{row.keterangan || '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.tag_promo ? formatRupiah(row.tag_promo) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.giro_udp ? formatRupiah(row.giro_udp) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.piutang ? formatRupiah(row.piutang) : '-'}</td>
-                  <td className="p-3 font-mono text-right text-emerald-700 font-medium">{row.pendapatan_toko ? formatRupiah(row.pendapatan_toko) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.pendapatan_logo ? formatRupiah(row.pendapatan_logo) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.pendapatan_kerjasama ? formatRupiah(row.pendapatan_kerjasama) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.non_pajak ? formatRupiah(row.non_pajak) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.ppn_pk ? formatRupiah(row.ppn_pk) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.ppn_wapu ? formatRupiah(row.ppn_wapu) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.beban_toko ? formatRupiah(row.beban_toko) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.beban_logo ? formatRupiah(row.beban_logo) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.persediaan_toko ? formatRupiah(row.persediaan_toko) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.persediaan_logo ? formatRupiah(row.persediaan_logo) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.simsem_uks ? formatRupiah(row.simsem_uks) : '-'}</td>
-                  <td className="p-3 font-mono text-right text-blue-700 font-medium">{row.kas_uks ? formatRupiah(row.kas_uks) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.piutang_padi ? formatRupiah(row.piutang_padi) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.piutang_edc ? formatRupiah(row.piutang_edc) : '-'}</td>
-                  <td className="p-3 font-mono text-right">{row.beban_promosi ? formatRupiah(row.beban_promosi) : '-'}</td>
+                  {mkCell('nama_ref',             <span className="font-semibold text-slate-900">{row.nama_ref}</span>)}
+                  {mkCell('jenis_transaksi',       <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded">{row.jenis_transaksi || '-'}</span>)}
+                  {mkCell('kwitansi',              <span className="font-mono text-slate-600">{row.kwitansi || '-'}</span>)}
+                  {mkCell('keterangan',            <span className="text-slate-600 max-w-xs truncate block">{row.keterangan || '-'}</span>)}
+                  {mkCell('tag_promo',             <span className="font-mono">{row.tag_promo ? formatRupiah(row.tag_promo) : '-'}</span>, 'text-right')}
+                  {mkCell('giro_udp',              <span className="font-mono">{row.giro_udp ? formatRupiah(row.giro_udp) : '-'}</span>, 'text-right')}
+                  {mkCell('piutang',               <span className="font-mono">{row.piutang ? formatRupiah(row.piutang) : '-'}</span>, 'text-right')}
+                  {mkCell('pendapatan_toko',       <span className="font-mono text-emerald-700 font-medium">{row.pendapatan_toko ? formatRupiah(row.pendapatan_toko) : '-'}</span>, 'text-right')}
+                  {mkCell('pendapatan_logo',       <span className="font-mono">{row.pendapatan_logo ? formatRupiah(row.pendapatan_logo) : '-'}</span>, 'text-right')}
+                  {mkCell('pendapatan_kerjasama',  <span className="font-mono">{row.pendapatan_kerjasama ? formatRupiah(row.pendapatan_kerjasama) : '-'}</span>, 'text-right')}
+                  {mkCell('non_pajak',             <span className="font-mono">{row.non_pajak ? formatRupiah(row.non_pajak) : '-'}</span>, 'text-right')}
+                  {mkCell('ppn_pk',                <span className="font-mono">{row.ppn_pk ? formatRupiah(row.ppn_pk) : '-'}</span>, 'text-right')}
+                  {mkCell('ppn_wapu',              <span className="font-mono">{row.ppn_wapu ? formatRupiah(row.ppn_wapu) : '-'}</span>, 'text-right')}
+                  {mkCell('beban_toko',            <span className="font-mono">{row.beban_toko ? formatRupiah(row.beban_toko) : '-'}</span>, 'text-right')}
+                  {mkCell('beban_logo',            <span className="font-mono">{row.beban_logo ? formatRupiah(row.beban_logo) : '-'}</span>, 'text-right')}
+                  {mkCell('persediaan_toko',       <span className="font-mono">{row.persediaan_toko ? formatRupiah(row.persediaan_toko) : '-'}</span>, 'text-right')}
+                  {mkCell('persediaan_logo',       <span className="font-mono">{row.persediaan_logo ? formatRupiah(row.persediaan_logo) : '-'}</span>, 'text-right')}
+                  {mkCell('simsem_uks',            <span className="font-mono">{row.simsem_uks ? formatRupiah(row.simsem_uks) : '-'}</span>, 'text-right')}
+                  {mkCell('kas_uks',               <span className="font-mono text-blue-700 font-medium">{row.kas_uks ? formatRupiah(row.kas_uks) : '-'}</span>, 'text-right')}
+                  {mkCell('piutang_padi',          <span className="font-mono">{row.piutang_padi ? formatRupiah(row.piutang_padi) : '-'}</span>, 'text-right')}
+                  {mkCell('piutang_edc',           <span className="font-mono">{row.piutang_edc ? formatRupiah(row.piutang_edc) : '-'}</span>, 'text-right')}
+                  {mkCell('beban_promosi',         <span className="font-mono">{row.beban_promosi ? formatRupiah(row.beban_promosi) : '-'}</span>, 'text-right')}
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>

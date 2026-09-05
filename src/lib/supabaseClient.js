@@ -310,6 +310,25 @@ export async function updateLaporan(laporanId, updates = {}) {
   return data;
 }
 
+/**
+ * Update satu kolom pada baris omset_rows
+ * @param {string} rowId   - UUID baris omset_rows
+ * @param {Object} updates - { colKey: newValue }
+ */
+export async function updateOmsetRow(rowId, updates = {}) {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await supabase
+    .from('omset_rows')
+    .update(updates)
+    .eq('id', rowId)
+    .select()
+    .single();
+
+  if (error) { console.error('[Supabase] updateOmsetRow:', error); throw new Error(error.message); }
+  return data;
+}
+
 // ─────────────────────────────────────────────────────────────
 // LAPORAN — DELETE (Admin only)
 // ─────────────────────────────────────────────────────────────

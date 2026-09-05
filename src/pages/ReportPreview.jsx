@@ -486,6 +486,7 @@ const ReportPreview = () => {
                 );
               })}
             </div>
+          </div>
         )}
       </div>
 
