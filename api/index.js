@@ -331,9 +331,19 @@ async function generateExcel({ omsetRows, summary }) {
 
   ws.addRow({});
 
-  const addTotalRow = (label, cols, bgColor, fontColor = 'FF000000') => {
+  const grandTotalDebit  = summary?.totalDebit  ?? COLS_DEBIT.reduce((s, c) => s + sumCol(omsetRows, c), 0);
+  const grandTotalKredit = summary?.totalKredit ?? COLS_KREDIT.reduce((s, c) => s + sumCol(omsetRows, c), 0);
+  const currentSelisih   = summary?.selisih ?? Math.abs(grandTotalDebit - grandTotalKredit);
+
+  const addTotalRow = (label, cols, bgColor, fontColor = 'FF000000', grandTotalVal = 0) => {
     const r = ws.addRow({});
     r.getCell(2).value = label;
+    r.getCell(4).value = 'GRAND TOTAL:';
+    r.getCell(4).alignment = { horizontal: 'right' };
+    r.getCell(5).value = grandTotalVal;
+    r.getCell(5).numFmt = '#,##0';
+    r.getCell(5).alignment = { horizontal: 'right' };
+
     cols.forEach(col => {
       const colDef = OMSET_COL_DEFS.find(d => d.key === col);
       if (!colDef) return;
@@ -347,15 +357,20 @@ async function generateExcel({ omsetRows, summary }) {
     return r;
   };
 
-  addTotalRow('TOTAL DEBIT',  COLS_DEBIT,  'FFDBEAFE');
-  addTotalRow('TOTAL KREDIT', COLS_KREDIT, 'FFD1FAE5');
+  addTotalRow('TOTAL DEBIT',  COLS_DEBIT,  'FFDBEAFE', 'FF000000', grandTotalDebit);
+  addTotalRow('TOTAL KREDIT', COLS_KREDIT, 'FFD1FAE5', 'FF000000', grandTotalKredit);
 
   const selRow = ws.addRow({});
   selRow.getCell(2).value  = 'SELISIH';
-  selRow.getCell(OMSET_COL_DEFS.length).value  = summary.selisih;
+  selRow.getCell(4).value  = 'GRAND SELISIH:';
+  selRow.getCell(4).alignment = { horizontal: 'right' };
+  selRow.getCell(5).value  = currentSelisih;
+  selRow.getCell(5).numFmt = '#,##0';
+  selRow.getCell(5).alignment = { horizontal: 'right' };
+  selRow.getCell(OMSET_COL_DEFS.length).value  = currentSelisih;
   selRow.getCell(OMSET_COL_DEFS.length).numFmt = '#,##0';
-  selRow.font = { bold: true, color: { argb: summary.selisih === 0 ? 'FF16A34A' : 'FFDC2626' } };
-  selRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: summary.selisih === 0 ? 'FFF0FDF4' : 'FFFEF2F2' } };
+  selRow.font = { bold: true, color: { argb: currentSelisih === 0 ? 'FF16A34A' : 'FFDC2626' } };
+  selRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: currentSelisih === 0 ? 'FFF0FDF4' : 'FFFEF2F2' } };
 
   ws.views = [{ state: 'frozen', ySplit: 1 }];
 
