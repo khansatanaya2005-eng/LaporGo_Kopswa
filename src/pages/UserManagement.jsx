@@ -18,7 +18,7 @@ import {
 } from '../lib/supabaseClient';
 
 const UserManagement = () => {
-  const [users, setUsers] = useState(MOCK_USERS);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -33,26 +33,30 @@ const UserManagement = () => {
   });
 
   // Load profiles from Supabase on mount
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const liveProfiles = await getProfiles();
-        if (liveProfiles && liveProfiles.length > 0) {
-          setUsers(liveProfiles.map(p => ({
-            id: p.id,
-            full_name: p.full_name || p.email.split('@')[0],
-            email: p.email,
-            role: p.role || 'Staff',
-            created_at: p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
-          })));
-        }
-      } catch (err) {
-        console.warn('Gagal memuat profiles Supabase, menggunakan data default:', err);
-      } finally {
-        setLoading(false);
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const liveProfiles = await getProfiles();
+      if (Array.isArray(liveProfiles)) {
+        setUsers(liveProfiles.map(p => ({
+          id: p.id,
+          full_name: p.full_name || p.email.split('@')[0],
+          email: p.email,
+          role: p.role || 'Staff',
+          created_at: p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+        })));
+      } else {
+        setUsers([]);
       }
-    };
+    } catch (err) {
+      console.warn('Gagal memuat profiles Supabase:', err);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUsers();
   }, []);
 
