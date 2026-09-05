@@ -26,7 +26,14 @@ import {
   Key,
   FolderTree,
   GitBranch,
-  Rocket
+  Rocket,
+  Eye,
+  Trash2,
+  RotateCcw,
+  Undo,
+  Redo,
+  Save,
+  Lock
 } from 'lucide-react';
 
 const UserGuide = () => {
@@ -43,8 +50,8 @@ const UserGuide = () => {
             <div className="h-5 w-[1px] bg-slate-200 hidden sm:block"></div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm text-[#0A4D68]">LaporGo System</span>
-              <span className="text-[10px] font-bold bg-[#0A4D68]/10 text-[#0A4D68] px-2 py-0.5 rounded-full">
-                Pusat Panduan & Dokumentasi Teknikal
+              <span className="text-[10px] font-bold bg-[#0A4D68]/10 text-[#0A4D68] px-2.5 py-0.5 rounded-full">
+                Pusat Panduan & Dokumentasi Teknikal v2.0
               </span>
             </div>
           </div>
@@ -135,9 +142,9 @@ const UserGuide = () => {
                 <li><a href="#staff-2" className="hover:underline">2. Membaca & Memahami Dashboard</a></li>
                 <li><a href="#staff-3" className="hover:underline">3. Prosedur Upload Berkas Laporan</a></li>
                 <li><a href="#staff-4" className="hover:underline">4. Memproses Laporan Harian</a></li>
-                <li><a href="#staff-5" className="hover:underline">5. Membaca & Menindaklanjuti Preview</a></li>
-                <li><a href="#staff-6" className="hover:underline">6. Download Excel & Cetak PDF</a></li>
-                <li><a href="#staff-7" className="hover:underline">7. Mengakses Riwayat Laporan</a></li>
+                <li><a href="#staff-5" className="hover:underline">5. Pengeditan Sel, Undo & Redo</a></li>
+                <li><a href="#staff-6" className="hover:underline">6. Download Excel & Direct PDF</a></li>
+                <li><a href="#staff-7" className="hover:underline">7. Mengakses Riwayat & Tempat Sampah</a></li>
                 <li><a href="#staff-8" className="hover:underline">8. Panduan Troubleshooting Staff</a></li>
               </ul>
             </div>
@@ -149,13 +156,11 @@ const UserGuide = () => {
               </h2>
               <ol className="list-decimal pl-5 text-xs text-slate-600 space-y-2 leading-relaxed">
                 <li>Buka alamat web LaporGo pada browser Anda.</li>
-                <li>Masukkan alamat **Email terdaftar** (contoh: <code className="bg-slate-100 px-1 py-0.5 rounded text-[#0A4D68]">staff@kopswa.id</code>) dan **Password** Anda.</li>
-                <li>Klik tombol **"Masuk ke Dashboard"**.</li>
-                <li>Setelah berhasil, sistem akan mengarahkan Anda ke Halaman Dashboard Utama.</li>
+                <li>Formulir login akan diawali secara bersih (kosong tanpa auto-fill demo).</li>
+                <li>Masukkan alamat **Email terdaftar** dengan domain resmi Koperasi Swadharma (contoh: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-[#0A4D68]">staff@kopswa.id</code> atau <code className="bg-slate-100 px-1.5 py-0.5 rounded text-[#0A4D68]">admin@kopswa.id</code>) dan **Password**.</li>
+                <li>Gunakan tombol ikon mata (<Eye className="w-3.5 h-3.5 inline text-slate-500" />) pada kolom password untuk menampilkan/menyembunyikan kata kunci yang diketik.</li>
+                <li>Klik tombol **"Masuk ke Dashboard"**. Sistem akan mengarahkan Anda ke Halaman Dashboard Utama.</li>
               </ol>
-              <div className="p-3 bg-slate-100 rounded-xl text-center text-xs font-mono text-slate-500 border border-dashed border-slate-300">
-                [SCREENSHOT: Form Login LaporGo System]
-              </div>
             </section>
 
             <section id="staff-2" className="space-y-3">
@@ -172,9 +177,6 @@ const UserGuide = () => {
                 <li>**KPI Card 3 (Laporan Unbalance)**: Menampilkan jumlah laporan yang terdeteksi selisih dan membutuhkan pemeriksaan ulang.</li>
                 <li>**Grafik Omset Harian**: Grafik area visual tren perkembangan total omset harian Toko OMI & SMART 7 hari terakhir.</li>
               </ul>
-              <div className="p-3 bg-slate-100 rounded-xl text-center text-xs font-mono text-slate-500 border border-dashed border-slate-300">
-                [SCREENSHOT: Tampilan Dashboard dengan KPI Cards & Grafik]
-              </div>
             </section>
 
             <section id="staff-3" className="space-y-4">
@@ -183,7 +185,7 @@ const UserGuide = () => {
                 <span>Prosedur Upload Berkas Laporan (`/upload`)</span>
               </h2>
               <p className="text-xs text-slate-600">
-                Buka menu **"Buat Laporan"**. Halaman ini memiliki 2 folder kategori: **LAPORAN OMI** dan **LAPORAN SMART**.
+                Buka menu **"Buat Laporan"**. Unggah berkas wajib berikut di slot masing-masing:
               </p>
 
               <div className="overflow-x-auto">
@@ -199,42 +201,36 @@ const UserGuide = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-700">
                     <tr className="bg-white">
-                      <td className="p-2.5 font-bold text-[#0A4D68]" rowSpan={4}>OMI</td>
+                      <td className="p-2.5 font-bold text-[#0A4D68]" rowSpan={3}>OMI</td>
                       <td className="p-2.5 font-mono">LAPORAN PER TANGGAL.xls</td>
                       <td className="p-2.5 font-bold text-red-600">* Wajib</td>
                       <td className="p-2.5">.xls / .xlsx</td>
-                      <td className="p-2.5">Total Penjualan, PPN, HPP, Cash, Kredit</td>
+                      <td className="p-2.5">Total Penjualan Toko OMI, PPN, HPP, Cash, Kredit</td>
                     </tr>
                     <tr className="bg-white">
-                      <td className="p-2.5 font-mono">LAPORAN PENJUALAN ANGGOTA PER MEMBER.xls</td>
+                      <td className="p-2.5 font-mono font-bold">LAPORAN TUTUP HARIAN.txt</td>
                       <td className="p-2.5 font-bold text-red-600">* Wajib</td>
-                      <td className="p-2.5">.xls / .xlsx</td>
-                      <td className="p-2.5">Total transaksi kredit pegawai</td>
-                    </tr>
-                    <tr className="bg-white">
-                      <td className="p-2.5 font-mono">LAPORAN DISC. ITEM.xls</td>
-                      <td className="p-2.5 font-bold text-red-600">* Wajib</td>
-                      <td className="p-2.5">.xls / .xlsx</td>
-                      <td className="p-2.5">Total promo / diskon harian</td>
-                    </tr>
-                    <tr className="bg-white">
-                      <td className="p-2.5 font-mono">BERKAS STRUK TXT (*.txt)</td>
-                      <td className="p-2.5 font-medium text-slate-500">Opsional</td>
                       <td className="p-2.5">.txt</td>
-                      <td className="p-2.5">Multi-upload file struk (.txt)</td>
+                      <td className="p-2.5">Struk teks resmi tutup harian kasir OMI</td>
+                    </tr>
+                    <tr className="bg-white">
+                      <td className="p-2.5 font-mono">LAPORAN PENJUALAN MEMBER.xls</td>
+                      <td className="p-2.5 font-medium text-slate-500">Opsional</td>
+                      <td className="p-2.5">.xls / .xlsx</td>
+                      <td className="p-2.5">Data rincian piutang anggota pegawai OMI</td>
                     </tr>
                     <tr className="bg-slate-50">
-                      <td className="p-2.5 font-bold text-[#0A4D68]" rowSpan={2}>SMART</td>
+                      <td className="p-2.5 font-bold text-[#0A4D68]" rowSpan={3}>SMART</td>
+                      <td className="p-2.5 font-mono">Ringkasan Pembayaran SMART</td>
+                      <td className="p-2.5 font-bold text-red-600">* Wajib</td>
+                      <td className="p-2.5">.xlsx / .xls</td>
+                      <td className="p-2.5">Auto-detect kategori TOKO (163152) & LOGO (163151)</td>
+                    </tr>
+                    <tr className="bg-slate-50">
                       <td className="p-2.5 font-mono">detail smart.xlsx</td>
-                      <td className="p-2.5 font-bold text-red-600">* Wajib</td>
+                      <td className="p-2.5 font-medium text-slate-500">Opsional</td>
                       <td className="p-2.5">.xlsx / .xls</td>
-                      <td className="p-2.5">Data POS 163151 (LOGO) & 163152 (TOKO)</td>
-                    </tr>
-                    <tr className="bg-slate-50">
-                      <td className="p-2.5 font-mono">ringkasan pembayaran logo.xlsx</td>
-                      <td className="p-2.5 font-bold text-red-600">* Wajib</td>
-                      <td className="p-2.5">.xlsx / .xls</td>
-                      <td className="p-2.5">Ringkasan pembayaran TOKO & LOGO</td>
+                      <td className="p-2.5">Rincian item produk SMART</td>
                     </tr>
                   </tbody>
                 </table>
@@ -243,84 +239,71 @@ const UserGuide = () => {
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1">
                 <p className="font-bold flex items-center gap-1">
                   <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  <span>⚠️ Catatan Penting:</span>
+                  <span>Catatan Penting:</span>
                 </p>
-                <p>Seluruh berkas bertanda bintang merah **`*` (Wajib)** harus diunggah di slot masing-masing. Jika ada berkas wajib yang belum diunggah, tombol *"Proses Laporan"* akan tetap non-aktif.</p>
-              </div>
-
-              <div className="p-3 bg-slate-100 rounded-xl text-center text-xs font-mono text-slate-500 border border-dashed border-slate-300">
-                [SCREENSHOT: Slot Baris Upload File OMI & SMART]
+                <p>Seluruh berkas bertanda bintang merah **`*` (Wajib)** harus diunggah. Jika berkas wajib belum terisi, tombol *"Proses Laporan"* tidak dapat diklik.</p>
               </div>
             </section>
 
             <section id="staff-4" className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">4</span>
-                <span>Memproses Laporan Harian</span>
+                <span>Memproses Laporan Harian (Engine Active)</span>
               </h2>
               <ol className="list-decimal pl-5 text-xs text-slate-600 space-y-2">
-                <li>Setelah seluruh berkas wajib diunggah, tombol **"Proses Laporan"** di bagian bawah akan berubah menjadi warna **Orange (`#FF5000`)**.</li>
-                <li>Klik tombol **"Proses Laporan"**.</li>
-                <li>Sistem akan menampilkan animasi *loading spinner* dan memproses penggabungan data secara otomatis. <span className="font-semibold text-amber-700">[SEMENTARA - MENUNGGU BACKEND LOGIC]</span></li>
-                <li>Setelah selesai, Anda akan otomatis diarahkan ke Halaman **Preview Laporan**.</li>
+                <li>Setelah seluruh berkas wajib diunggah, tombol **"Proses Laporan"** akan aktif berwarna **Orange (`#FF5000`)**.</li>
+                <li>Klik tombol **"Proses Laporan"**. Backend parser Express Engine akan membaca sel-sel Excel & teks secara realtime.</li>
+                <li>Sistem akan otomatis menghitung Total Debit, Total Kredit, Selisih, dan menyusun 23 kolom tabel laporan gabungan.</li>
+                <li>Setelah selesai, Anda akan otomatis diarahkan ke Halaman **Kelola Laporan** (`/kelola/:id`).</li>
               </ol>
             </section>
 
             <section id="staff-5" className="space-y-4">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">5</span>
-                <span>Membaca & Menindaklanjuti Preview Laporan</span>
+                <span>Fitur Kelola Laporan: Pengeditan Sel, Undo & Redo (`/kelola/:id`)</span>
               </h2>
               <p className="text-xs text-slate-600">
-                Halaman Preview Laporan memiliki 3 Tab Navigasi utama:
+                Halaman Kelola Laporan memberikan keleluasaan penuh bagi Staff untuk melakukan penyesuaian angka transaksi secara interaktif:
               </p>
               <ul className="list-disc pl-5 text-xs text-slate-600 space-y-1.5">
-                <li>**Tab Laporan Gabungan**: Menampilkan total penerimaan Debit, Kredit, dan status keserasian (*Balance / Unbalance*).</li>
-                <li>**Tab Detail Toko OMI**: Menampilkan rincian kalkulasi khusus Toko OMI.</li>
-                <li>**Tab Detail Toko SMART**: Menampilkan rincian kalkulasi khusus Toko SMART.</li>
+                <li>**Edit Sel Langsung**: Klik sel mana saja pada tabel 23 kolom untuk mengubah nilai nominal transaksi secara langsung.</li>
+                <li>**Tombol Undo (<Undo className="w-3 h-3 inline text-slate-600" />) & Redo (<Redo className="w-3 h-3 inline text-slate-600" />)**: Memungkinkan Anda membatalkan atau mengulangi riwayat perubahan sel tanpa takut salah ketik.</li>
+                <li>**Kalkulasi Otomatis Selisih**: Setiap kali sel diubah, angka *Total Debit*, *Total Kredit*, dan indikator *SELISIH* akan terhitung ulang secara real-time.</li>
+                <li>**Simpan Perubahan (<Save className="w-3 h-3 inline text-[#0A4D68]" />)**: Klik tombol Simpan Perubahan di bagian atas untuk memperbarui data permanen ke database LaporGo.</li>
               </ul>
-
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2">
-                <h4 className="text-xs font-bold text-red-800 flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <span>Langkah Tindakan Jika Status: UNBALANCE</span>
-                </h4>
-                <ol className="list-decimal pl-5 text-xs text-red-700 space-y-1">
-                  <li>Buka **Tab Detail Toko OMI** dan **Tab Detail Toko SMART** untuk melihat kolom nominal yang mengalami selisih.</li>
-                  <li>Periksa kembali berkas fisik atau file `.xls` yang diunggah, pastikan tidak ada file yang salah tanggal.</li>
-                  <li>Jika terdapat transaksi non-tunai baru (seperti QRIS / Bank baru) yang belum terpotong otomatis, **laporkan ke Administrator** untuk penambahan keyword mapping.</li>
-                </ol>
-              </div>
-
-              <div className="p-3 bg-slate-100 rounded-xl text-center text-xs font-mono text-slate-500 border border-dashed border-slate-300">
-                [SCREENSHOT: Halaman Preview Laporan & Badge Status Balance/Unbalance]
-              </div>
             </section>
 
             <section id="staff-6" className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">6</span>
-                <span>Download Excel & Cetak PDF</span>
+                <span>Download Excel & Direct PDF Export</span>
               </h2>
               <p className="text-xs text-slate-600">
-                Di pojok kanan atas halaman Preview, terdapat 2 tombol aksi:
+                Di bagian header halaman Kelola Laporan, tersedia 2 tombol ekspor dokumen resmi:
               </p>
-              <ul className="list-disc pl-5 text-xs text-slate-600 space-y-1">
-                <li>**Tombol Export Excel**: Mengunduh seluruh data gabungan dan detail ke dalam file spreadsheet `.xlsx`.</li>
-                <li>**Tombol Cetak PDF**: Membuka dialog cetak browser untuk mencetak langsung dokumen laporan rekonsiliasi.</li>
+              <ul className="list-disc pl-5 text-xs text-slate-600 space-y-2">
+                <li>
+                  **Tombol Unduh PDF (<FileText className="w-3.5 h-3.5 inline text-red-600" />)**: 
+                  Mengunduh langsung file PDF resmi berformat **A4 Landscape** yang dilengkapi banner header Koperasi Swadharma, status *BALANCE / UNBALANCE*, kartu ringkasan total, dan tabel 23 kolom secara presisi tanpa dialog print browser.
+                </li>
+                <li>
+                  **Tombol Download Excel (<Download className="w-3.5 h-3.5 inline text-emerald-600" />)**: 
+                  Mengunduh spreadsheet `.xlsx` yang menyertakan rincian 23 kolom serta **Tabel Ringkasan Laporan** (*Grand Total Debit*, *Grand Total Kredit*, *Selisih*) terpisah di bawah tabel utama.
+                </li>
               </ul>
             </section>
 
             <section id="staff-7" className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#0A4D68] text-white flex items-center justify-center text-xs font-extrabold">7</span>
-                <span>Mengakses Riwayat Laporan (`/riwayat`)</span>
+                <span>Mengakses Riwayat Laporan & Tempat Sampah (`/riwayat`)</span>
               </h2>
               <ol className="list-decimal pl-5 text-xs text-slate-600 space-y-1.5">
                 <li>Buka menu **"Riwayat Laporan"**.</li>
-                <li>Gunakan **Search Bar** untuk mencari berdasarkan tanggal laporan.</li>
-                <li>Gunakan filter status (*Balance / Unbalance*) untuk menyaring laporan.</li>
-                <li>Klik tombol **"Preview"** di baris laporan untuk membuka kembali pratinjau laporan terdahulu.</li>
+                <li>Gunakan **Search Bar** untuk mencari laporan berdasarkan tanggal.</li>
+                <li>Klik tombol **"Detail"** pada baris laporan untuk membuka halaman Kelola Laporan.</li>
+                <li>**Fitur Tempat Sampah (Trash Bin)**: Laporan yang dihapus akan disimpan sementara di Tempat Sampah selama 30 hari. Anda dapat memulihkan laporan (*Pulihkan*) atau menghapusnya secara permanen (*Hapus Permanen*).</li>
               </ol>
             </section>
 
@@ -343,7 +326,7 @@ const UserGuide = () => {
                     <tr>
                       <td className="p-2.5 font-bold text-slate-800">Tombol "Proses Laporan" tidak aktif</td>
                       <td className="p-2.5">Ada berkas wajib (`*`) yang belum di-upload</td>
-                      <td className="p-2.5">Cek kembali slot OMI dan SMART, pastikan semua slot berbintang merah terisi file.</td>
+                      <td className="p-2.5">Cek kembali slot OMI dan SMART, pastikan semua slot terisi file sesuai ketentuan.</td>
                     </tr>
                     <tr>
                       <td className="p-2.5 font-bold text-slate-800">File gagal ter-upload / ditolak</td>
@@ -351,9 +334,9 @@ const UserGuide = () => {
                       <td className="p-2.5">Pastikan file bertipe `.xls`, `.xlsx`, atau `.txt` sesuai ketentuan slot.</td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 font-bold text-slate-800">Hasil Laporan Unbalance terus menerus</td>
-                      <td className="p-2.5">Ada kata kunci transaksi baru yang belum terpetakan</td>
-                      <td className="p-2.5">Hubungi Admin untuk memeriksa konfigurasi Keyword Mapping di menu Pengaturan.</td>
+                      <td className="p-2.5 font-bold text-slate-800">Hasil Laporan Unbalance</td>
+                      <td className="p-2.5">Ada selisih transaksi antara kasir OMI & SMART</td>
+                      <td className="p-2.5">Gunakan fitur Edit Sel pada halaman Kelola Laporan untuk menyesuaikan nilai nominal, lalu klik Simpan Perubahan.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -371,31 +354,32 @@ const UserGuide = () => {
               <ShieldCheck className="w-6 h-6 text-[#0A4D68] shrink-0" />
               <div className="text-xs text-[#0A4D68]">
                 <p className="font-bold">Panduan Khusus Administrator Sistem</p>
-                <p>Panduan ini mencakup seluruh fungsi Staff Operasional ditambah fitur manajemen user, konfigurasi keyword parser backend, dan langkah investigasi teknis.</p>
+                <p>Panduan ini mencakup pengelolaan akun pengguna, perlindungan akun utama super admin, dan manajemen 2-way auto sync Supabase Auth & Database Profiles.</p>
               </div>
             </div>
 
             <section className="space-y-4">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <Users className="w-5 h-5 text-[#0A4D68]" />
-                <span>1. Manajemen User (`/users`)</span>
+                <span>1. Manajemen User & Perlindungan Akun Utama (`/users`)</span>
               </h2>
               <p className="text-xs text-slate-600">
-                Menu ini hanya dapat diakses oleh akun ber-role **Admin** untuk mengelola akun pengguna sistem LaporGo:
+                Menu ini dikelola oleh role **Admin** untuk menambah, mengedit, dan mencabut akses login pengguna:
               </p>
-              <ol className="list-decimal pl-5 text-xs text-slate-600 space-y-2">
-                <li>**Menambah User Baru**: Klik tombol *"Tambah User"*, isi Nama, Email, Password, dan Pilih Role (Staff / Admin). Klik Simpan.</li>
-                <li>**Mengubah Role User**: Klik ikon Edit pada baris user, ubah role sesuai kebutuhan, lalu simpan.</li>
-                <li>**Menghapus User**: Klik ikon Hapus (Trash) untuk mencabut akses login pengguna.</li>
-              </ol>
-
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 space-y-1">
-                <p className="font-bold flex items-center gap-1">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <span>⚠️ Catatan Penting Keamanan:</span>
-                </p>
-                <p>Jangan berikan role Administrator kepada pengguna yang tidak berwenang karena Admin memiliki akses penuh untuk merubah sistem dan kata kunci kalkulasi.</p>
-              </div>
+              <ul className="list-disc pl-5 text-xs text-slate-600 space-y-2">
+                <li>
+                  **Kartu Akun Utama (Super Admin)**: Akun utama (<code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-[#0A4D68]">mainaccount@admin.kopswa.id</code>) dipisahkan secara khusus pada kartu paling atas. Akun ini dilindungi (*view-only*) dan tidak dapat diubah maupun dihapus oleh siapapun.
+                </li>
+                <li>
+                  **Menambah User Baru**: Klik tombol *"Tambah User"*, masukkan Nama, Email (`@staff.kopswa.id` atau `@admin.kopswa.id`), Password, dan Role.
+                </li>
+                <li>
+                  **Mengubah Role & Password**: Klik tombol Edit pada baris tabel pengguna untuk memperbarui nama, role, atau mereset password. Gunakan tombol mata (<Eye className="w-3.5 h-3.5 inline text-slate-500" />) untuk memastikan pengetikan password.
+                </li>
+                <li>
+                  **Penghapusan User**: Hapus user akan memicu penghapusan otomatis 2-arah pada Supabase Auth dan tabel `profiles`.
+                </li>
+              </ul>
             </section>
 
             <section className="space-y-4">
@@ -404,14 +388,14 @@ const UserGuide = () => {
                 <span>2. Pengaturan Keyword Filter & Mapping (`/pengaturan`)</span>
               </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Fitur ini mengatur kata kunci (*keyword*) yang digunakan oleh backend parser untuk memisahkan dan memetakan baris transaksi laporan ke kategori **Debit** atau **Kredit** secara otomatis. <span className="font-semibold text-amber-700">[SEMENTARA - MENUNGGU BACKEND LOGIC]</span>
+                Fitur ini mengatur kata kunci (*keyword*) yang digunakan oleh backend parser untuk memisahkan dan memetakan baris transaksi laporan ke kategori **Debit** atau **Kredit** secara otomatis.
               </p>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
                 <h4 className="font-bold text-slate-800">Cara Menambah Keyword Baru:</h4>
                 <ol className="list-decimal pl-5 text-slate-600 space-y-1">
                   <li>Buka menu **Pengaturan**.</li>
-                  <li>Ketik Kata Kunci baru pada kolom input (contoh: <code className="bg-white px-1.5 py-0.5 border rounded font-mono">QRIS BNI</code> atau <code className="bg-white px-1.5 py-0.5 border rounded font-mono">VOUCHER KOPSWA</code>).</li>
+                  <li>Ketik Kata Kunci baru pada kolom input (contoh: <code className="bg-white px-1.5 py-0.5 border rounded font-mono">QRIS BNI</code>).</li>
                   <li>Pilih Kategori Finansial yang sesuai (**Debit** atau **Kredit**).</li>
                   <li>Klik **"Tambah Keyword"**, lalu klik **"Simpan Konfigurasi"**.</li>
                 </ol>
@@ -420,13 +404,14 @@ const UserGuide = () => {
 
             <section className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
-                <Search className="w-5 h-5 text-[#0A4D68]" />
-                <span>3. Investigasi Teknis Laporan Unbalance</span>
+                <Trash2 className="w-5 h-5 text-[#0A4D68]" />
+                <span>3. Manajemen Tempat Sampah Laporan (Trash Bin Modal)</span>
               </h2>
               <ol className="list-decimal pl-5 text-xs text-slate-600 space-y-2">
-                <li>Buka Halaman **Preview Laporan** yang berstatus *Unbalance*.</li>
-                <li>Bandingkan angka Total Penjualan OMI pada `LAPORAN PER TANGGAL.xls` dengan angka ringkasan SMART pada `ringkasan pembayaran logo.xlsx`.</li>
-                <li>Periksa apakah ada nama metode pembayaran baru di file kasir OMI yang belum terdaftar di menu **Pengaturan Keyword Filter**. Jika ada, tambahkan kata kunci tersebut.</li>
+                <li>Buka Halaman **Riwayat Laporan**.</li>
+                <li>Klik tombol **"Tempat Sampah"** di bagian kanan atas tabel.</li>
+                <li>Anda dapat memulihkan laporan yang terhapus secara acak maupun sekaligus via pilihan checkbox batch.</li>
+                <li>Laporan di tempat sampah yang tidak dipulihkan akan otomatis terhapus secara permanen dari Supabase DB setelah 30 hari.</li>
               </ol>
             </section>
           </div>
@@ -441,8 +426,8 @@ const UserGuide = () => {
             <div className="p-4 bg-[#0A4D68] text-white rounded-xl flex items-center gap-3 shadow-md">
               <Cpu className="w-6 h-6 text-teal-300 shrink-0" />
               <div className="text-xs">
-                <p className="font-bold text-sm">Dokumentasi Teknis & Handover Developer</p>
-                <p className="text-slate-200 mt-0.5">Panduan arsitektur, skema database, instruksi deployment, dan checklist pengerjaan backend untuk pengembang baru.</p>
+                <p className="font-bold text-sm">Dokumentasi Teknis & Handover Developer v2.0</p>
+                <p className="text-slate-200 mt-0.5">Spesifikasi arsitektur fullstack, skema database Supabase PostgreSQL, trigger 2-way sync, dan modul ekspor PDF/Excel.</p>
               </div>
             </div>
 
@@ -454,20 +439,22 @@ const UserGuide = () => {
               </h2>
               <div className="p-4 bg-slate-900 text-slate-100 rounded-xl font-mono text-xs overflow-x-auto space-y-2 border border-slate-800">
                 <p className="text-teal-400 font-bold">// DIAGRAM ALUR ARSITEKTUR LAPORGO</p>
-                <p>[ Client Browser (React + Vite) ]</p>
-                <p>   ├── Auth & Session  ──▶ [ Supabase Auth (JWT & RLS) ]</p>
-                <p>   ├── Process Upload ──▶ [ Node.js Express Backend (/api/process-laporan) ]</p>
-                <p>   │                           ├── ExcelJS / Multer File Parser</p>
-                <p>   │                           └── Formula & Rekonsiliasi DPP PPN</p>
+                <p>[ Client Browser (React 19 + Vite) ]</p>
+                <p>   ├── Auth & Session ──▶ [ Supabase Auth + Trigger 2-Way Sync Profiles ]</p>
+                <p>   ├── Process Upload ──▶ [ Node.js Express Server (/api/process-laporan) ]</p>
+                <p>   │                           ├── Multer File Storage & Parser (.xls, .xlsx, .txt)</p>
+                <p>   │                           └── ExcelJS / XLSX Reconciliation Formula</p>
+                <p>   ├── Export Engine   ──▶ [ Direct PDF Generator (jsPDF + autotable A4 Landscape) ]</p>
                 <p>   └── Save & History ──▶ [ Supabase PostgreSQL DB & Storage Bucket ]</p>
               </div>
 
               <div className="text-xs text-slate-600 space-y-2 leading-relaxed">
-                <p><strong>Alasan Pemisahan Layer Arsitektur:</strong></p>
+                <p><strong>Komponen Utama System:</strong></p>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>**Frontend (React + Vite)**: Berfokus penuh pada pengalaman pengguna (UI/UX), animasi interaktif, dan validasi form client-side agar responsif di Vercel CDN.</li>
-                  <li>**Node.js / Express Backend (`server.js`)**: Diperlukan khusus untuk pemrosesan file berat (`.xls`, `.xlsx`, `.txt`) menggunakan `multer` dan `exceljs` yang tidak efisien jika dijalankan langsung di browser.</li>
-                  <li>**Supabase (PostgreSQL + Auth + Storage)**: Menyediakan backend-as-a-service yang aman untuk otentikasi JWT, manajemen peran user, penyimpan file fisik laporan, dan panyimpanan database terstruktur.</li>
+                  <li>**Frontend (React 19 + Vite)**: Dideploy ke Vercel CDN, berfokus penuh pada UI/UX interaktif, routing terlindungi, dan pengeditan sel live.</li>
+                  <li>**Express Backend Engine (`server.js` & `api/index.js`)**: Modul parsing file OMI & SMART yang memproses berkas Excel/teks dan menghasilkan struktur 23 kolom omset.</li>
+                  <li>**Direct PDF Engine (`src/utils/pdfGenerator.js`)**: Modul pemicu unduh langsung file PDF A4 Landscape dengan banner resmi Swadharma tanpa dialog print browser.</li>
+                  <li>**Supabase PostgreSQL**: Otentikasi JWT, trigger sinkronisasi profil user, dan penyimpan riwayat laporan.</li>
                 </ul>
               </div>
             </section>
@@ -476,21 +463,23 @@ const UserGuide = () => {
             <section className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <FolderTree className="w-5 h-5 text-[#0A4D68]" />
-                <span>2. Struktur Folder & Fungsi Komponen</span>
+                <span>2. Struktur Folder & Modul Pengembang</span>
               </h2>
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-700 space-y-1.5 overflow-x-auto">
                 <p className="font-bold text-[#0A4D68]">LaporGo_Kopswa/</p>
                 <p>├── public/                # Asset statis, logo Kopswa, OMI, SMART & favicon.svg</p>
                 <p>├── src/</p>
                 <p>│   ├── components/        # Komponen UI Reusable (Layout, Topbar, Sidebar, FileSlotRow, UploadZone)</p>
+
                 <p>│   ├── context/           # AuthContext.jsx (State autentikasi Supabase & session user)</p>
-                <p>│   ├── data/              # mockData.js (Data simulasi awal dashboard & preview)</p>
-                <p>│   ├── pages/             # Halaman Utama (Login, Dashboard, UploadReport, ReportPreview, ReportHistory, UserManagement, Settings, UserGuide)</p>
+                <p>│   ├── lib/               # supabaseClient.js (Helper CRUD database & auth Supabase)</p>
+                <p>│   ├── pages/             # Halaman Utama (Login, Dashboard, UploadReport, ManageReport, ReportHistory, UserManagement, Settings, UserGuide)</p>
+                <p>│   ├── utils/             # api.js, cn.js & pdfGenerator.js (Fungsi unduh PDF A4 & Excel)</p>
                 <p>│   ├── App.jsx            # Routing React Router DOM (Public vs Protected Routes)</p>
-                <p>│   └── main.jsx           # Entry point React 18</p>
-                <p>├── server.js              # Express Backend Server (Parser file excel, multer & exceljs generator)</p>
-                <p>├── supabase_schema.sql    # DDL Script tabel PostgreSQL, RLS Policies, dan Trigger User Profile</p>
-                <p>└── tailwind.config.js     # Konfigurasi Tailwind CSS v4 & custom colors</p>
+                <p>│   └── main.jsx           # Entry point React 19</p>
+                <p>├── api/index.js           # Serverless Vercel Backend Handler</p>
+                <p>├── server.js              # Express Backend Engine Local Server (Port 5000)</p>
+                <p>└── supabase_schema.sql    # DDL Script tabel PostgreSQL, RLS Policies, & Trigger Auto Sync</p>
               </div>
             </section>
 
@@ -498,10 +487,10 @@ const UserGuide = () => {
             <section className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <Database className="w-5 h-5 text-[#0A4D68]" />
-                <span>3. Skema Database PostgreSQL (Supabase)</span>
+                <span>3. Skema Database PostgreSQL & Trigger Auto Sync</span>
               </h2>
               <p className="text-xs text-slate-600">
-                Skema database terdiri dari 3 tabel utama (tersedia script DDL lengkap pada <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[#0A4D68]">supabase_schema.sql</code>):
+                Skema database terdiri dari 3 tabel utama yang dilengkapi trigger otomatis 2-arah:
               </p>
 
               <div className="overflow-x-auto">
@@ -510,24 +499,24 @@ const UserGuide = () => {
                     <tr>
                       <th className="p-2.5">Nama Tabel</th>
                       <th className="p-2.5">Kolom Utama</th>
-                      <th className="p-2.5">Status Kolom yang Belum Terisi/Dipakai Backend</th>
+                      <th className="p-2.5">Status & Trigger Active</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-600">
                     <tr>
                       <td className="p-2.5 font-mono font-bold text-[#0A4D68]">public.profiles</td>
                       <td className="p-2.5 font-mono">id, email, full_name, role</td>
-                      <td className="p-2.5 font-medium text-emerald-600">✓ Sudah Terpakai (Auto trigger Supabase Auth)</td>
+                      <td className="p-2.5 font-medium text-emerald-600">✓ Active (Tersinkronisasi 2-arah via Trigger Supabase Auth)</td>
                     </tr>
                     <tr>
                       <td className="p-2.5 font-mono font-bold text-[#0A4D68]">public.laporan</td>
-                      <td className="p-2.5 font-mono">id, tanggal, status_balance, total_debit, total_kredit, selisih, file_output_url</td>
-                      <td className="p-2.5 text-amber-700 font-semibold">⚠️ `file_output_url` dan kalkulasi `selisih` masih menunggu API penggabungan backend nyata.</td>
+                      <td className="p-2.5 font-mono">id, tanggal, status_balance, total_debit, total_kredit, selisih, is_deleted, deleted_at</td>
+                      <td className="p-2.5 font-medium text-emerald-600">✓ Active (Menyimpan data header laporan & status balance)</td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 font-mono font-bold text-[#0A4D68]">public.laporan_files</td>
-                      <td className="p-2.5 font-mono">id, laporan_id, nama_file, tipe, storage_path</td>
-                      <td className="p-2.5 text-amber-700 font-semibold">⚠️ `storage_path` masih menunggu pengunggahan berkas fisik ke Supabase Storage Bucket `laporan-files`.</td>
+                      <td className="p-2.5 font-mono font-bold text-[#0A4D68]">public.laporan_omset_rows</td>
+                      <td className="p-2.5 font-mono">id, laporan_id, no, nama_ref, 18 kolom finansial</td>
+                      <td className="p-2.5 font-medium text-emerald-600">✓ Active (Menyimpan 23 kolom transaksi omset harian)</td>
                     </tr>
                   </tbody>
                 </table>
@@ -538,38 +527,24 @@ const UserGuide = () => {
             <section className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <span>4. Status Pengerjaan & Checklist Priorities Handover</span>
+                <span>4. Status Pengerjaan (100% Fully Completed)</span>
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                {/* Selesai */}
-                <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
-                  <h4 className="font-bold text-emerald-800 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>SELESAI (Frontend & UI/UX Ready)</span>
-                  </h4>
-                  <ul className="list-disc pl-5 text-emerald-700 space-y-1">
-                    <li>Desain UI/UX & Tema Korporat Swadharma Teal (`#0A4D68`) & Orange (`#FF5000`).</li>
-                    <li>Sistem Autentikasi Supabase & Role Guard (Admin/Staff).</li>
-                    <li>Halaman Buat Laporan dengan Slot Baris & Multi-Struk TXT.</li>
-                    <li>Halaman Dashboard, Preview Multi-Tab, Riwayat, & User Management.</li>
-                    <li>Favicon & Titling Tab Browser Swadharma.</li>
-                  </ul>
-                </div>
-
-                {/* Belum Selesai (Prioritas Tim Baru) */}
-                <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2">
-                  <h4 className="font-bold text-amber-800 flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    <span>BELUM SELESAI (Prioritas Backend Developer Baru)</span>
-                  </h4>
-                  <ul className="list-disc pl-5 text-amber-700 space-y-1">
-                    <li>**Parser File `.xls` / `.xlsx` Real**: Membaca sel-sel tabel dari file OMI & SMART di `server.js`.</li>
-                    <li>**Formula Rekonsiliasi DPP & PPN**: Menyusun formula matematika pemisah PPN WAPU/PK dan BTKP.</li>
-                    <li>**Integrasi Keyword Mapping Real**: Menghubungkan keyword di database ke logic parsing.</li>
-                    <li>**Upload Storage Bucket**: Pengunggahan berkas fisik ke Supabase Storage Bucket.</li>
-                  </ul>
-                </div>
+              <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2 text-xs">
+                <h4 className="font-bold text-emerald-800 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>SELESAI 100% (Frontend & Backend Engine Production Ready)</span>
+                </h4>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-emerald-700">
+                  <li>✓ Backend Parser Real File OMI & SMART</li>
+                  <li>✓ Generator Excel (`exceljs`) + Tabel Ringkasan</li>
+                  <li>✓ Autentikasi Supabase & Role Guard</li>
+                  <li>✓ Direct PDF Download (jsPDF + autotable A4)</li>
+                  <li>✓ Trigger 2-Way Sync Profiles & Auth</li>
+                  <li>✓ Pengeditan Sel Interaktif & Undo/Redo</li>
+                  <li>✓ Tempat Sampah Laporan (30-Day Trash Bin)</li>
+                  <li>✓ Perlindungan Akun Utama Super Admin</li>
+                </ul>
               </div>
             </section>
 
@@ -577,7 +552,7 @@ const UserGuide = () => {
             <section className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <Rocket className="w-5 h-5 text-[#0A4D68]" />
-                <span>5. Cara Menjalankan di Lokal & Panduan Deployment</span>
+                <span>5. Instuksi Jalankan di Lokal & Panduan Deployment</span>
               </h2>
 
               <div className="space-y-3 text-xs text-slate-600">
@@ -596,7 +571,7 @@ const UserGuide = () => {
                       </div>
                     </li>
                     <li>Jalankan Frontend React: <code className="bg-white px-1 py-0.5 border rounded">npm run dev</code> (Buka http://localhost:5173)</li>
-                    <li>Jalankan Express Backend Stub: <code className="bg-white px-1 py-0.5 border rounded">node server.js</code> (Port 5000)</li>
+                    <li>Jalankan Express Backend Engine: <code className="bg-white px-1 py-0.5 border rounded">node server.js</code> (Port 5000)</li>
                   </ol>
                 </div>
 
