@@ -34,18 +34,22 @@ const ReportHistory = () => {
         const data = await getLaporanList(50);
         if (data) {
           // Normalisasi field dari Supabase
-          setReports(data.map(r => ({
-            id:               r.id,
-            tanggal:          r.tanggal,
-            status_balance:   r.status_balance,
-            total_debit:      r.total_debit,
-            total_kredit:     r.total_kredit,
-            selisih:          r.selisih,
-            jumlah_transaksi: r.jumlah_transaksi,
-            dibuat_oleh_nama: r.profiles?.full_name || r.dibuat_oleh || 'System',
-            created_at:       r.created_at,
-            file_output_url:  r.file_output_url,
-          })));
+          setReports(data.map(r => {
+            const calculatedSelisih = Math.abs((Number(r.total_debit) || 0) - (Number(r.total_kredit) || 0));
+            const calculatedStatus  = calculatedSelisih === 0 ? 'Balance' : 'Unbalance';
+            return {
+              id:               r.id,
+              tanggal:          r.tanggal,
+              status_balance:   r.status_balance === 'Draft' ? 'Draft' : calculatedStatus,
+              total_debit:      r.total_debit,
+              total_kredit:     r.total_kredit,
+              selisih:          calculatedSelisih,
+              jumlah_transaksi: r.jumlah_transaksi,
+              dibuat_oleh_nama: r.profiles?.full_name || r.dibuat_oleh || 'System',
+              created_at:       r.created_at,
+              file_output_url:  r.file_output_url,
+            };
+          }));
           setUsingMock(false);
           setLoading(false);
           return;
