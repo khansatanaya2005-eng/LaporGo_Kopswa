@@ -704,16 +704,17 @@ export async function deleteUserFromSupabase(userId) {
   return true;
 }
 
-export async function updateUserProfile(userId, { full_name, email, role }) {
+export async function updateUserProfile(userId, { full_name, email, role, password }) {
   if (!isSupabaseConfigured()) return null;
 
-  // 1. Coba panggil RPC update_user_by_admin agar ter-update di auth.users & profiles
+  // 1. Coba panggil RPC update_user_by_admin agar ter-update di auth.users & profiles (termasuk password jika diisi)
   try {
     const { data: rpcRes, error: rpcErr } = await supabase.rpc('update_user_by_admin', {
       target_user_id: userId,
       new_email: email,
       new_full_name: full_name,
-      new_role: role
+      new_role: role,
+      new_password: password || null
     });
     if (!rpcErr && rpcRes?.success) {
       return { id: userId, full_name, email, role };

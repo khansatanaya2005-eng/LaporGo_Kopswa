@@ -122,7 +122,8 @@ const UserManagement = () => {
         await updateUserProfile(editingUser.id, {
           full_name: formData.full_name,
           email: finalEmail,
-          role: formData.role
+          role: formData.role,
+          password: formData.password || null
         });
         setUsers(prev => prev.map(u => u.id === editingUser.id ? { 
           ...u, 
@@ -297,11 +298,10 @@ const UserManagement = () => {
                   <input
                     type="text"
                     required
-                    disabled={Boolean(editingUser)}
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     placeholder="nama.user"
-                    className="w-full pl-3 pr-32 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68] font-mono disabled:opacity-60"
+                    className="w-full pl-3 pr-32 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68] font-mono"
                   />
                   {!formData.username.includes('@') && (
                     <span className="absolute right-2 px-2 py-0.5 bg-slate-200/80 text-slate-700 font-mono text-[11px] rounded font-semibold pointer-events-none select-none">
@@ -314,23 +314,23 @@ const UserManagement = () => {
                 </p>
               </div>
 
-              {!editingUser && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Password Awal</label>
-                  <div className="relative">
-                    <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder="Minimal 6 karakter"
-                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  {editingUser ? 'Password Baru (Opsional)' : 'Password Awal'}
+                </label>
+                <div className="relative">
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="password"
+                    required={!editingUser}
+                    minLength={6}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={editingUser ? "Kosongkan jika tidak ingin diubah" : "Minimal 6 karakter"}
+                    className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
+                  />
                 </div>
-              )}
+              </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
