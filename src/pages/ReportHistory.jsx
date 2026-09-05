@@ -435,11 +435,6 @@ const ReportHistory = () => {
                             className="flex items-center gap-1 text-xs font-semibold text-[#0A4D68] bg-[#0A4D68]/10 hover:bg-[#0A4D68]/20 px-3 py-1.5 rounded-lg border border-[#0A4D68]/20 transition">
                             <Eye className="w-3.5 h-3.5" /><span>Detail</span>
                           </Link>
-                          <button onClick={() => handleDownload(row)}
-                            className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg border border-slate-200 transition cursor-pointer"
-                            title="Download Excel">
-                            <Download className="w-4 h-4" />
-                          </button>
                         </div>
                       </td>
                     </tr>
