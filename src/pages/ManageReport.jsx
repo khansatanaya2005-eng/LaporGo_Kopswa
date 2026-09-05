@@ -150,7 +150,7 @@ const ManageReport = () => {
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
       console.error('[Save] Gagal menyimpan perubahan:', e);
-      alert('Gagal menyimpan perubahan ke database: ' + e.message);
+      alert('Gagal menyimpan perubahan ke sistem: ' + e.message);
     } finally {
       setSaving(false);
     }
@@ -298,7 +298,7 @@ const ManageReport = () => {
                 ? 'bg-emerald-600' 
                 : 'bg-slate-700'
             }`}
-            title={isDirty ? "Simpan Perubahan ke Database" : "Tidak ada perubahan"}
+            title={isDirty ? "Simpan Perubahan" : "Tidak ada perubahan"}
           >
             {saving ? (
               <>

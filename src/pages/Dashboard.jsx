@@ -176,9 +176,9 @@ const Dashboard = () => {
             ) : (
               <>
                 <h3 className="text-xl font-bold text-slate-900 mt-1">{totalReportsThisMonth} Laporan</h3>
-                <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
                   <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="text-emerald-600 font-semibold">Aktif di database</span>
+                  <span className="text-emerald-600 font-semibold">Tersimpan di sistem</span>
                 </p>
               </>
             )}

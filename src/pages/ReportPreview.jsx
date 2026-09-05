@@ -258,7 +258,7 @@ const ReportPreview = () => {
               'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95'}`}>
             {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Menyimpan...</span></>
               : saved ? <><Check className="w-3.5 h-3.5" /><span>Tersimpan</span></>
-              : <><Save className="w-3.5 h-3.5" /><span>Simpan ke Database</span></>}
+              : <><Save className="w-3.5 h-3.5" /><span>Simpan Laporan</span></>}
           </button>
           <button onClick={handleDownloadExcel} disabled={downloading || !customDate}
             className={`flex items-center gap-2 px-5 py-2 font-bold text-xs rounded-xl shadow-md transition cursor-pointer ${
