@@ -618,7 +618,23 @@ export async function updateProfileName(userId, full_name) {
 export async function createUserInSupabase({ full_name, email, role, password }) {
   if (!isSupabaseConfigured()) return null;
 
-  // 1. SignUp in Supabase Auth if password is provided
+  // 1. Coba panggil RPC Function create_new_user jika tersedia di Supabase DB
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('create_new_user', {
+      user_email: email,
+      user_password: password || '12345678',
+      user_full_name: full_name,
+      user_role: role || 'Staff'
+    });
+
+    if (!rpcErr && rpcRes?.success) {
+      return { id: rpcRes.id, email, full_name, role, created_at: new Date().toISOString().split('T')[0] };
+    }
+  } catch (e) {
+    console.warn('[Supabase] RPC create_new_user tidak tersedia, menggunakan fallback auth.signUp');
+  }
+
+  // 2. Fallback: SignUp via Supabase Auth
   let authUserId = null;
   if (password) {
     try {
@@ -626,10 +642,7 @@ export async function createUserInSupabase({ full_name, email, role, password })
         email,
         password,
         options: {
-          data: {
-            full_name,
-            role
-          }
+          data: { full_name, role }
         }
       });
       if (authData?.user) {
@@ -642,7 +655,7 @@ export async function createUserInSupabase({ full_name, email, role, password })
 
   const userId = authUserId || `usr-${Date.now()}`;
 
-  // 2. Insert/Upsert ke tabel profiles
+  // 3. Insert/Upsert ke tabel profiles
   const { data, error } = await supabase
     .from('profiles')
     .upsert([{
