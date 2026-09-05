@@ -151,8 +151,57 @@ export async function saveLaporanToSupabase(laporanData, filesMeta = []) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// LAPORAN FILES — UPLOAD TO STORAGE
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Upload file asli ke Supabase Storage dan simpan metadata ke laporan_files
+ * @param {string} laporanId - UUID laporan
+ * @param {Array}  allFiles  - [{ file: File, kategori: string }]
+ */
+export async function uploadLaporanFilesToStorage(laporanId, allFiles = []) {
+  if (!isSupabaseConfigured() || allFiles.length === 0) return;
+
+  for (const { file, kategori } of allFiles) {
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._\-]/g, '_');
+      const storagePath = `laporan/${laporanId}/${kategori}/${safeName}`;
+
+      // Upload ke bucket laporan-files
+      const { error: uploadError } = await supabase.storage
+        .from('laporan-files')
+        .upload(storagePath, file, { upsert: true });
+
+      if (uploadError) {
+        console.error(`[Storage] Gagal upload ${file.name}:`, uploadError);
+        continue;
+      }
+
+      // Ambil public URL
+      const { data: urlData } = supabase.storage
+        .from('laporan-files')
+        .getPublicUrl(storagePath);
+
+      // Simpan metadata ke laporan_files
+      const { error: dbError } = await supabase.from('laporan_files').insert({
+        laporan_id:   laporanId,
+        nama_file:    file.name,
+        kategori,
+        ukuran_bytes: file.size,
+        storage_path: urlData.publicUrl,
+      });
+
+      if (dbError) console.error(`[Storage] Gagal simpan metadata ${file.name}:`, dbError);
+    } catch (err) {
+      console.error(`[Storage] Error pada ${file.name}:`, err);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // LAPORAN — READ (List & Detail)
 // ─────────────────────────────────────────────────────────────
+
 
 /**
  * Ambil daftar laporan (dari view v_laporan_with_profile)

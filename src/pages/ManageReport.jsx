@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Download, Printer, ArrowLeft, CheckCircle2,
@@ -20,6 +21,8 @@ const ManageReport = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
   const [selectedPreviewFile, setSelectedPreviewFile] = useState(null);
+  const [previewData, setPreviewData]  = useState(null);  // { type: 'excel'|'txt', content }
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
@@ -102,6 +105,44 @@ const ManageReport = () => {
     } finally {
       setDownloading(false);
     }
+  };
+
+  // ── Preview Dokumen Sumber ─────────────────────────────────
+  const handlePreviewFile = async (file) => {
+    if (!file.storage_path) {
+      alert('File ini tidak memiliki URL storage. Silakan upload ulang laporan.');
+      return;
+    }
+    setSelectedPreviewFile(file);
+    setPreviewData(null);
+    setPreviewLoading(true);
+    try {
+      const ext = file.nama_file.split('.').pop().toLowerCase();
+      const res = await fetch(file.storage_path);
+      if (!res.ok) throw new Error('Gagal mengambil file dari storage');
+
+      if (ext === 'txt') {
+        const text = await res.text();
+        setPreviewData({ type: 'txt', content: text });
+      } else if (['xls', 'xlsx'].includes(ext)) {
+        const buffer = await res.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        setPreviewData({ type: 'excel', content: rows, sheetName: wb.SheetNames[0] });
+      } else {
+        setPreviewData({ type: 'unknown', content: null });
+      }
+    } catch (err) {
+      setPreviewData({ type: 'error', content: err.message });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const closePreview = () => {
+    setSelectedPreviewFile(null);
+    setPreviewData(null);
   };
 
   return (
@@ -324,8 +365,118 @@ const ManageReport = () => {
                     </p>
                   </div>
                 </div>
+                {file.storage_path && (
+                  <button
+                    onClick={() => handlePreviewFile(file)}
+                    className="ml-2 p-1.5 text-slate-400 hover:text-[#0A4D68] hover:bg-blue-50 rounded-lg transition shrink-0 cursor-pointer"
+                    title="Preview isi dokumen"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Preview Dokumen */}
+      {selectedPreviewFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-5 h-5 text-[#0A4D68] shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-900 truncate">{selectedPreviewFile.nama_file}</p>
+                  <p className="text-[10px] text-slate-400 uppercase font-mono">{selectedPreviewFile.kategori}</p>
+                </div>
+              </div>
+              <button
+                onClick={closePreview}
+                className="p-2 hover:bg-slate-100 rounded-xl transition cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="overflow-auto flex-1 p-4">
+              {previewLoading && (
+                <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#0A4D68]" />
+                  <span className="text-sm">Memuat isi dokumen...</span>
+                </div>
+              )}
+
+              {!previewLoading && previewData?.type === 'txt' && (
+                <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  {previewData.content}
+                </pre>
+              )}
+
+              {!previewLoading && previewData?.type === 'excel' && (
+                <div>
+                  <p className="text-[10px] text-slate-400 mb-2 font-mono">Sheet: {previewData.sheetName} · {previewData.content.length} baris</p>
+                  <div className="overflow-auto rounded-xl border border-slate-200">
+                    <table className="text-xs border-collapse w-full">
+                      <tbody>
+                        {previewData.content.slice(0, 200).map((row, ri) => (
+                          <tr key={ri} className={ri === 0 ? 'bg-[#0A4D68] text-white font-bold sticky top-0' : ri % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                            {row.map((cell, ci) => (
+                              <td key={ci} className="px-3 py-1.5 border border-slate-200 whitespace-nowrap">
+                                {cell !== null && cell !== undefined ? String(cell) : ''}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {previewData.content.length > 200 && (
+                    <p className="text-[10px] text-slate-400 mt-2 text-center">Menampilkan 200 baris pertama dari {previewData.content.length} baris total</p>
+                  )}
+                </div>
+              )}
+
+              {!previewLoading && previewData?.type === 'error' && (
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                  <p className="text-sm text-red-700">{previewData.content}</p>
+                </div>
+              )}
+
+              {!previewLoading && previewData?.type === 'unknown' && (
+                <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                  <p className="text-sm text-amber-700">Format file tidak didukung untuk preview langsung.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 flex justify-between items-center shrink-0">
+              <p className="text-[10px] text-slate-400">
+                {selectedPreviewFile.ukuran_bytes ? (selectedPreviewFile.ukuran_bytes / 1024).toFixed(1) + ' KB' : '-'}
+              </p>
+              <div className="flex gap-2">
+                <a
+                  href={selectedPreviewFile.storage_path}
+                  download={selectedPreviewFile.nama_file}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download
+                </a>
+                <button
+                  onClick={closePreview}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

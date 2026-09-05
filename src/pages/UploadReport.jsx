@@ -79,6 +79,20 @@ const UploadReport = () => {
             omiPersediaan: omiPersediaan.map(f => f.name),
             // Opsional SMART
             smartDetail:   smartDetail.map(f => f.name),
+            // File objects asli (untuk upload ke Storage)
+            allFiles: [
+              omiPerTanggal[0] ? { file: omiPerTanggal[0], kategori: 'omi_per_tanggal' } : null,
+              ...omiTutupHarian.map(f => ({ file: f, kategori: 'omi_tutup_harian' })),
+              ...smartFiles.map(f     => ({ file: f, kategori: 'smart_toko' })),
+              ...omiPerMember.map(f   => ({ file: f, kategori: 'omi_per_member' })),
+              ...omiDiscItem.map(f    => ({ file: f, kategori: 'omi_disc_item' })),
+              ...omiStrukTxt.map(f    => ({ file: f, kategori: 'omi_struk_txt' })),
+              ...omiPareto.map(f      => ({ file: f, kategori: 'omi_pareto' })),
+              ...omiAnalisa.map(f     => ({ file: f, kategori: 'omi_analisa' })),
+              ...omiPerStruk.map(f    => ({ file: f, kategori: 'omi_per_struk' })),
+              ...omiPersediaan.map(f  => ({ file: f, kategori: 'omi_persediaan' })),
+              ...smartDetail.map(f    => ({ file: f, kategori: 'smart_detail' })),
+            ].filter(Boolean),
           }
         }
       });

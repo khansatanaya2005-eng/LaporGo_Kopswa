@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from '../utils/cn';
 import { downloadExcel } from '../utils/api';
-import { saveLaporanToSupabase, uploadOutputExcel, updateLaporan, isSupabaseConfigured } from '../lib/supabaseClient';
+import { saveLaporanToSupabase, uploadLaporanFilesToStorage, updateLaporan, isSupabaseConfigured } from '../lib/supabaseClient';
 
 const OMSET_HEADERS = [
   'NO','NAMA DAN REF','JENIS TRANSAKSI','KWITANSI','KETERANGAN',
@@ -155,37 +155,24 @@ const ReportPreview = () => {
     }
   };
 
-  // Simpan ke Supabase (laporan + omset_rows + warnings)
+  // Simpan ke Supabase (laporan + omset_rows + warnings + upload files ke Storage)
   const handleSave = async () => {
     if (saved) return;
     setSaving(true);
     try {
       if (isSupabaseConfigured()) {
-        // Buat file metadata dari sourceFiles (wajib + opsional)
-        const toFilesMeta = (names, kategori) =>
-          (names || []).filter(Boolean).map(n => ({ nama_file: n, kategori }));
-
-        const filesMeta = [
-          // Wajib
-          sourceFiles?.omiPerTanggal && { nama_file: sourceFiles.omiPerTanggal, kategori: 'omi_per_tanggal' },
-          ...toFilesMeta(sourceFiles?.omiTutupHarian, 'omi_tutup_harian'),
-          ...toFilesMeta(sourceFiles?.smartFiles,     'smart_toko'),
-          // Opsional OMI
-          ...toFilesMeta(sourceFiles?.omiPerMember,  'omi_per_member'),
-          ...toFilesMeta(sourceFiles?.omiDiscItem,   'omi_disc_item'),
-          ...toFilesMeta(sourceFiles?.omiStrukTxt,   'omi_struk_txt'),
-          ...toFilesMeta(sourceFiles?.omiPareto,     'omi_pareto'),
-          ...toFilesMeta(sourceFiles?.omiAnalisa,    'omi_analisa'),
-          ...toFilesMeta(sourceFiles?.omiPerStruk,   'omi_per_struk'),
-          ...toFilesMeta(sourceFiles?.omiPersediaan, 'omi_persediaan'),
-          // Opsional SMART
-          ...toFilesMeta(sourceFiles?.smartDetail,   'smart_detail'),
-        ].filter(Boolean);
-
-        await saveLaporanToSupabase(
+        // 1. Simpan laporan, omset_rows, warnings ke DB
+        //    (filesMeta kosong karena file akan diupload ke Storage secara terpisah)
+        const laporan = await saveLaporanToSupabase(
           { tanggal: customDate, summary: dynamicSummary, omsetRows: present, warnings },
-          filesMeta
+          [] // file metadata ditangani oleh uploadLaporanFilesToStorage
         );
+
+        // 2. Upload file asli ke Supabase Storage + simpan metadata
+        const allFileObjects = sourceFiles?.allFiles || [];
+        if (laporan?.id && allFileObjects.length > 0) {
+          await uploadLaporanFilesToStorage(laporan.id, allFileObjects);
+        }
       }
       setSaved(true);
     } catch (e) {
