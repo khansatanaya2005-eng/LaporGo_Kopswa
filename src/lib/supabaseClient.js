@@ -214,7 +214,6 @@ export async function getLaporanList(limit = 20, filters = {}) {
   let query = supabase
     .from('v_laporan_with_profile')
     .select('*, omset_rows(*)')
-    .neq('status_balance', 'Trash')
     .order('tanggal', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -231,25 +230,27 @@ export async function getLaporanList(limit = 20, filters = {}) {
   const COLS_DEBIT  = ['tag_promo','giro_udp','piutang','beban_toko','beban_logo','kas_uks','piutang_padi','piutang_edc','beban_promosi'];
   const COLS_KREDIT = ['pendapatan_toko','pendapatan_logo','pendapatan_kerjasama','non_pajak','ppn_pk','ppn_wapu','persediaan_toko','persediaan_logo','simsem_uks'];
 
-  const processedData = (data || []).map(item => {
-    const rows = item.omset_rows || [];
-    if (rows.length > 0) {
-      const sumCol = (col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
-      const computedDebit  = COLS_DEBIT.reduce((s, c) => s + sumCol(c), 0);
-      const computedKredit = COLS_KREDIT.reduce((s, c) => s + sumCol(c), 0);
-      const computedSelisih = Math.abs(computedDebit - computedKredit);
-      const computedStatus = computedSelisih === 0 ? 'Balance' : 'Unbalance';
+  const processedData = (data || [])
+    .filter(item => !item.is_trashed && !item.deleted_at && !(item.catatan || '').includes('[TRASHED]'))
+    .map(item => {
+      const rows = item.omset_rows || [];
+      if (rows.length > 0) {
+        const sumCol = (col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
+        const computedDebit  = COLS_DEBIT.reduce((s, c) => s + sumCol(c), 0);
+        const computedKredit = COLS_KREDIT.reduce((s, c) => s + sumCol(c), 0);
+        const computedSelisih = Math.abs(computedDebit - computedKredit);
+        const computedStatus = computedSelisih === 0 ? 'Balance' : 'Unbalance';
 
-      return {
-        ...item,
-        total_debit: computedDebit,
-        total_kredit: computedKredit,
-        selisih: computedSelisih,
-        status_balance: item.status_balance === 'Draft' ? 'Draft' : computedStatus
-      };
-    }
-    return item;
-  });
+        return {
+          ...item,
+          total_debit: computedDebit,
+          total_kredit: computedKredit,
+          selisih: computedSelisih,
+          status_balance: item.status_balance === 'Draft' ? 'Draft' : computedStatus
+        };
+      }
+      return item;
+    });
 
   if (filters.status_balance && filters.status_balance !== 'ALL') {
     return processedData.filter(r => r.status_balance === filters.status_balance);
@@ -336,68 +337,115 @@ export async function updateLaporan(laporanId, updates = {}) {
 }
 
 /**
- * Soft Delete laporan (set status_balance = 'Trash')
+ * Soft Delete laporan (set is_trashed = true, or fallback to deleted_at / catatan flag)
  */
 export async function softDeleteLaporan(ids = []) {
   if (!isSupabaseConfigured() || ids.length === 0) return null;
   const now = new Date().toISOString();
-  
-  // Coba update deleted_at terlebih dahulu, jika kolom tidak ada fallback ke status_balance = 'Trash'
-  try {
-    const { data, error } = await supabase
-      .from('laporan')
-      .update({ deleted_at: now, status_balance: 'Trash' })
-      .in('id', ids);
-    if (!error) return data;
-  } catch (e) {}
 
-  const { data, error } = await supabase
+  // 1. Coba update is_trashed
+  const { error: err1 } = await supabase
     .from('laporan')
-    .update({ status_balance: 'Trash' })
+    .update({ is_trashed: true, deleted_at: now })
     .in('id', ids);
-    
-  if (error) { console.error('[Supabase] softDeleteLaporan:', error); throw new Error(error.message); }
-  return data;
+  if (!err1) return true;
+
+  // 2. Fallback: update is_trashed saja
+  const { error: err2 } = await supabase
+    .from('laporan')
+    .update({ is_trashed: true })
+    .in('id', ids);
+  if (!err2) return true;
+
+  // 3. Fallback: update deleted_at saja
+  const { error: err3 } = await supabase
+    .from('laporan')
+    .update({ deleted_at: now })
+    .in('id', ids);
+  if (!err3) return true;
+
+  // 4. Fallback: simpan flag '[TRASHED]' di catatan (tanpa merusak check constraint status_balance)
+  const { data: currentLaporan } = await supabase
+    .from('laporan')
+    .select('id, catatan')
+    .in('id', ids);
+
+  if (currentLaporan && currentLaporan.length > 0) {
+    for (const item of currentLaporan) {
+      const oldNotes = item.catatan || '';
+      if (!oldNotes.includes('[TRASHED]')) {
+        await supabase
+          .from('laporan')
+          .update({ catatan: `${oldNotes} [TRASHED]`.trim() })
+          .eq('id', item.id);
+      }
+    }
+  }
+  return true;
 }
 
 /**
- * Ambil daftar laporan di Tempat Sampah (status_balance = 'Trash')
+ * Ambil daftar laporan di Tempat Sampah
  */
 export async function getTrashLaporanList() {
   if (!isSupabaseConfigured()) return [];
 
-  const { data, error } = await supabase
+  // 1. Coba via is_trashed
+  const { data: d1, error: err1 } = await supabase
     .from('v_laporan_with_profile')
     .select('*')
-    .eq('status_balance', 'Trash')
+    .eq('is_trashed', true)
+    .order('created_at', { ascending: false });
+  if (!err1 && d1) return d1;
+
+  // 2. Coba via deleted_at
+  const { data: d2, error: err2 } = await supabase
+    .from('v_laporan_with_profile')
+    .select('*')
+    .not('deleted_at', 'is', null)
+    .order('created_at', { ascending: false });
+  if (!err2 && d2) return d2;
+
+  // 3. Fallback via catatan [TRASHED]
+  const { data: d3 } = await supabase
+    .from('v_laporan_with_profile')
+    .select('*')
+    .ilike('catatan', '%[TRASHED]%')
     .order('created_at', { ascending: false });
 
-  if (error) { console.error('[Supabase] getTrashLaporanList:', error); return []; }
-  return data || [];
+  return d3 || [];
 }
 
 /**
- * Pulihkan laporan dari tempat sampah (set status_balance = 'Balance' atau 'Unbalance')
+ * Pulihkan laporan dari tempat sampah
  */
 export async function restoreLaporan(ids = []) {
   if (!isSupabaseConfigured() || ids.length === 0) return null;
-  
-  // Ambil data omset untuk hitung ulang balance/unbalance
-  const { data, error } = await supabase
+
+  // 1. Coba reset is_trashed & deleted_at
+  await supabase
     .from('laporan')
-    .update({ status_balance: 'Balance', deleted_at: null })
+    .update({ is_trashed: false, deleted_at: null })
     .in('id', ids);
 
-  if (error) {
-    // Fallback tanpa deleted_at
-    const { data: d2, error: err2 } = await supabase
-      .from('laporan')
-      .update({ status_balance: 'Balance' })
-      .in('id', ids);
-    if (err2) { console.error('[Supabase] restoreLaporan:', err2); throw new Error(err2.message); }
-    return d2;
+  // 2. Reset flag [TRASHED] di catatan jika ada
+  const { data: currentLaporan } = await supabase
+    .from('laporan')
+    .select('id, catatan')
+    .in('id', ids);
+
+  if (currentLaporan && currentLaporan.length > 0) {
+    for (const item of currentLaporan) {
+      if (item.catatan && item.catatan.includes('[TRASHED]')) {
+        const cleanNotes = item.catatan.replace(/\[TRASHED\]/g, '').trim();
+        await supabase
+          .from('laporan')
+          .update({ catatan: cleanNotes })
+          .eq('id', item.id);
+      }
+    }
   }
-  return data;
+  return true;
 }
 
 /**
