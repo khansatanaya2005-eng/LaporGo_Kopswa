@@ -1,7 +1,7 @@
-const express = require('express');
-const cors    = require('cors');
-const multer  = require('multer');
-const XLSX    = require('xlsx');
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import XLSX from 'xlsx';
 
 const app = express();
 app.use(cors());
@@ -288,4 +288,4 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', message: 'LaporGo API running on Vercel', version: '2.1.0' });
 });
 
-module.exports = app;
+export default app;
