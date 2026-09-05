@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // Emergency Bypass Fallback (Bisa masuk Admin/Staff langsung tanpa buat akun)
+    // Emergency Master Bypass (Selalu meloloskan Admin & Staff walau akun belum terdaftar di Supabase)
     const role = email.toLowerCase().includes('admin') ? 'Admin' : 'Staff';
     const mockUser = {
       id: role === 'Admin' ? 'usr-admin-demo' : 'usr-staff-demo',

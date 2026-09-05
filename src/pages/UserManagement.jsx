@@ -27,7 +27,7 @@ const UserManagement = () => {
   const [formData, setFormData] = useState({
     full_name: '',
     username: '',
-    domain: '@staff_kopswa.id',
+    domain: '@staff.kopswa.id',
     role: 'Staff',
     password: ''
   });
@@ -64,7 +64,7 @@ const UserManagement = () => {
     setFormData(prev => ({
       ...prev,
       role: newRole,
-      domain: newRole === 'Admin' ? '@admin_kopswa.id' : '@staff_kopswa.id'
+      domain: newRole === 'Admin' ? '@admin.kopswa.id' : '@staff.kopswa.id'
     }));
   };
 
@@ -73,7 +73,7 @@ const UserManagement = () => {
     setFormData({
       full_name: '',
       username: '',
-      domain: '@staff_kopswa.id',
+      domain: '@staff.kopswa.id',
       role: 'Staff',
       password: ''
     });
@@ -84,7 +84,7 @@ const UserManagement = () => {
     setEditingUser(usr);
     const emailParts = usr.email.split('@');
     const uname = emailParts[0] || '';
-    const dom = emailParts[1] ? `@${emailParts[1]}` : (usr.role === 'Admin' ? '@admin_kopswa.id' : '@staff_kopswa.id');
+    const dom = emailParts[1] ? `@${emailParts[1]}` : (usr.role === 'Admin' ? '@admin.kopswa.id' : '@staff.kopswa.id');
 
     setFormData({ 
       full_name: usr.full_name, 
@@ -165,7 +165,7 @@ const UserManagement = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Manajemen User</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Kelola akun pengguna real Supabase (@admin_kopswa.id vs @staff_kopswa.id).
+            Kelola akun pengguna real Supabase (@admin.kopswa.id vs @staff.kopswa.id).
           </p>
         </div>
 
@@ -288,8 +288,8 @@ const UserManagement = () => {
                   onChange={(e) => handleRoleChange(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
                 >
-                  <option value="Staff">Staff (@staff_kopswa.id)</option>
-                  <option value="Admin">Admin (@admin_kopswa.id)</option>
+                  <option value="Staff">Staff (@staff.kopswa.id)</option>
+                  <option value="Admin">Admin (@admin.kopswa.id)</option>
                 </select>
               </div>
 

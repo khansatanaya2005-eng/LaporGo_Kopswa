@@ -18,7 +18,7 @@ const Login = () => {
     setLoginType(type);
     if (email && email.includes('@')) {
       const prefix = email.split('@')[0];
-      setEmail(`${prefix}${type === 'admin' ? '@admin_kopswa.id' : '@staff_kopswa.id'}`);
+      setEmail(`${prefix}${type === 'admin' ? '@admin.kopswa.id' : '@staff.kopswa.id'}`);
     }
   };
 
@@ -31,7 +31,7 @@ const Login = () => {
 
     let fullEmail = email.trim();
     if (!fullEmail.includes('@')) {
-      fullEmail = `${fullEmail}${loginType === 'admin' ? '@admin_kopswa.id' : '@staff_kopswa.id'}`;
+      fullEmail = `${fullEmail}${loginType === 'admin' ? '@admin.kopswa.id' : '@staff.kopswa.id'}`;
     }
 
     setErrorMsg('');
@@ -54,15 +54,15 @@ const Login = () => {
   const fillQuickAcc = (type) => {
     setLoginType(type);
     if (type === 'admin') {
-      setEmail('admin@admin_kopswa.id');
+      setEmail('admin@admin.kopswa.id');
       setPassword('admin123');
     } else {
-      setEmail('staff@staff_kopswa.id');
+      setEmail('staff@staff.kopswa.id');
       setPassword('staff123');
     }
   };
 
-  const activeSuffix = loginType === 'admin' ? '@admin_kopswa.id' : '@staff_kopswa.id';
+  const activeSuffix = loginType === 'admin' ? '@admin.kopswa.id' : '@staff.kopswa.id';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#001518] via-[#00252a] to-[#004b54] flex items-center justify-center p-4 relative overflow-hidden font-sans">
@@ -117,7 +117,7 @@ const Login = () => {
               }`}
             >
               <span>Staf</span>
-              <span className="text-[10px] opacity-75 font-mono">@staff_kopswa.id</span>
+              <span className="text-[10px] opacity-75 font-mono">@staff.kopswa.id</span>
             </button>
             <button
               type="button"
@@ -129,7 +129,7 @@ const Login = () => {
               }`}
             >
               <span>Admin</span>
-              <span className="text-[10px] opacity-75 font-mono">@admin_kopswa.id</span>
+              <span className="text-[10px] opacity-75 font-mono">@admin.kopswa.id</span>
             </button>
           </div>
 
@@ -156,7 +156,7 @@ const Login = () => {
                   type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={loginType === 'admin' ? "username@admin_kopswa.id" : "username@staff_kopswa.id"}
+                  placeholder={loginType === 'admin' ? "username@admin.kopswa.id" : "username@staff.kopswa.id"}
                   className="w-full pl-9 pr-32 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00606b] focus:border-transparent transition-all font-mono"
                 />
                 {!email.includes('@') && (
@@ -208,14 +208,14 @@ const Login = () => {
                 onClick={() => fillQuickAcc('staff')}
                 className="text-xs bg-teal-50 hover:bg-teal-100 text-[#00606b] font-semibold py-1.5 px-3 rounded text-center transition cursor-pointer"
               >
-                Staff Demo (@staff_kopswa.id)
+                Staff Demo (@staff.kopswa.id)
               </button>
               <button
                 type="button"
                 onClick={() => fillQuickAcc('admin')}
                 className="text-xs bg-orange-50 hover:bg-orange-100 text-[#ff5000] font-semibold py-1.5 px-3 rounded text-center transition cursor-pointer"
               >
-                Admin Demo (@admin_kopswa.id)
+                Admin Demo (@admin.kopswa.id)
               </button>
             </div>
           </div>
