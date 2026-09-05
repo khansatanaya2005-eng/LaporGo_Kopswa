@@ -486,48 +486,47 @@ const ReportPreview = () => {
                 );
               })}
             </div>
-
-            {/* Dokumen yang Diupload */}
-            {sourceFiles?.allFiles?.length > 0 && (
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#0A4D68]" />
-                    Dokumen yang Diupload ({sourceFiles.allFiles.length} file)
-                  </p>
-                  <span className="text-[10px] text-slate-400">Klik 👁️ untuk preview isi file</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {sourceFiles.allFiles.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition">
-                      <div className="flex items-center gap-2.5 truncate">
-                        {item.kategori?.includes('omi') ? (
-                          <Store className="w-4 h-4 text-[#FF5000] shrink-0" />
-                        ) : (
-                          <Building className="w-4 h-4 text-[#0A4D68] shrink-0" />  
-                        )}
-                        <div className="truncate">
-                          <p className="text-xs font-bold text-slate-800 truncate" title={item.file.name}>{item.file.name}</p>
-                          <p className="text-[10px] text-slate-400 font-mono uppercase">
-                            {item.kategori} &bull; {(item.file.size / 1024).toFixed(0)} KB
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handlePreviewFile(item)}
-                        className="ml-2 p-1.5 text-slate-400 hover:text-[#0A4D68] hover:bg-blue-50 rounded-lg transition shrink-0 cursor-pointer"
-                        title="Preview isi file"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         )}
       </div>
+
+      {/* Dokumen yang Diupload — selalu terlihat di luar tab */}
+      {sourceFiles?.allFiles?.length > 0 && (
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#0A4D68]" />
+              <span>Dokumen Sumber Laporan (OMI &amp; SMART)</span>
+            </h3>
+            <span className="text-[11px] text-slate-400 font-medium">{sourceFiles.allFiles.length} Berkas · Klik 👁️ untuk preview</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
+            {sourceFiles.allFiles.map((item, idx) => (
+              <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between hover:border-slate-300 transition">
+                <div className="flex items-center gap-2.5 truncate">
+                  {item.kategori?.includes('omi') ? (
+                    <Store className="w-4 h-4 text-[#FF5000] shrink-0" />
+                  ) : (
+                    <Building className="w-4 h-4 text-[#0A4D68] shrink-0" />
+                  )}
+                  <div className="truncate">
+                    <p className="text-xs font-bold text-slate-800 truncate" title={item.file.name}>{item.file.name}</p>
+                    <p className="text-[10px] text-slate-400 font-mono uppercase">
+                      {item.kategori} &bull; {(item.file.size / 1024).toFixed(0)} KB
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handlePreviewFile(item)}
+                  className="ml-2 p-1.5 text-slate-400 hover:text-[#0A4D68] hover:bg-blue-50 rounded-lg transition shrink-0 cursor-pointer"
+                  title="Preview isi file"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Modal Preview File */}
       {previewFile && (
