@@ -615,6 +615,87 @@ export async function updateProfileName(userId, full_name) {
   return data;
 }
 
+export async function createUserInSupabase({ full_name, email, role, password }) {
+  if (!isSupabaseConfigured()) return null;
+
+  // 1. SignUp in Supabase Auth if password is provided
+  let authUserId = null;
+  if (password) {
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name,
+            role
+          }
+        }
+      });
+      if (authData?.user) {
+        authUserId = authData.user.id;
+      }
+    } catch (e) {
+      console.warn('[Supabase] Auth signUp warning:', e);
+    }
+  }
+
+  const userId = authUserId || `usr-${Date.now()}`;
+
+  // 2. Insert/Upsert ke tabel profiles
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert([{
+      id: userId,
+      email,
+      full_name,
+      role: role || 'Staff',
+      updated_at: new Date().toISOString()
+    }], { onConflict: 'email' })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Supabase] insert profile error:', error);
+    return { id: userId, email, full_name, role, created_at: new Date().toISOString().split('T')[0] };
+  }
+
+  return data;
+}
+
+export async function deleteUserFromSupabase(userId) {
+  if (!isSupabaseConfigured()) return true;
+
+  const { error } = await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', userId);
+
+  if (error) {
+    console.error('[Supabase] deleteUserFromSupabase error:', error);
+    throw new Error(error.message);
+  }
+  return true;
+}
+
+export async function updateUserProfile(userId, { full_name, role }) {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ full_name, role, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Supabase] updateUserProfile error:', error);
+    throw new Error(error.message);
+  }
+  return data;
+}
+
+
 // ─────────────────────────────────────────────────────────────
 // STORAGE — Upload & Download file Excel output
 // ─────────────────────────────────────────────────────────────

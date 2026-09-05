@@ -16,11 +16,28 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          let userRole = session.user.user_metadata?.role;
+          let userName = session.user.user_metadata?.full_name;
+
+          // Fetch profile from database if available
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role, full_name')
+              .eq('id', session.user.id)
+              .single();
+            if (profile) {
+              if (profile.role) userRole = profile.role;
+              if (profile.full_name) userName = profile.full_name;
+            }
+          } catch (e) {}
+
+          const inferredRole = userRole || (session.user.email.includes('admin') ? 'Admin' : 'Staff');
           const userObj = {
             id: session.user.id,
             email: session.user.email,
-            role: session.user.user_metadata?.role || 'Staff',
-            name: session.user.user_metadata?.full_name || session.user.email.split('@')[0]
+            role: inferredRole,
+            name: userName || session.user.email.split('@')[0]
           };
           setUser(userObj);
           localStorage.setItem('laporgo_user', JSON.stringify(userObj));
@@ -39,11 +56,28 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (!error && data?.user) {
+        let userRole = data.user.user_metadata?.role;
+        let userName = data.user.user_metadata?.full_name;
+
+        // Fetch profile detail from profiles table
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role, full_name')
+            .eq('id', data.user.id)
+            .single();
+          if (profile) {
+            if (profile.role) userRole = profile.role;
+            if (profile.full_name) userName = profile.full_name;
+          }
+        } catch (e) {}
+
+        const inferredRole = userRole || (email.includes('admin') ? 'Admin' : 'Staff');
         const userObj = {
           id: data.user.id,
           email: data.user.email,
-          role: data.user.user_metadata?.role || (email.includes('admin') ? 'Admin' : 'Staff'),
-          name: data.user.user_metadata?.full_name || email.split('@')[0]
+          role: inferredRole,
+          name: userName || email.split('@')[0]
         };
         setUser(userObj);
         localStorage.setItem('laporgo_user', JSON.stringify(userObj));
@@ -60,7 +94,7 @@ export const AuthProvider = ({ children }) => {
       id: role === 'Admin' ? 'usr-admin-demo' : 'usr-staff-demo',
       email: email,
       role: role,
-      name: role === 'Admin' ? 'Administrator LaporGo' : 'Staff OMI-SMART'
+      name: role === 'Admin' ? 'Administrator LaporGo' : (email.split('@')[0] || 'User Kopswa')
     };
     setUser(mockUser);
     localStorage.setItem('laporgo_user', JSON.stringify(mockUser));

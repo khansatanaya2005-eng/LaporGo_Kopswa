@@ -12,37 +12,56 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const [loginType, setLoginType] = useState('staff'); // 'staff' | 'admin'
+
+  const handleRoleChange = (type) => {
+    setLoginType(type);
+    if (email && email.includes('@')) {
+      const prefix = email.split('@')[0];
+      setEmail(`${prefix}${type === 'admin' ? '@admin_kopswa.id' : '@staff_kopswa.id'}`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
-      setErrorMsg('Email dan password wajib diisi');
+      setErrorMsg('Email / Username dan password wajib diisi');
       return;
     }
+
+    let fullEmail = email.trim();
+    if (!fullEmail.includes('@')) {
+      fullEmail = `${fullEmail}${loginType === 'admin' ? '@admin_kopswa.id' : '@staff_kopswa.id'}`;
+    }
+
     setErrorMsg('');
     setSubmitting(true);
     try {
-      const res = await login(email, password);
+      const res = await login(fullEmail, password);
       if (res?.success) {
         navigate('/dashboard');
       } else {
         setErrorMsg('Login gagal. Periksa kembali email dan password.');
       }
     } catch (err) {
-      setErrorMsg('Terjadi kesalahan saat mendatangi server');
+      setErrorMsg('Terjadi kesalahan saat menghubungi server');
     } finally {
       setSubmitting(false);
     }
   };
 
   const fillQuickAcc = (type) => {
+    setLoginType(type);
     if (type === 'admin') {
-      setEmail('admin@kopswa.id');
+      setEmail('admin@admin_kopswa.id');
       setPassword('admin123');
     } else {
-      setEmail('staff@kopswa.id');
+      setEmail('staff@staff_kopswa.id');
       setPassword('staff123');
     }
   };
+
+  const activeSuffix = loginType === 'admin' ? '@admin_kopswa.id' : '@staff_kopswa.id';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#001518] via-[#00252a] to-[#004b54] flex items-center justify-center p-4 relative overflow-hidden font-sans">
@@ -85,6 +104,34 @@ const Login = () => {
             <p className="text-xs text-slate-500 mt-0.5">Penggabungan Laporan Harian Toko OMI & SMART</p>
           </div>
 
+          {/* Role Selection Tabs */}
+          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-5">
+            <button
+              type="button"
+              onClick={() => handleRoleChange('staff')}
+              className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                loginType === 'staff'
+                  ? 'bg-white text-[#00606b] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>Staf</span>
+              <span className="text-[10px] opacity-75 font-mono">@staff_kopswa.id</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRoleChange('admin')}
+              className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                loginType === 'admin'
+                  ? 'bg-white text-[#ff5000] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>Admin</span>
+              <span className="text-[10px] opacity-75 font-mono">@admin_kopswa.id</span>
+            </button>
+          </div>
+
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded">
               {errorMsg}
@@ -94,16 +141,28 @@ const Login = () => {
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  {loginType === 'admin' ? 'Email Admin' : 'Email Staf'}
+                </label>
+                <span className="text-[10px] font-mono font-medium text-slate-400">
+                  {activeSuffix}
+                </span>
+              </div>
+              <div className="relative flex items-center">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 z-10 pointer-events-none" />
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nama@kopswa.id"
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00606b] focus:border-transparent transition-all"
+                  placeholder={loginType === 'admin' ? "username@admin_kopswa.id" : "username@staff_kopswa.id"}
+                  className="w-full pl-9 pr-32 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#00606b] focus:border-transparent transition-all font-mono"
                 />
+                {!email.includes('@') && (
+                  <span className="absolute right-2 px-2 py-1 bg-slate-200/70 text-slate-600 font-mono text-[11px] rounded font-semibold pointer-events-none select-none">
+                    {activeSuffix}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -130,7 +189,7 @@ const Login = () => {
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <>
-                  <span>Masuk ke Dashboard</span>
+                  <span>Masuk ke Dashboard ({loginType === 'admin' ? 'Admin' : 'Staf'})</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -148,14 +207,14 @@ const Login = () => {
                 onClick={() => fillQuickAcc('staff')}
                 className="text-xs bg-teal-50 hover:bg-teal-100 text-[#00606b] font-semibold py-1.5 px-3 rounded text-center transition cursor-pointer"
               >
-                Staff Demo
+                Staff Demo (@staff_kopswa.id)
               </button>
               <button
                 type="button"
                 onClick={() => fillQuickAcc('admin')}
                 className="text-xs bg-orange-50 hover:bg-orange-100 text-[#ff5000] font-semibold py-1.5 px-3 rounded text-center transition cursor-pointer"
               >
-                Admin Demo
+                Admin Demo (@admin_kopswa.id)
               </button>
             </div>
           </div>
