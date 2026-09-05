@@ -215,7 +215,8 @@ const ManageReport = () => {
       if (report?.file_output_url) {
         window.open(report.file_output_url, '_blank');
       } else {
-        await downloadExcel(`Laporan_Gabungan_${report.tanggal || 'export'}.xlsx`);
+        const summary = { totalDebit, totalKredit, selisih };
+        await downloadExcel(rows, summary, report?.tanggal, `Laporan_Gabungan_${report?.tanggal || 'export'}.xlsx`);
       }
     } catch (e) {
       alert('Gagal download: ' + e.message);
