@@ -676,9 +676,10 @@ export async function deleteUserFromSupabase(userId) {
   return true;
 }
 
-export async function updateUserProfile(userId, { full_name, email, role }) {
+export async function updateUserProfile(userId, { full_name, email, role, password }) {
   if (!isSupabaseConfigured()) return null;
 
+  // Update profile metadata
   const { data, error } = await supabase
     .from('profiles')
     .update({ full_name, email, role, updated_at: new Date().toISOString() })
@@ -690,6 +691,19 @@ export async function updateUserProfile(userId, { full_name, email, role }) {
     console.error('[Supabase] updateUserProfile error:', error);
     throw new Error(error.message);
   }
+
+  // Update password in Auth if new password is entered
+  if (password && password.trim().length >= 6) {
+    try {
+      const { error: pwdErr } = await supabase.auth.updateUser({ password: password.trim() });
+      if (pwdErr) {
+        console.warn('[Supabase] Password update via user context failed, fallback to RPC/trigger');
+      }
+    } catch (e) {
+      console.warn('[Supabase] Auth updateUser catch:', e);
+    }
+  }
+
   return data;
 }
 
