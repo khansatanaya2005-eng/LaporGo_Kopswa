@@ -9,7 +9,8 @@ import {
   Loader2,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertTriangle
 } from 'lucide-react';
 import { 
   getProfiles, 
@@ -25,6 +26,10 @@ const UserManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Custom Delete Confirm Modal State
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -52,7 +57,7 @@ const UserManagement = () => {
         setUsers([]);
       }
     } catch (err) {
-      console.warn('Gagal memuat profiles Supabase:', err);
+      console.warn('Gagal memuat profiles:', err);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -101,14 +106,21 @@ const UserManagement = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (confirm('Apakah Anda yakin ingin menghapus user ini dari Supabase?')) {
-      try {
-        await deleteUserFromSupabase(id);
-        setUsers(prev => prev.filter(u => u.id !== id));
-      } catch (err) {
-        alert('Gagal menghapus user: ' + err.message);
-      }
+  const confirmDelete = (usr) => {
+    setDeleteConfirmUser(usr);
+  };
+
+  const handleExecuteDelete = async () => {
+    if (!deleteConfirmUser) return;
+    setDeleting(true);
+    try {
+      await deleteUserFromSupabase(deleteConfirmUser.id);
+      setUsers(prev => prev.filter(u => u.id !== deleteConfirmUser.id));
+      setDeleteConfirmUser(null);
+    } catch (err) {
+      alert('Gagal menghapus user: ' + err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -132,7 +144,7 @@ const UserManagement = () => {
         });
         fetchUsers();
       } else {
-        // Create user in Supabase
+        // Create user
         const result = await createUserInSupabase({
           full_name: formData.full_name,
           email: finalEmail,
@@ -156,7 +168,7 @@ const UserManagement = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Manajemen User</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Kelola akun pengguna real Supabase (@admin.kopswa.id vs @staff.kopswa.id).
+            Kelola akun pengguna sistem (@admin.kopswa.id vs @staff.kopswa.id).
           </p>
         </div>
 
@@ -188,7 +200,7 @@ const UserManagement = () => {
                 <tr>
                   <td colSpan="6" className="py-8 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#0A4D68]" />
-                    <p className="text-xs font-medium">Memuat daftar user dari Supabase...</p>
+                    <p className="text-xs font-medium">Memuat daftar user...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
@@ -210,7 +222,7 @@ const UserManagement = () => {
                       {usr.email}
                     </td>
                     <td className="py-3.5 px-5 font-mono text-xs text-slate-600">
-                      {usr.raw_password ? usr.raw_password : <span className="text-slate-400 italic">Tersimpan di Auth</span>}
+                      {usr.raw_password ? usr.raw_password : <span className="text-slate-400 italic">Tersimpan di Sistem</span>}
                     </td>
                     <td className="py-3.5 px-5">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
@@ -233,7 +245,7 @@ const UserManagement = () => {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(usr.id)}
+                          onClick={() => confirmDelete(usr)}
                           className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
                           title="Hapus User"
                         >
@@ -255,7 +267,7 @@ const UserManagement = () => {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h3 className="font-bold text-slate-900">
-                {editingUser ? 'Edit Hak Akses User' : 'Tambah User Baru (Supabase)'}
+                {editingUser ? 'Edit Hak Akses User' : 'Tambah User Baru'}
               </h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
@@ -368,10 +380,43 @@ const UserManagement = () => {
                   className="px-4 py-2 text-xs font-semibold text-white bg-[#0A4D68] hover:bg-[#088395] rounded-lg shadow-sm flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingUser ? 'Simpan Perubahan' : 'Tambah User Supabase'}</span>
+                  <span>{editingUser ? 'Simpan Perubahan' : 'Tambah User'}</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteConfirmUser && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center animate-in fade-in zoom-in duration-150">
+            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-900 text-base mb-1">Hapus Pengguna?</h3>
+            <p className="text-xs text-slate-500 mb-6">
+              Apakah Anda yakin ingin menghapus pengguna <span className="font-semibold text-slate-800">{deleteConfirmUser.full_name}</span> ({deleteConfirmUser.email})? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmUser(null)}
+                className="w-full py-2.5 px-4 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleExecuteDelete}
+                className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition"
+              >
+                {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Ya, Hapus</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
