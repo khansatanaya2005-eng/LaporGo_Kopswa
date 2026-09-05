@@ -320,12 +320,18 @@ const UserManagement = () => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required={!editingUser}
+                    disabled={Boolean(editingUser)}
+                    readOnly={Boolean(editingUser)}
                     minLength={6}
                     autoComplete="new-password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="Password akun"
-                    className="w-full pl-8 pr-10 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68] font-mono"
+                    className={`w-full pl-8 pr-10 py-2 text-xs border border-slate-200 rounded-lg font-mono ${
+                      editingUser 
+                        ? 'bg-slate-100 text-slate-700 cursor-not-allowed select-none' 
+                        : 'bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]'
+                    }`}
                   />
                   <button
                     type="button"
@@ -336,6 +342,11 @@ const UserManagement = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {editingUser && (
+                  <p className="text-[10px] text-slate-400 mt-1 font-sans">
+                    Password tersimpan secara permanen dan tidak dapat diubah dari modal ini.
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
