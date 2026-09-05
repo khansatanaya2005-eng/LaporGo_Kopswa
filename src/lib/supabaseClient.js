@@ -618,23 +618,6 @@ export async function updateProfileName(userId, full_name) {
 export async function createUserInSupabase({ full_name, email, role, password }) {
   if (!isSupabaseConfigured()) return null;
 
-  // 1. Coba panggil RPC Function create_new_user jika tersedia di Supabase DB
-  try {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('create_new_user', {
-      user_email: email,
-      user_password: password || '12345678',
-      user_full_name: full_name,
-      user_role: role || 'Staff'
-    });
-
-    if (!rpcErr && rpcRes?.success) {
-      return { id: rpcRes.id, email, full_name, role, created_at: new Date().toISOString().split('T')[0] };
-    }
-  } catch (e) {
-    console.warn('[Supabase] RPC create_new_user tidak tersedia, menggunakan fallback auth.signUp');
-  }
-
-  // 2. Fallback: SignUp via Supabase Auth
   let authUserId = null;
   if (password) {
     try {
@@ -655,7 +638,7 @@ export async function createUserInSupabase({ full_name, email, role, password })
 
   const userId = authUserId || `usr-${Date.now()}`;
 
-  // 3. Insert/Upsert ke tabel profiles
+  // Insert/Upsert ke tabel profiles
   const { data, error } = await supabase
     .from('profiles')
     .upsert([{
@@ -679,19 +662,6 @@ export async function createUserInSupabase({ full_name, email, role, password })
 export async function deleteUserFromSupabase(userId) {
   if (!isSupabaseConfigured()) return true;
 
-  // 1. Coba panggil RPC delete_user_by_admin agar terhapus juga dari auth.users
-  try {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('delete_user_by_admin', {
-      target_user_id: userId
-    });
-    if (!rpcErr && rpcRes?.success) {
-      return true;
-    }
-  } catch (e) {
-    console.warn('[Supabase] RPC delete_user_by_admin gagal, fallback ke delete profiles');
-  }
-
-  // 2. Fallback: hapus dari tabel profiles
   const { error } = await supabase
     .from('profiles')
     .delete()
@@ -704,26 +674,9 @@ export async function deleteUserFromSupabase(userId) {
   return true;
 }
 
-export async function updateUserProfile(userId, { full_name, email, role, password }) {
+export async function updateUserProfile(userId, { full_name, email, role }) {
   if (!isSupabaseConfigured()) return null;
 
-  // 1. Coba panggil RPC update_user_by_admin agar ter-update di auth.users & profiles (termasuk password jika diisi)
-  try {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('update_user_by_admin', {
-      target_user_id: userId,
-      new_email: email,
-      new_full_name: full_name,
-      new_role: role,
-      new_password: password || null
-    });
-    if (!rpcErr && rpcRes?.success) {
-      return { id: userId, full_name, email, role };
-    }
-  } catch (e) {
-    console.warn('[Supabase] RPC update_user_by_admin gagal, fallback ke update profiles');
-  }
-
-  // 2. Fallback: update tabel profiles
   const { data, error } = await supabase
     .from('profiles')
     .update({ full_name, email, role, updated_at: new Date().toISOString() })
