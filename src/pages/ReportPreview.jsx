@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Download, RefreshCw, CheckCircle2, AlertTriangle,
   Search, ArrowUpDown, Layers, ChevronLeft, ChevronRight,
-  Save, Loader2, Check, Info
+  Save, Loader2, Check, Info, Pencil, Undo, Redo
 } from 'lucide-react';
 import { formatRupiah } from '../utils/cn';
 import { downloadExcel } from '../utils/api';
@@ -54,8 +54,14 @@ const ReportPreview = () => {
     );
   }
 
-  const { omsetRows = [], summary = {}, warnings = [] } = reportData;
-  const isBalance = summary.statusBalance === 'Balance';
+  const { omsetRows: initialOmsetRows = [], summary: initialSummary = {}, warnings = [] } = reportData;
+
+  const [past, setPast] = useState([]);
+  const [present, setPresent] = useState(initialOmsetRows);
+  const [future, setFuture] = useState([]);
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [hoveredCell, setHoveredCell] = useState(null);
 
   const [activeTab,    setActiveTab]    = useState('OMSET');
   const [searchTerm,   setSearchTerm]   = useState('');
@@ -64,6 +70,59 @@ const ReportPreview = () => {
   const [saving,       setSaving]       = useState(false);
   const [saved,        setSaved]        = useState(false);
   const [customDate,   setCustomDate]   = useState('');
+
+  const sumCol = (rows, col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
+
+  const totalDebit  = COLS_DEBIT.reduce((s, c)  => s + sumCol(present, c), 0);
+  const totalKredit = COLS_KREDIT.reduce((s, c) => s + sumCol(present, c), 0);
+  const selisih     = totalDebit - totalKredit;
+  const isBalance   = selisih === 0;
+
+  const dynamicSummary = {
+    ...initialSummary,
+    totalDebit,
+    totalKredit,
+    selisih,
+    statusBalance: isBalance ? 'Balance' : 'Unbalance'
+  };
+
+  const handleUndo = () => {
+    if (past.length === 0) return;
+    const previous = past[past.length - 1];
+    setPast(past.slice(0, past.length - 1));
+    setFuture([present, ...future]);
+    setPresent(previous);
+    setEditingCell(null);
+  };
+
+  const handleRedo = () => {
+    if (future.length === 0) return;
+    const next = future[0];
+    setFuture(future.slice(1));
+    setPast([...past, present]);
+    setPresent(next);
+    setEditingCell(null);
+  };
+
+  const saveEdit = () => {
+    if (!editingCell) return;
+    const parsedVal = parseInt(String(editValue).replace(/\./g, '').replace(/Rp\s*/i, '')) || 0;
+    
+    const targetRow = present.find(r => r.no === editingCell.rowNo);
+    if (!targetRow || targetRow[editingCell.colKey] === parsedVal) {
+      setEditingCell(null);
+      return;
+    }
+
+    const newPresent = present.map(r => 
+      r.no === editingCell.rowNo ? { ...r, [editingCell.colKey]: parsedVal } : r
+    );
+
+    setPast([...past, present]);
+    setPresent(newPresent);
+    setFuture([]);
+    setEditingCell(null);
+  };
 
   const handleSetToday = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -75,9 +134,7 @@ const ReportPreview = () => {
     { id: 'DETAIL', label: 'Ringkasan' },
   ];
 
-  const sumCol = (rows, col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
-
-  const filteredRows = omsetRows.filter(r => {
+  const filteredRows = present.filter(r => {
     const t = searchTerm.toLowerCase();
     return r.nama_ref?.toLowerCase().includes(t) ||
            r.jenis_transaksi?.toLowerCase().includes(t) ||
@@ -112,7 +169,7 @@ const ReportPreview = () => {
         ].filter(Boolean);
 
         await saveLaporanToSupabase(
-          { tanggal: customDate, summary, omsetRows, warnings },
+          { tanggal: customDate, summary: dynamicSummary, omsetRows: present, warnings },
           filesMeta
         );
       }
@@ -149,7 +206,7 @@ const ReportPreview = () => {
               >
                 Hari Ini
               </button>
-              <span className="text-xs text-slate-400 ml-2">· {omsetRows.length} baris OMSET</span>
+              <span className="text-xs text-slate-400 ml-2">· {present.length} baris OMSET</span>
             </div>
           </div>
         </div>
@@ -199,10 +256,10 @@ const ReportPreview = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Debit',  val: formatRupiah(summary.totalDebit),  color: 'text-slate-900' },
-          { label: 'Total Kredit', val: formatRupiah(summary.totalKredit), color: 'text-slate-900' },
-          { label: 'Selisih',      val: formatRupiah(summary.selisih),     color: summary.selisih === 0 ? 'text-emerald-700' : 'text-red-600' },
-          { label: 'Jumlah Baris', val: `${summary.jumlahTransaksi || omsetRows.length} item`, color: 'text-slate-900' },
+          { label: 'Total Debit',  val: formatRupiah(dynamicSummary.totalDebit),  color: 'text-slate-900' },
+          { label: 'Total Kredit', val: formatRupiah(dynamicSummary.totalKredit), color: 'text-slate-900' },
+          { label: 'Selisih',      val: formatRupiah(dynamicSummary.selisih),     color: isBalance ? 'text-emerald-700' : 'text-red-600' },
+          { label: 'Jumlah Baris', val: `${dynamicSummary.jumlahTransaksi || present.length} item`, color: 'text-slate-900' },
         ].map((c, i) => (
           <div key={i} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
             <p className="text-[11px] font-semibold text-slate-400 uppercase">{c.label}</p>
@@ -224,7 +281,7 @@ const ReportPreview = () => {
           <p className="text-xs text-slate-500 mt-0.5">
             {isBalance
               ? 'Laporan siap untuk didownload dan disimpan.'
-              : `Selisih: ${formatRupiah(summary.selisih)}. Periksa kembali file sumber.`}
+              : `Selisih: ${formatRupiah(dynamicSummary.selisih)}. Periksa kembali file sumber atau edit baris terkait.`}
           </p>
         </div>
       </div>
@@ -247,11 +304,23 @@ const ReportPreview = () => {
         {activeTab === 'OMSET' && (
           <div>
             <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-              <div className="relative w-full sm:w-72">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input type="text" placeholder="Cari nama ref, keterangan..."
-                  value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input type="text" placeholder="Cari nama ref, keterangan..."
+                    value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="flex items-center gap-1 border-l border-slate-200 pl-2 ml-1">
+                  <button onClick={handleUndo} disabled={past.length === 0} title="Undo (Kembali)"
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer">
+                    <Undo className="w-4 h-4" />
+                  </button>
+                  <button onClick={handleRedo} disabled={future.length === 0} title="Redo (Maju)"
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer">
+                    <Redo className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <button onClick={() => setSortAsc(!sortAsc)}
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer">
@@ -272,17 +341,57 @@ const ReportPreview = () => {
                 <tbody className="divide-y divide-slate-100">
                   {sortedRows.map(row => (
                     <tr key={row.no} className="hover:bg-blue-50/50 transition">
-                      {OMSET_KEYS.map(k => (
-                        <td key={k} className={`p-3 ${
-                          k === 'nama_ref' ? 'font-semibold text-slate-900' :
-                          k === 'pendapatan_toko' ? 'font-mono text-emerald-700 font-medium' :
-                          k === 'kas_uks' ? 'font-mono text-blue-700 font-medium' :
-                          NUMERIC_COLS.has(k) ? 'font-mono text-right' : ''}`}>
-                          {NUMERIC_COLS.has(k)
-                            ? (row[k] && row[k] !== 0 ? formatRupiah(row[k]) : '-')
-                            : (row[k] || '')}
-                        </td>
-                      ))}
+                      {OMSET_KEYS.map(k => {
+                        const isNumeric = NUMERIC_COLS.has(k);
+                        const isEditing = editingCell?.rowNo === row.no && editingCell?.colKey === k;
+                        
+                        return (
+                          <td key={k} 
+                            className={`p-3 relative group ${
+                              k === 'nama_ref' ? 'font-semibold text-slate-900' :
+                              k === 'pendapatan_toko' ? 'font-mono text-emerald-700 font-medium' :
+                              k === 'kas_uks' ? 'font-mono text-blue-700 font-medium' :
+                              isNumeric ? 'font-mono text-right' : ''
+                            }`}
+                            onMouseEnter={() => isNumeric && setHoveredCell({ rowNo: row.no, colKey: k })}
+                            onMouseLeave={() => isNumeric && setHoveredCell(null)}
+                          >
+                            {isEditing ? (
+                              <div className="flex items-center justify-end">
+                                <input
+                                  type="number"
+                                  autoFocus
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                                  onBlur={saveEdit}
+                                  className="w-24 text-xs font-mono text-right px-1 py-0.5 border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                              </div>
+                            ) : (
+                              <div className={`flex items-center gap-2 h-full ${isNumeric ? 'justify-end' : 'justify-start'}`}>
+                                {isNumeric && hoveredCell?.rowNo === row.no && hoveredCell?.colKey === k && (
+                                  <button 
+                                    onClick={() => {
+                                      setEditingCell({ rowNo: row.no, colKey: k });
+                                      setEditValue(row[k] || 0);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-blue-600 transition cursor-pointer absolute left-1"
+                                    title="Edit Nilai"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
+                                )}
+                                <span>
+                                  {isNumeric
+                                    ? (row[k] && row[k] !== 0 ? formatRupiah(row[k]) : '-')
+                                    : (row[k] || '')}
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                   {/* --- SUMMARY ROWS --- */}
@@ -291,7 +400,7 @@ const ReportPreview = () => {
                       if (k === 'no') return <td key={k} className="p-3"></td>;
                       if (k === 'nama_ref') return <td key={k} className="p-3 text-slate-900">TOTAL DEBIT</td>;
                       if (NUMERIC_COLS.has(k)) {
-                        const val = COLS_DEBIT.includes(k) ? sumCol(omsetRows, k) : 0;
+                        const val = COLS_DEBIT.includes(k) ? sumCol(present, k) : 0;
                         return <td key={k} className="p-3 font-mono text-right text-slate-800">{val !== 0 ? formatRupiah(val) : '-'}</td>;
                       }
                       return <td key={k} className="p-3"></td>;
@@ -302,7 +411,7 @@ const ReportPreview = () => {
                       if (k === 'no') return <td key={k} className="p-3"></td>;
                       if (k === 'nama_ref') return <td key={k} className="p-3 text-slate-900">TOTAL KREDIT</td>;
                       if (NUMERIC_COLS.has(k)) {
-                        const val = COLS_KREDIT.includes(k) ? sumCol(omsetRows, k) : 0;
+                        const val = COLS_KREDIT.includes(k) ? sumCol(present, k) : 0;
                         return <td key={k} className="p-3 font-mono text-right text-slate-800">{val !== 0 ? formatRupiah(val) : '-'}</td>;
                       }
                       return <td key={k} className="p-3"></td>;
@@ -314,7 +423,7 @@ const ReportPreview = () => {
             </div>
 
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
-              <span>Menampilkan {sortedRows.length} dari {omsetRows.length} baris</span>
+              <span>Menampilkan {sortedRows.length} dari {present.length} baris</span>
               <div className="flex items-center gap-1">
                 <button disabled className="p-1 border rounded bg-white opacity-40"><ChevronLeft className="w-4 h-4" /></button>
                 <span className="px-3 py-1 font-semibold text-slate-800">1</span>
@@ -329,7 +438,7 @@ const ReportPreview = () => {
           <div className="p-6 space-y-4">
             <h3 className="font-bold text-slate-800 text-sm">Ringkasan Per Baris OMSET</h3>
             <div className="space-y-2">
-              {omsetRows.map(row => {
+              {present.map(row => {
                 const debit  = (row.tag_promo||0)+(row.giro_udp||0)+(row.piutang||0)+(row.beban_toko||0)+(row.beban_logo||0)+(row.kas_uks||0)+(row.piutang_padi||0)+(row.piutang_edc||0)+(row.beban_promosi||0);
                 const kredit = (row.pendapatan_toko||0)+(row.pendapatan_logo||0)+(row.pendapatan_kerjasama||0)+(row.non_pajak||0)+(row.ppn_pk||0)+(row.ppn_wapu||0)+(row.persediaan_toko||0)+(row.persediaan_logo||0)+(row.simsem_uks||0);
                 return (
