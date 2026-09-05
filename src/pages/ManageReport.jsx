@@ -101,6 +101,7 @@ const ManageReport = () => {
   const sumCol = (col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
   const totalDebit  = COLS_DEBIT.reduce((s, c) => s + sumCol(c), 0);
   const totalKredit = COLS_KREDIT.reduce((s, c) => s + sumCol(c), 0);
+  const selisih     = Math.abs(totalDebit - totalKredit);
 
   // Cek apakah ada perubahan belum disimpan
   const isDirty = JSON.stringify(rows) !== JSON.stringify(originalRows);
@@ -358,8 +359,10 @@ const ManageReport = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase">Jumlah Baris</p>
-          <p className="text-lg font-bold text-slate-900 mt-1">{omsetRows.length} Item</p>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase">Selisih</p>
+          <p className={`text-lg font-bold mt-1 font-mono ${selisih === 0 ? 'text-slate-900' : 'text-amber-600'}`}>
+            {formatRupiah(selisih)}
+          </p>
         </div>
 
         <div className={`p-4 rounded-xl border shadow-sm flex items-center justify-between ${
