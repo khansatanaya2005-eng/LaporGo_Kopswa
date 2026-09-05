@@ -250,24 +250,23 @@ const UploadReport = () => {
               exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}
               className="p-6 space-y-4 border-t border-slate-100">
 
-              {/* Multi-upload ringkasan */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-                  <h4 className="text-xs font-extrabold text-[#0A4D68] uppercase tracking-wider">RINGKASAN PEMBAYARAN *</h4>
-                  <span className="text-[10px] text-slate-400">Upload file TOKO + LOGO sekaligus</span>
-                </div>
-                <div className="p-4 bg-blue-50/50 border border-blue-200/70 rounded-xl text-xs text-blue-700 mb-3">
-                  <span className="font-bold">💡 Cara upload:</span> Pilih semua file ringkasan sekaligus (TOKO + LOGO).
-                  Sistem otomatis mendeteksi kategorinya dari isi file.
-                </div>
-
-                {/* Drop zone multi-file */}
-                <SmartMultiUpload
-                  files={smartFiles}
-                  onAdd={(newFiles) => setSmartFiles(p => [...p, ...newFiles])}
-                  onRemove={(idx) => setSmartFiles(p => p.filter((_, i) => i !== idx))}
-                />
-              </div>
+              {/* Slot Ringkasan Pembayaran (Disamakan dengan tampilan baris slot lainnya) */}
+              <FileSlotRow
+                title="ringkasan pembayaran.xlsx (TOKO & LOGO)"
+                accept=".xlsx,.xls"
+                isMandatory={true}
+                isMulti={true}
+                description="Upload file TOKO & LOGO sekaligus (sistem auto-detect kategorinya)"
+                uploadedFiles={smartFiles}
+                onUpload={(filesArr) => setSmartFiles(p => [...p, ...filesArr])}
+                onRemove={(idx) => {
+                  if (idx !== undefined) {
+                    setSmartFiles(p => p.filter((_, i) => i !== idx));
+                  } else {
+                    setSmartFiles([]);
+                  }
+                }}
+              />
 
               {/* Detail Smart (opsional) */}
               <div className="space-y-3 pt-2">
