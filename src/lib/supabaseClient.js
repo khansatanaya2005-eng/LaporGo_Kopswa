@@ -214,7 +214,7 @@ export async function getLaporanList(limit = 20, filters = {}) {
   let query = supabase
     .from('v_laporan_with_profile')
     .select('*, omset_rows(*)')
-    .is('deleted_at', null)
+    .neq('status_balance', 'Trash')
     .order('tanggal', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -336,62 +336,67 @@ export async function updateLaporan(laporanId, updates = {}) {
 }
 
 /**
- * Soft Delete laporan (set deleted_at = ISO timestamp)
+ * Soft Delete laporan (set status_balance = 'Trash')
  */
 export async function softDeleteLaporan(ids = []) {
   if (!isSupabaseConfigured() || ids.length === 0) return null;
   const now = new Date().toISOString();
+  
+  // Coba update deleted_at terlebih dahulu, jika kolom tidak ada fallback ke status_balance = 'Trash'
+  try {
+    const { data, error } = await supabase
+      .from('laporan')
+      .update({ deleted_at: now, status_balance: 'Trash' })
+      .in('id', ids);
+    if (!error) return data;
+  } catch (e) {}
+
   const { data, error } = await supabase
     .from('laporan')
-    .update({ deleted_at: now })
+    .update({ status_balance: 'Trash' })
     .in('id', ids);
+    
   if (error) { console.error('[Supabase] softDeleteLaporan:', error); throw new Error(error.message); }
   return data;
 }
 
 /**
- * Ambil daftar laporan di Tempat Sampah (deleted_at IS NOT NULL dan belum 30 hari)
+ * Ambil daftar laporan di Tempat Sampah (status_balance = 'Trash')
  */
 export async function getTrashLaporanList() {
   if (!isSupabaseConfigured()) return [];
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  
-  // Hapus otomatis item yang sudah lewat 30 hari di database
-  try {
-    const { data: expired } = await supabase
-      .from('laporan')
-      .select('id')
-      .not('deleted_at', 'is', null)
-      .lt('deleted_at', thirtyDaysAgo);
-    if (expired && expired.length > 0) {
-      const expiredIds = expired.map(e => e.id);
-      await deleteLaporanPermanently(expiredIds);
-    }
-  } catch (e) {
-    console.error('[Supabase] Error auto-cleaning expired trash:', e);
-  }
 
   const { data, error } = await supabase
     .from('v_laporan_with_profile')
     .select('*')
-    .not('deleted_at', 'is', null)
-    .gte('deleted_at', thirtyDaysAgo)
-    .order('deleted_at', { ascending: false });
+    .eq('status_balance', 'Trash')
+    .order('created_at', { ascending: false });
 
   if (error) { console.error('[Supabase] getTrashLaporanList:', error); return []; }
   return data || [];
 }
 
 /**
- * Pulihkan laporan dari tempat sampah (deleted_at = NULL)
+ * Pulihkan laporan dari tempat sampah (set status_balance = 'Balance' atau 'Unbalance')
  */
 export async function restoreLaporan(ids = []) {
   if (!isSupabaseConfigured() || ids.length === 0) return null;
+  
+  // Ambil data omset untuk hitung ulang balance/unbalance
   const { data, error } = await supabase
     .from('laporan')
-    .update({ deleted_at: null })
+    .update({ status_balance: 'Balance', deleted_at: null })
     .in('id', ids);
-  if (error) { console.error('[Supabase] restoreLaporan:', error); throw new Error(error.message); }
+
+  if (error) {
+    // Fallback tanpa deleted_at
+    const { data: d2, error: err2 } = await supabase
+      .from('laporan')
+      .update({ status_balance: 'Balance' })
+      .in('id', ids);
+    if (err2) { console.error('[Supabase] restoreLaporan:', err2); throw new Error(err2.message); }
+    return d2;
+  }
   return data;
 }
 
