@@ -1,13 +1,13 @@
 // ─────────────────────────────────────────────────────────
 // api.js — LaporGo Frontend API Utility
-// Semua pemrosesan laporan dilakukan di BACKEND (server.js)
-// Frontend hanya mengirim file via FormData & menerima hasil JSON
+// Di Vercel: frontend & backend satu domain → pakai relative path
+// Di lokal  : backend di localhost:5000 → pakai VITE_API_BASE_URL
 // ─────────────────────────────────────────────────────────
 
-// VITE_API_BASE_URL dari .env sudah berisi "/api" di akhir, mis: "http://localhost:5000/api"
-// Kita ekstrak base tanpa "/api" agar bisa append path lengkap sendiri
-const _apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-const BASE_URL  = _apiBase.replace(/\/api\/?$/, '');
+// Kalau VITE_API_BASE_URL tidak diset (production Vercel), gunakan '' (relative)
+// Kalau diset (local dev: http://localhost:5000/api), strip /api suffix
+const _raw     = import.meta.env.VITE_API_BASE_URL || '';
+const BASE_URL = _raw ? _raw.replace(/\/api\/?$/, '') : '';
 
 /**
  * Kirim semua file laporan ke backend untuk diproses.
