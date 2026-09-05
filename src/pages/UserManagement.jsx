@@ -189,7 +189,6 @@ const UserManagement = () => {
               <tr>
                 <th className="py-3.5 px-5">Nama Pengguna</th>
                 <th className="py-3.5 px-5">Email Akun</th>
-                <th className="py-3.5 px-5">Password</th>
                 <th className="py-3.5 px-5">Role / Peran</th>
                 <th className="py-3.5 px-5">Tanggal Dibuat</th>
                 <th className="py-3.5 px-5 text-right">Aksi</th>
@@ -198,14 +197,14 @@ const UserManagement = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-slate-400">
+                  <td colSpan="5" className="py-8 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#0A4D68]" />
                     <p className="text-xs font-medium">Memuat daftar user...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-slate-400">
+                  <td colSpan="5" className="py-8 text-center text-slate-400">
                     <p className="text-xs font-medium">Belum ada user terdaftar.</p>
                   </td>
                 </tr>
@@ -220,9 +219,6 @@ const UserManagement = () => {
                     </td>
                     <td className="py-3.5 px-5 font-mono text-slate-600 font-medium">
                       {usr.email}
-                    </td>
-                    <td className="py-3.5 px-5 font-mono text-xs text-slate-600">
-                      {usr.raw_password ? usr.raw_password : <span className="text-slate-400 italic">Tersimpan di Sistem</span>}
                     </td>
                     <td className="py-3.5 px-5">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
