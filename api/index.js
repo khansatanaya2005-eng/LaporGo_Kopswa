@@ -335,15 +335,9 @@ async function generateExcel({ omsetRows, summary }) {
   const grandTotalKredit = summary?.totalKredit ?? COLS_KREDIT.reduce((s, c) => s + sumCol(omsetRows, c), 0);
   const currentSelisih   = summary?.selisih ?? Math.abs(grandTotalDebit - grandTotalKredit);
 
-  const addTotalRow = (label, cols, bgColor, fontColor = 'FF000000', grandTotalVal = 0) => {
+  const addTotalRow = (label, cols, bgColor, fontColor = 'FF000000') => {
     const r = ws.addRow({});
     r.getCell(2).value = label;
-    r.getCell(4).value = 'GRAND TOTAL:';
-    r.getCell(4).alignment = { horizontal: 'right' };
-    r.getCell(5).value = grandTotalVal;
-    r.getCell(5).numFmt = '#,##0';
-    r.getCell(5).alignment = { horizontal: 'right' };
-
     cols.forEach(col => {
       const colDef = OMSET_COL_DEFS.find(d => d.key === col);
       if (!colDef) return;
@@ -357,20 +351,52 @@ async function generateExcel({ omsetRows, summary }) {
     return r;
   };
 
-  addTotalRow('TOTAL DEBIT',  COLS_DEBIT,  'FFDBEAFE', 'FF000000', grandTotalDebit);
-  addTotalRow('TOTAL KREDIT', COLS_KREDIT, 'FFD1FAE5', 'FF000000', grandTotalKredit);
+  addTotalRow('TOTAL DEBIT',  COLS_DEBIT,  'FFDBEAFE');
+  addTotalRow('TOTAL KREDIT', COLS_KREDIT, 'FFD1FAE5');
 
   const selRow = ws.addRow({});
   selRow.getCell(2).value  = 'SELISIH';
-  selRow.getCell(4).value  = 'GRAND SELISIH:';
-  selRow.getCell(4).alignment = { horizontal: 'right' };
-  selRow.getCell(5).value  = currentSelisih;
-  selRow.getCell(5).numFmt = '#,##0';
-  selRow.getCell(5).alignment = { horizontal: 'right' };
   selRow.getCell(OMSET_COL_DEFS.length).value  = currentSelisih;
   selRow.getCell(OMSET_COL_DEFS.length).numFmt = '#,##0';
   selRow.font = { bold: true, color: { argb: currentSelisih === 0 ? 'FF16A34A' : 'FFDC2626' } };
   selRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: currentSelisih === 0 ? 'FFF0FDF4' : 'FFFEF2F2' } };
+
+  // ── TABEL RINGKASAN TERPISAH (OPSI 2) ─────────────────────
+  ws.addRow({});
+  ws.addRow({});
+
+  const sumHeaderRow = ws.addRow({});
+  sumHeaderRow.getCell(2).value = 'RINGKASAN LAPORAN';
+  sumHeaderRow.getCell(3).value = 'JUMLAH (RP)';
+  sumHeaderRow.getCell(2).font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+  sumHeaderRow.getCell(3).font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+  sumHeaderRow.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF051923' } };
+  sumHeaderRow.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF051923' } };
+  sumHeaderRow.getCell(3).alignment = { horizontal: 'right' };
+
+  const sumDebitRow = ws.addRow({});
+  sumDebitRow.getCell(2).value = 'TOTAL DEBIT';
+  sumDebitRow.getCell(3).value = grandTotalDebit;
+  sumDebitRow.getCell(3).numFmt = '#,##0';
+  sumDebitRow.getCell(3).alignment = { horizontal: 'right' };
+  sumDebitRow.font = { bold: true };
+  sumDebitRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+
+  const sumKreditRow = ws.addRow({});
+  sumKreditRow.getCell(2).value = 'TOTAL KREDIT';
+  sumKreditRow.getCell(3).value = grandTotalKredit;
+  sumKreditRow.getCell(3).numFmt = '#,##0';
+  sumKreditRow.getCell(3).alignment = { horizontal: 'right' };
+  sumKreditRow.font = { bold: true };
+  sumKreditRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
+
+  const sumSelisihRow = ws.addRow({});
+  sumSelisihRow.getCell(2).value = 'SELISIH';
+  sumSelisihRow.getCell(3).value = currentSelisih;
+  sumSelisihRow.getCell(3).numFmt = '#,##0';
+  sumSelisihRow.getCell(3).alignment = { horizontal: 'right' };
+  sumSelisihRow.font = { bold: true, color: { argb: currentSelisih === 0 ? 'FF16A34A' : 'FFDC2626' } };
+  sumSelisihRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: currentSelisih === 0 ? 'FFF0FDF4' : 'FFFEF2F2' } };
 
   ws.views = [{ state: 'frozen', ySplit: 1 }];
 
