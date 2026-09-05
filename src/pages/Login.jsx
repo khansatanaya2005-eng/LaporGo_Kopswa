@@ -197,31 +197,8 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Quick Demo Selector */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <p className="text-[11px] font-semibold text-slate-400 text-center uppercase tracking-wider mb-2">
-              Akun Demo Cepat
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickAcc('staff')}
-                className="text-xs bg-teal-50 hover:bg-teal-100 text-[#00606b] font-semibold py-1.5 px-3 rounded text-center transition cursor-pointer"
-              >
-                Staff Demo (@staff.kopswa.id)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuickAcc('admin')}
-                className="text-xs bg-orange-50 hover:bg-orange-100 text-[#ff5000] font-semibold py-1.5 px-3 rounded text-center transition cursor-pointer"
-              >
-                Admin Demo (@admin.kopswa.id)
-              </button>
-            </div>
-          </div>
-
           {/* Link Panduan Penggunaan LaporGo */}
-          <div className="mt-4 text-center">
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
             <Link
               to="/panduan"
               className="text-xs text-slate-500 hover:text-[#0A4D68] font-medium underline transition"
@@ -234,7 +211,7 @@ const Login = () => {
         <div className="bg-slate-50 px-8 py-3 text-center border-t border-slate-100">
           <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            Terhubung ke Supabase Auth & DB
+            Sistem LaporGo Terhubung Aman
           </p>
         </div>
 
