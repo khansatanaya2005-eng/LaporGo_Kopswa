@@ -294,7 +294,7 @@ export async function getLaporanById(laporanId) {
 export async function updateLaporan(laporanId, updates = {}) {
   if (!isSupabaseConfigured()) return null;
 
-  const allowed = ['catatan', 'file_output_url', 'status_balance'];
+  const allowed = ['catatan', 'file_output_url', 'status_balance', 'total_debit', 'total_kredit', 'selisih'];
   const payload = Object.fromEntries(
     Object.entries(updates).filter(([k]) => allowed.includes(k))
   );

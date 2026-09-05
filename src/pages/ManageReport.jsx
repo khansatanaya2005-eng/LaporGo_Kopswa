@@ -111,7 +111,7 @@ const ManageReport = () => {
     setSaving(true);
     setSaveSuccess(false);
     try {
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && id && !id.startsWith('mock')) {
         for (const row of rows) {
           const origRow = originalRows.find(r => r.id === row.id);
           if (origRow && row.id && !String(row.id).startsWith('mock')) {
@@ -126,6 +126,24 @@ const ManageReport = () => {
             }
           }
         }
+
+        // Hitung status balance baru & update header laporan di Supabase
+        const newSelisih = Math.abs(totalDebit - totalKredit);
+        const newStatus = totalDebit === totalKredit ? 'Balance' : 'Unbalance';
+        await updateLaporan(id, {
+          total_debit: totalDebit,
+          total_kredit: totalKredit,
+          selisih: newSelisih,
+          status_balance: newStatus
+        });
+        
+        setReport(prev => prev ? {
+          ...prev,
+          total_debit: totalDebit,
+          total_kredit: totalKredit,
+          selisih: newSelisih,
+          status_balance: newStatus
+        } : prev);
       }
       setOriginalRows(rows);
       setSaveSuccess(true);
