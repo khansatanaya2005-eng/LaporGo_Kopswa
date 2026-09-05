@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Lockfiles
+package-lock.json
+
+# Log files and analysis dumps
+analysis_output.txt
+analysis_output_utf8.txt
+ringkasan_check.txt
+
+# Media files & static assets
+public/
+src/assets/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.gif
+*.ico
+*.webp
+
+# Environments & Configs
+.env
+.env.local
+
+# IDE & Git
+.git/
+.vscode/

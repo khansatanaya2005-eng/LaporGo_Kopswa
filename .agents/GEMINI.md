@@ -1,0 +1,1 @@
+Catatan: File .env, .env.local, dan beberapa folder (public/, src/assets/, dll) di-ignore dari auto-index untuk hemat token. Kalau user minta ubah environment variable, config, API key, atau file di dalam folder yang di-ignore, JANGAN bilang 'file tidak ditemukan' — baca file tersebut secara eksplisit meskipun terdaftar di .antigravityignore.

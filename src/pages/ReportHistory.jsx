@@ -25,17 +25,18 @@ const StatusBadge = ({ status }) => {
 };
 
 const ReportHistory = () => {
-  const [reports,         setReports]         = useState([]);
-  const [trashReports,    setTrashReports]    = useState([]);
-  const [isSelectMode,    setIsSelectMode]    = useState(false);
-  const [selectedIds,     setSelectedIds]     = useState([]);
-  const [trashSelectedIds,setTrashSelectedIds] = useState([]);
-  const [loading,         setLoading]         = useState(true);
-  const [usingMock,       setUsingMock]       = useState(false);
-  const [filterStatus,    setFilterStatus]    = useState('ALL');
-  const [searchQuery,     setSearchQuery]     = useState('');
-  const [showTrashModal,  setShowTrashModal]  = useState(false);
-  const [processing,      setProcessing]      = useState(false);
+  const [reports,           setReports]           = useState([]);
+  const [trashReports,      setTrashReports]      = useState([]);
+  const [isSelectMode,      setIsSelectMode]      = useState(false);
+  const [isTrashSelectMode, setIsTrashSelectMode] = useState(false);
+  const [selectedIds,       setSelectedIds]       = useState([]);
+  const [trashSelectedIds,  setTrashSelectedIds]  = useState([]);
+  const [loading,           setLoading]           = useState(true);
+  const [usingMock,         setUsingMock]         = useState(false);
+  const [filterStatus,      setFilterStatus]      = useState('ALL');
+  const [searchQuery,       setSearchQuery]       = useState('');
+  const [showTrashModal,    setShowTrashModal]    = useState(false);
+  const [processing,        setProcessing]        = useState(false);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -491,23 +492,64 @@ const ReportHistory = () => {
             {trashReports.length > 0 && (
               <div className="px-5 py-3 border-b border-slate-100 bg-white flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2">
+                  {/* Tombol Pilih Mode Sampah */}
                   <button
-                    onClick={() => handleRestoreSelected()}
-                    disabled={trashSelectedIds.length === 0 || processing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition disabled:opacity-40 cursor-pointer"
+                    onClick={() => {
+                      if (isTrashSelectMode) {
+                        setIsTrashSelectMode(false);
+                        setTrashSelectedIds([]);
+                      } else {
+                        setIsTrashSelectMode(true);
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                      isTrashSelectMode 
+                        ? 'bg-slate-800 text-white border-slate-800 shadow-sm' 
+                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                    }`}
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Pulihkan Terpilih ({trashSelectedIds.length})</span>
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    <span>{isTrashSelectMode ? 'Batal Pilih' : 'Pilih'}</span>
                   </button>
 
-                  <button
-                    onClick={() => requestPermanentDeleteSelected()}
-                    disabled={trashSelectedIds.length === 0 || processing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition disabled:opacity-40 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Hapus Permanen Terpilih ({trashSelectedIds.length})</span>
-                  </button>
+                  {isTrashSelectMode ? (
+                    <>
+                      <button
+                        onClick={() => handleRestoreSelected()}
+                        disabled={trashSelectedIds.length === 0 || processing}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition disabled:opacity-40 shadow-sm cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Pulihkan Terpilih ({trashSelectedIds.length})</span>
+                      </button>
+
+                      <button
+                        onClick={() => requestPermanentDeleteSelected()}
+                        disabled={trashSelectedIds.length === 0 || processing}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition disabled:opacity-40 shadow-sm cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus Permanen Terpilih ({trashSelectedIds.length})</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        disabled
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 font-medium rounded-lg cursor-not-allowed opacity-60"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Pulihkan Terpilih (0)</span>
+                      </button>
+                      <button
+                        disabled
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 font-medium rounded-lg cursor-not-allowed opacity-60"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus Permanen Terpilih (0)</span>
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 <button
@@ -534,14 +576,16 @@ const ReportHistory = () => {
                   <table className="w-full text-left text-xs whitespace-nowrap">
                     <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                       <tr>
-                        <th className="p-3 w-10 text-center">
-                          <input
-                            type="checkbox"
-                            checked={trashReports.length > 0 && trashSelectedIds.length === trashReports.length}
-                            onChange={handleTrashSelectAll}
-                            className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
-                          />
-                        </th>
+                        {isTrashSelectMode && (
+                          <th className="p-3 w-10 text-center">
+                            <input
+                              type="checkbox"
+                              checked={trashReports.length > 0 && trashSelectedIds.length === trashReports.length}
+                              onChange={handleTrashSelectAll}
+                              className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                            />
+                          </th>
+                        )}
                         <th className="p-3">TANGGAL LAPORAN</th>
                         <th className="p-3">STATUS</th>
                         <th className="p-3">TOTAL DEBIT</th>
@@ -555,14 +599,16 @@ const ReportHistory = () => {
                         const isSelected = trashSelectedIds.includes(item.id);
                         return (
                           <tr key={item.id} className={isSelected ? 'bg-red-50/50' : 'hover:bg-slate-50'}>
-                            <td className="p-3 text-center">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleTrashSelectRow(item.id)}
-                                className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
-                              />
-                            </td>
+                            {isTrashSelectMode && (
+                              <td className="p-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleTrashSelectRow(item.id)}
+                                  className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                />
+                              </td>
+                            )}
                             <td className="p-3 font-bold text-slate-800 flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-slate-400" />
                               <span>{item.tanggal}</span>
