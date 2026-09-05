@@ -76,6 +76,28 @@ const UserManagement = () => {
     }));
   };
 
+  const isMainAccount = (email) => {
+    return email?.toLowerCase().includes('mainaccount');
+  };
+
+  const handleOpenViewMain = (usr) => {
+    setEditingUser(usr);
+    setShowPassword(false);
+    const emailParts = usr.email.split('@');
+    const uname = emailParts[0] || '';
+    const dom = emailParts[1] ? `@${emailParts[1]}` : '@admin.kopswa.id';
+
+    setFormData({ 
+      full_name: usr.full_name, 
+      username: uname,
+      domain: dom,
+      role: usr.role,
+      password: usr.raw_password || 'admin123',
+      isReadOnly: true
+    });
+    setShowModal(true);
+  };
+
   const handleOpenAdd = () => {
     setEditingUser(null);
     setShowPassword(false);
@@ -84,12 +106,18 @@ const UserManagement = () => {
       username: '',
       domain: '@staff.kopswa.id',
       role: 'Staff',
-      password: ''
+      password: '',
+      isReadOnly: false
     });
     setShowModal(true);
   };
 
   const handleOpenEdit = (usr) => {
+    if (isMainAccount(usr.email)) {
+      handleOpenViewMain(usr);
+      return;
+    }
+
     setEditingUser(usr);
     setShowPassword(false);
     const emailParts = usr.email.split('@');
@@ -101,10 +129,14 @@ const UserManagement = () => {
       username: uname,
       domain: dom,
       role: usr.role,
-      password: usr.raw_password || ''
+      password: usr.raw_password || '',
+      isReadOnly: false
     });
     setShowModal(true);
   };
+
+  const mainAccountUser = users.find(u => isMainAccount(u.email));
+  const regularUsers = users.filter(u => !isMainAccount(u.email));
 
   const confirmDelete = (usr) => {
     setDeleteConfirmUser(usr);
@@ -181,8 +213,49 @@ const UserManagement = () => {
         </button>
       </div>
 
+      {/* Main Account Special Section */}
+      {mainAccountUser && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-50/60 to-orange-500/10 border border-amber-200/70 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-amber-500/20">
+                M
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 text-base">{mainAccountUser.full_name}</h3>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-800 border border-amber-300">
+                    <Shield className="w-3 h-3 text-amber-600" />
+                    Akun Utama (Super Admin)
+                  </span>
+                </div>
+                <p className="text-xs font-mono text-slate-600 mt-0.5">{mainAccountUser.email}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium text-amber-800/80 bg-amber-100/60 px-3 py-1.5 rounded-xl border border-amber-200/80">
+                🔒 Akun dilindungi system (Tidak dapat diubah / dihapus)
+              </span>
+              <button
+                onClick={() => handleOpenViewMain(mainAccountUser)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold rounded-xl shadow-sm transition"
+              >
+                <Eye className="w-4 h-4 text-amber-600" />
+                <span>Lihat Detail</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Users Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-800">Daftar Pengguna Sistem ({regularUsers.length})</h2>
+          <span className="text-xs text-slate-400 font-mono">Dapat dikelola (Edit / Hapus)</span>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase border-b border-slate-100">
@@ -202,14 +275,14 @@ const UserManagement = () => {
                     <p className="text-xs font-medium">Memuat daftar user...</p>
                   </td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : regularUsers.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="py-8 text-center text-slate-400">
-                    <p className="text-xs font-medium">Belum ada user terdaftar.</p>
+                    <p className="text-xs font-medium">Belum ada user tambahan terdaftar.</p>
                   </td>
                 </tr>
               ) : (
-                users.map((usr) => (
+                regularUsers.map((usr) => (
                   <tr key={usr.id} className="hover:bg-slate-50 transition">
                     <td className="py-3.5 px-5 font-semibold text-slate-900 flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-[#0A4D68]/10 text-[#0A4D68] flex items-center justify-center font-bold text-xs">
@@ -257,13 +330,13 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* Modal Add / Edit User */}
+      {/* Modal Add / Edit / View User */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h3 className="font-bold text-slate-900">
-                {editingUser ? 'Edit Hak Akses User' : 'Tambah User Baru'}
+                {formData.isReadOnly ? 'Detail Akun Utama (Read-Only)' : (editingUser ? 'Edit Hak Akses User' : 'Tambah User Baru')}
               </h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
@@ -276,11 +349,15 @@ const UserManagement = () => {
                 <input
                   type="text"
                   required
+                  disabled={formData.isReadOnly}
+                  readOnly={formData.isReadOnly}
                   autoComplete="off"
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   placeholder="Contoh: Ahmad Subagyo"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
+                  className={`w-full px-3 py-2 text-xs border border-slate-200 rounded-lg ${
+                    formData.isReadOnly ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]'
+                  }`}
                 />
               </div>
 
@@ -288,8 +365,11 @@ const UserManagement = () => {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Peran / Role Akun</label>
                 <select
                   value={formData.role}
+                  disabled={formData.isReadOnly}
                   onChange={(e) => handleRoleChange(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
+                  className={`w-full px-3 py-2 text-xs border border-slate-200 rounded-lg ${
+                    formData.isReadOnly ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]'
+                  }`}
                 >
                   <option value="Staff">Staff (@staff.kopswa.id)</option>
                   <option value="Admin">Admin (@admin.kopswa.id)</option>
@@ -302,11 +382,15 @@ const UserManagement = () => {
                   <input
                     type="text"
                     required
+                    disabled={formData.isReadOnly}
+                    readOnly={formData.isReadOnly}
                     autoComplete="off"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     placeholder="nama.user"
-                    className="w-full pl-3 pr-32 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68] font-mono"
+                    className={`w-full pl-3 pr-32 py-2 text-xs border border-slate-200 rounded-lg font-mono ${
+                      formData.isReadOnly ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]'
+                    }`}
                   />
                   {!formData.username.includes('@') && (
                     <span className="absolute right-2 px-2 py-0.5 bg-slate-200/80 text-slate-700 font-mono text-[11px] rounded font-semibold pointer-events-none select-none">
@@ -314,9 +398,6 @@ const UserManagement = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1 font-mono">
-                  Email lengkap: {formData.username.includes('@') ? formData.username : `${formData.username || 'username'}${formData.domain}`}
-                </p>
               </div>
 
               <div>
@@ -324,24 +405,19 @@ const UserManagement = () => {
                   Password Akun
                 </label>
                 <div 
-                  className={`relative flex items-center ${editingUser ? 'cursor-pointer' : ''}`}
-                  onClick={() => { if (editingUser) setShowPassword(!showPassword); }}
+                  className="relative flex items-center cursor-pointer"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
                   <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 z-10 pointer-events-none" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required={!editingUser}
-                    readOnly={Boolean(editingUser)}
-                    minLength={6}
+                    readOnly
                     autoComplete="new-password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="Password akun"
-                    className={`w-full pl-8 pr-10 py-2 text-xs border border-slate-200 rounded-lg font-mono ${
-                      editingUser 
-                        ? 'bg-slate-50 text-slate-700 cursor-pointer select-none focus:outline-none' 
-                        : 'bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]'
-                    }`}
+                    className="w-full pl-8 pr-10 py-2 text-xs border border-slate-200 rounded-lg font-mono bg-slate-50 text-slate-700 cursor-pointer select-none focus:outline-none"
                   />
                   <button
                     type="button"
@@ -355,11 +431,9 @@ const UserManagement = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {editingUser && (
-                  <p className="text-[10px] text-slate-400 mt-1 font-sans">
-                    Klik kolom ini atau ikon mata untuk menampilkan / menyembunyikan password.
-                  </p>
-                )}
+                <p className="text-[10px] text-slate-400 mt-1 font-sans">
+                  Klik kolom ini atau ikon mata untuk melihat password.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
@@ -368,16 +442,18 @@ const UserManagement = () => {
                   onClick={() => setShowModal(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
                 >
-                  Batal
+                  {formData.isReadOnly ? 'Tutup' : 'Batal'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#0A4D68] hover:bg-[#088395] rounded-lg shadow-sm flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingUser ? 'Simpan Perubahan' : 'Tambah User'}</span>
-                </button>
+                {!formData.isReadOnly && (
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#0A4D68] hover:bg-[#088395] rounded-lg shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{editingUser ? 'Simpan Perubahan' : 'Tambah User'}</span>
+                  </button>
+                )}
               </div>
             </form>
           </div>
