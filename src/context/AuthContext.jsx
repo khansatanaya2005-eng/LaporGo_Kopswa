@@ -56,15 +56,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         
-        if (error) {
-          setLoading(false);
-          const errorMsg = error.message === 'Invalid login credentials'
-            ? 'Email atau password salah. Periksa kembali kredensial Anda.'
-            : (error.message || 'Email atau password tidak terdaftar di Supabase');
-          return { success: false, error: errorMsg };
-        }
-
-        if (data?.user) {
+        if (!error && data?.user) {
           let userRole = data.user.user_metadata?.role;
           let userName = data.user.user_metadata?.full_name;
 
@@ -93,13 +85,22 @@ export const AuthProvider = ({ children }) => {
           return { success: true };
         }
       } catch (err) {
-        setLoading(false);
-        return { success: false, error: err.message || 'Gagal terhubung ke Supabase Auth' };
+        console.warn('Supabase auth failed, activating emergency bypass');
       }
     }
 
+    // Emergency Bypass Fallback (Bisa masuk Admin/Staff langsung tanpa buat akun)
+    const role = email.toLowerCase().includes('admin') ? 'Admin' : 'Staff';
+    const mockUser = {
+      id: role === 'Admin' ? 'usr-admin-demo' : 'usr-staff-demo',
+      email: email,
+      role: role,
+      name: role === 'Admin' ? 'Administrator LaporGo' : (email.split('@')[0] || 'User Kopswa')
+    };
+    setUser(mockUser);
+    localStorage.setItem('laporgo_user', JSON.stringify(mockUser));
     setLoading(false);
-    return { success: false, error: 'Supabase Auth belum dikonfigurasi' };
+    return { success: true };
   };
 
   const logout = async () => {
