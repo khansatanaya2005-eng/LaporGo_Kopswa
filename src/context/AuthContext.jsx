@@ -58,23 +58,25 @@ export const AuthProvider = ({ children }) => {
         
         if (error) {
           setLoading(false);
-          return { success: false, error: 'Email atau password tidak terdaftar di Supabase' };
+          const errorMsg = error.message === 'Invalid login credentials'
+            ? 'Email atau password salah. Periksa kembali kredensial Anda.'
+            : (error.message || 'Email atau password tidak terdaftar di Supabase');
+          return { success: false, error: errorMsg };
         }
 
         if (data?.user) {
           let userRole = data.user.user_metadata?.role;
           let userName = data.user.user_metadata?.full_name;
 
-          // Fetch profile detail from profiles table
+          // Fetch profile detail safely from profiles table
           try {
-            const { data: profile } = await supabase
+            const { data: profiles } = await supabase
               .from('profiles')
               .select('role, full_name')
-              .eq('id', data.user.id)
-              .single();
-            if (profile) {
-              if (profile.role) userRole = profile.role;
-              if (profile.full_name) userName = profile.full_name;
+              .eq('id', data.user.id);
+            if (profiles && profiles.length > 0) {
+              if (profiles[0].role) userRole = profiles[0].role;
+              if (profiles[0].full_name) userName = profiles[0].full_name;
             }
           } catch (e) {}
 
@@ -92,7 +94,7 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (err) {
         setLoading(false);
-        return { success: false, error: 'Gagal terhubung ke Supabase Auth' };
+        return { success: false, error: err.message || 'Gagal terhubung ke Supabase Auth' };
       }
     }
 

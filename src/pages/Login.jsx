@@ -44,7 +44,8 @@ const Login = () => {
         setErrorMsg(res?.error || 'Login gagal. Periksa kembali email dan password.');
       }
     } catch (err) {
-      setErrorMsg('Terjadi kesalahan saat menghubungi server');
+      console.error('[Login Error]', err);
+      setErrorMsg(err?.message || 'Terjadi kesalahan saat menghubungi server');
     } finally {
       setSubmitting(false);
     }
