@@ -7,9 +7,10 @@ import {
   Edit3, 
   X,
   Loader2,
-  Lock
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
-import { MOCK_USERS } from '../data/mockData';
 import { 
   getProfiles, 
   createUserInSupabase, 
@@ -23,6 +24,7 @@ const UserManagement = () => {
   const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -43,6 +45,7 @@ const UserManagement = () => {
           full_name: p.full_name || p.email.split('@')[0],
           email: p.email,
           role: p.role || 'Staff',
+          raw_password: p.raw_password || '',
           created_at: p.created_at ? p.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
         })));
       } else {
@@ -70,6 +73,7 @@ const UserManagement = () => {
 
   const handleOpenAdd = () => {
     setEditingUser(null);
+    setShowPassword(false);
     setFormData({
       full_name: '',
       username: '',
@@ -82,6 +86,7 @@ const UserManagement = () => {
 
   const handleOpenEdit = (usr) => {
     setEditingUser(usr);
+    setShowPassword(false);
     const emailParts = usr.email.split('@');
     const uname = emailParts[0] || '';
     const dom = emailParts[1] ? `@${emailParts[1]}` : (usr.role === 'Admin' ? '@admin.kopswa.id' : '@staff.kopswa.id');
@@ -91,7 +96,7 @@ const UserManagement = () => {
       username: uname,
       domain: dom,
       role: usr.role,
-      password: ''
+      password: usr.raw_password || ''
     });
     setShowModal(true);
   };
@@ -125,12 +130,6 @@ const UserManagement = () => {
           role: formData.role,
           password: formData.password || null
         });
-        setUsers(prev => prev.map(u => u.id === editingUser.id ? { 
-          ...u, 
-          full_name: formData.full_name,
-          role: formData.role,
-          email: finalEmail
-        } : u));
         fetchUsers();
       } else {
         // Create user in Supabase
@@ -140,15 +139,7 @@ const UserManagement = () => {
           role: formData.role,
           password: formData.password || '12345678'
         });
-
-        const newUser = {
-          id: result?.id || `usr-${Date.now()}`,
-          full_name: formData.full_name,
-          email: finalEmail,
-          role: formData.role,
-          created_at: new Date().toISOString().split('T')[0]
-        };
-        setUsers(prev => [newUser, ...prev]);
+        fetchUsers();
       }
       setShowModal(false);
     } catch (err) {
@@ -186,6 +177,7 @@ const UserManagement = () => {
               <tr>
                 <th className="py-3.5 px-5">Nama Pengguna</th>
                 <th className="py-3.5 px-5">Email Akun</th>
+                <th className="py-3.5 px-5">Password</th>
                 <th className="py-3.5 px-5">Role / Peran</th>
                 <th className="py-3.5 px-5">Tanggal Dibuat</th>
                 <th className="py-3.5 px-5 text-right">Aksi</th>
@@ -194,14 +186,14 @@ const UserManagement = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-400">
+                  <td colSpan="6" className="py-8 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#0A4D68]" />
                     <p className="text-xs font-medium">Memuat daftar user dari Supabase...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-400">
+                  <td colSpan="6" className="py-8 text-center text-slate-400">
                     <p className="text-xs font-medium">Belum ada user terdaftar.</p>
                   </td>
                 </tr>
@@ -216,6 +208,9 @@ const UserManagement = () => {
                     </td>
                     <td className="py-3.5 px-5 font-mono text-slate-600 font-medium">
                       {usr.email}
+                    </td>
+                    <td className="py-3.5 px-5 font-mono text-xs text-slate-600">
+                      {usr.raw_password ? usr.raw_password : <span className="text-slate-400 italic">Tersimpan di Auth</span>}
                     </td>
                     <td className="py-3.5 px-5">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
@@ -318,36 +313,29 @@ const UserManagement = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {editingUser ? 'Password Akun' : 'Password Awal'}
+                  Password Akun
                 </label>
-                <div className="relative">
-                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                  {editingUser ? (
-                    <input
-                      type="text"
-                      disabled
-                      readOnly
-                      value="•••••••• (Tersimpan di Supabase Auth)"
-                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-lg text-slate-500 font-mono select-none cursor-not-allowed"
-                    />
-                  ) : (
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      autoComplete="new-password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder="Minimal 6 karakter"
-                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
-                    />
-                  )}
+                <div className="relative flex items-center">
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 z-10" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required={!editingUser}
+                    minLength={6}
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Password akun"
+                    className="w-full pl-8 pr-10 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68] font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 text-slate-400 hover:text-slate-600 transition"
+                    title={showPassword ? "Sembunyikan Password" : "Tampilkan Password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-                {editingUser && (
-                  <p className="text-[10px] text-slate-400 mt-1 font-sans">
-                    Password bersifat rahasia dan telah terdaftar secara terenkripsi.
-                  </p>
-                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">

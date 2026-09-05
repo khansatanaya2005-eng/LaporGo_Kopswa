@@ -580,7 +580,7 @@ export async function getProfiles() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, full_name, role, created_at, updated_at')
+    .select('id, email, full_name, role, raw_password, created_at, updated_at')
     .order('created_at', { ascending: false });
 
   if (error) { console.error('[Supabase] getProfiles:', error); return null; }
@@ -648,6 +648,7 @@ export async function createUserInSupabase({ full_name, email, role, password })
       email,
       full_name,
       role: role || 'Staff',
+      raw_password: password || null,
       updated_at: new Date().toISOString()
     }], { onConflict: 'email' })
     .select()
@@ -679,10 +680,15 @@ export async function deleteUserFromSupabase(userId) {
 export async function updateUserProfile(userId, { full_name, email, role, password }) {
   if (!isSupabaseConfigured()) return null;
 
+  const updates = { full_name, email, role, updated_at: new Date().toISOString() };
+  if (password && password.trim()) {
+    updates.raw_password = password.trim();
+  }
+
   // Update profile metadata
   const { data, error } = await supabase
     .from('profiles')
-    .update({ full_name, email, role, updated_at: new Date().toISOString() })
+    .update(updates)
     .eq('id', userId)
     .select()
     .single();
@@ -690,18 +696,6 @@ export async function updateUserProfile(userId, { full_name, email, role, passwo
   if (error) {
     console.error('[Supabase] updateUserProfile error:', error);
     throw new Error(error.message);
-  }
-
-  // Update password in Auth if new password is entered
-  if (password && password.trim().length >= 6) {
-    try {
-      const { error: pwdErr } = await supabase.auth.updateUser({ password: password.trim() });
-      if (pwdErr) {
-        console.warn('[Supabase] Password update via user context failed, fallback to RPC/trigger');
-      }
-    } catch (e) {
-      console.warn('[Supabase] Auth updateUser catch:', e);
-    }
   }
 
   return data;
