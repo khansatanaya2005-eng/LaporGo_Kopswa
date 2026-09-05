@@ -315,12 +315,14 @@ const UserManagement = () => {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Password Akun
                 </label>
-                <div className="relative flex items-center">
-                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 z-10" />
+                <div 
+                  className={`relative flex items-center ${editingUser ? 'cursor-pointer' : ''}`}
+                  onClick={() => { if (editingUser) setShowPassword(!showPassword); }}
+                >
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 z-10 pointer-events-none" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required={!editingUser}
-                    disabled={Boolean(editingUser)}
                     readOnly={Boolean(editingUser)}
                     minLength={6}
                     autoComplete="new-password"
@@ -329,14 +331,17 @@ const UserManagement = () => {
                     placeholder="Password akun"
                     className={`w-full pl-8 pr-10 py-2 text-xs border border-slate-200 rounded-lg font-mono ${
                       editingUser 
-                        ? 'bg-slate-100 text-slate-700 cursor-not-allowed select-none' 
+                        ? 'bg-slate-50 text-slate-700 cursor-pointer select-none focus:outline-none' 
                         : 'bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0A4D68]'
                     }`}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 text-slate-400 hover:text-slate-600 transition"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPassword(!showPassword);
+                    }}
+                    className="absolute right-2.5 text-slate-400 hover:text-slate-600 transition cursor-pointer z-10"
                     title={showPassword ? "Sembunyikan Password" : "Tampilkan Password"}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -344,7 +349,7 @@ const UserManagement = () => {
                 </div>
                 {editingUser && (
                   <p className="text-[10px] text-slate-400 mt-1 font-sans">
-                    Password tersimpan secara permanen dan tidak dapat diubah dari modal ini.
+                    Klik kolom ini atau ikon mata untuk menampilkan / menyembunyikan password.
                   </p>
                 )}
               </div>
