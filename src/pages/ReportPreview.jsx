@@ -9,7 +9,11 @@ import {
 import * as XLSX from 'xlsx';
 import { formatRupiah } from '../utils/cn';
 import { downloadExcel } from '../utils/api';
+import { exportReportToPdf } from '../utils/pdfGenerator';
 import { saveLaporanToSupabase, uploadLaporanFilesToStorage, updateLaporan, isSupabaseConfigured } from '../lib/supabaseClient';
+import { useAuth } from '../context/AuthContext';
+import VoucherModal from '../components/VoucherModal';
+
 
 const OMSET_HEADERS = [
   'NO','NAMA DAN REF','JENIS TRANSAKSI','KWITANSI','KETERANGAN',
@@ -39,8 +43,11 @@ const COLS_KREDIT = ['pendapatan_toko','pendapatan_logo','pendapatan_kerjasama',
 const ReportPreview = () => {
   const location = useLocation();
   const navigate  = useNavigate();
+  const { user }   = useAuth();
 
   const { reportData, sourceFiles } = location.state || {};
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+
 
   // Redirect jika tidak ada data
   if (!reportData) {
@@ -260,12 +267,24 @@ const ReportPreview = () => {
               : saved ? <><Check className="w-3.5 h-3.5" /><span>Tersimpan</span></>
               : <><Save className="w-3.5 h-3.5" /><span>Simpan Laporan</span></>}
           </button>
+          <button
+            onClick={() => setIsVoucherModalOpen(true)}
+            disabled={!customDate}
+            className={`flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer ${
+              !customDate ? 'opacity-40 cursor-not-allowed' : ''
+            }`}
+            title="Unduh Voucher Akuntansi PDF"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Unduh PDF</span>
+          </button>
           <button onClick={handleDownloadExcel} disabled={downloading || !customDate}
             className={`flex items-center gap-2 px-5 py-2 font-bold text-xs rounded-xl shadow-md transition cursor-pointer ${
               !customDate ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}>
             <Download className="w-4 h-4" />
             <span>{downloading ? 'Mengunduh...' : 'Download Excel'}</span>
           </button>
+
         </div>
       </div>
 
@@ -602,8 +621,24 @@ const ReportPreview = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Input Nomor Voucher */}
+      <VoucherModal
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
+        defaultDate={customDate}
+        onConfirm={(voucherNo) => {
+          setIsVoucherModalOpen(false);
+          const currentUserName = user?.name || user?.full_name || 'Staff';
+          exportReportToPdf({ tanggal: customDate }, present, totalDebit, totalKredit, selisih, {
+            voucherNo,
+            userName: currentUserName
+          });
+        }}
+      />
     </div>
   );
 };
 
 export default ReportPreview;
+

@@ -208,3 +208,16 @@ export const MOCK_KEYWORDS = [
   { id: "kw-4", keyword: "SIMSEM", category: "Koperasi UKS", status: "Aktif" },
   { id: "kw-5", keyword: "PADI", category: "Piutang B2B", status: "Aktif" }
 ];
+
+export const DEFAULT_COA_MAP = [
+  { id: "coa-1", key: "PROMO", kategori: "Tag Promo", nomor: "11104005", nama: "Tagihan Promo Toko SMart Jkt Kota", posisi: "DEBET" },
+  { id: "coa-2", key: "PENDAPATAN_BARANG", kategori: "Pendapatan Toko", nomor: "41103001", nama: "Pendapatan dari Penjualan barang dagangan", posisi: "KREDIT" },
+  { id: "coa-3", key: "NON_PAJAK", kategori: "Non Pajak", nomor: "41103006", nama: "Penjualan Bukan Obyek Pajak (PPN)", posisi: "KREDIT" },
+  { id: "coa-4", key: "PPN_PK", kategori: "PPN PK", nomor: "21105001", nama: "Pajak PPN (PK)", posisi: "KREDIT" },
+  { id: "coa-5", key: "HPP_BEBAN", kategori: "Beban Toko (HPP)", nomor: "41104001", nama: "Beban pokok penjualan barang dagangan", posisi: "DEBET" },
+  { id: "coa-6", key: "PERSEDIAAN", kategori: "Persediaan Toko", nomor: "11107001", nama: "Persediaan barang dagangan (SMart)", posisi: "KREDIT" },
+  { id: "coa-7", key: "PIUTANG_TOKO", kategori: "Piutang Pegawai / Toko", nomor: "11104003", nama: "Piutang toko (SMart)", posisi: "DEBET" },
+  { id: "coa-8", key: "PIUTANG_EDC", kategori: "Piutang E-Money / EDC", nomor: "11104011", nama: "Piutang EDC Kopswa", posisi: "DEBET" },
+  { id: "coa-9", key: "KAS_UKS", kategori: "Kas Tunai", nomor: "11101003", nama: "Kas UKS", posisi: "DEBET" }
+];
+

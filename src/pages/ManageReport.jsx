@@ -12,13 +12,18 @@ import { getLaporanById, updateOmsetRow, updateLaporan, isSupabaseConfigured } f
 import { downloadExcel } from '../utils/api';
 import { exportReportToPdf } from '../utils/pdfGenerator';
 import { MOCK_OMSET_DATA } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import VoucherModal from '../components/VoucherModal';
+
 
 const ManageReport = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [report, setReport]   = useState(null);
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   // State edit tabel
   const [rows, setRows]               = useState([]);   // local editable copy
   const [originalRows, setOriginalRows] = useState([]); // baseline copy to detect unsaved changes
@@ -36,6 +41,7 @@ const ManageReport = () => {
   const [previewData, setPreviewData]  = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+
 
   useEffect(() => {
     async function loadDetail() {
@@ -330,13 +336,14 @@ const ManageReport = () => {
           </button>
 
           <button
-            onClick={() => exportReportToPdf(report, rows, totalDebit, totalKredit, selisih)}
+            onClick={() => setIsVoucherModalOpen(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow-sm transition cursor-pointer"
-            title="Unduh Laporan PDF"
+            title="Unduh Voucher Akuntansi PDF"
           >
             <FileText className="w-3.5 h-3.5" />
             <span>Unduh PDF</span>
           </button>
+
 
           <button
             onClick={handleDownloadExcel}
@@ -694,8 +701,24 @@ const ManageReport = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Input Nomor Voucher */}
+      <VoucherModal
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
+        defaultDate={report?.tanggal}
+        onConfirm={(voucherNo) => {
+          setIsVoucherModalOpen(false);
+          const currentUserName = user?.name || user?.full_name || report?.dibuat_oleh_nama || 'Staff';
+          exportReportToPdf(report, rows, totalDebit, totalKredit, selisih, {
+            voucherNo,
+            userName: currentUserName
+          });
+        }}
+      />
     </div>
   );
 };
 
 export default ManageReport;
+

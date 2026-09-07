@@ -1,225 +1,409 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatRupiah } from './cn';
+import { terbilang } from './terbilang';
+import { DEFAULT_COA_MAP } from '../data/mockData';
+
+// Helper format angka tanpa desimal (titik ribuan)
+function formatNumber(num) {
+  if (!num || num === 0) return '0';
+  return Math.round(Number(num) || 0).toLocaleString('id-ID');
+}
+
+// Helper format tanggal ke format teks Indonesia (contoh: 01 September 2026)
+function formatTanggalIndo(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const bulan = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${day} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+// Helper format DD-MM-YYYY untuk kolom TGL. TRANS
+function formatTanggalTrans(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}-${month}-${d.getFullYear()}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
 
 /**
- * Generate dan langsung mengunduh PDF Laporan Gabungan Harian Toko OMI & SMART
- * Didesain khusus untuk kertas A4 Landscape (297 mm x 210 mm) agar Rapi, Tajam & Presisi.
+ * Mengubah baris omset menjadi baris jurnal Voucher (Debet & Kredit)
  */
-export function exportReportToPdf(report, rows, totalDebit, totalKredit, selisih) {
+function buildVoucherJournalRows(rows, tglTrans, coaMap) {
+  const journal = [];
+
+  const getCoa = (key) => {
+    const item = coaMap.find(c => c.key === key);
+    return item || { nomor: '-', nama: '-' };
+  };
+
+  const addEntry = ({ coaKey, debet = 0, kredit = 0, prefix = '', kwitansi = '' }) => {
+    const coa = getCoa(coaKey);
+    let keterangan = '';
+    
+    // Format Keterangan: [AWALAN] + [KWITANSI] + [TEKS STANDAR]
+    const kwtPart = kwitansi && kwitansi !== '-' ? `(kwt ${kwitansi}) ` : '';
+    const prefixPart = prefix ? `${prefix} ` : '';
+    keterangan = `${prefixPart}${kwtPart}Omset Penjualan Toko SMart Saharjo Tgl ${tglTrans} (Upload)`.replace(/\s+/g, ' ').trim();
+
+    journal.push({
+      nomor: coa.nomor,
+      nama: coa.nama,
+      tgl: tglTrans,
+      debet: Math.round(Number(debet) || 0),
+      kredit: Math.round(Number(kredit) || 0),
+      keterangan: keterangan
+    });
+  };
+
+  // Iterasi baris tabel OMSET
+  rows.forEach(r => {
+    const namaRef = (r.nama_ref || '').trim();
+    const namaRefUpper = namaRef.toUpperCase();
+    const kwitansi = r.kwitansi || '';
+
+    // 1. Tag Promo
+    if (r.tag_promo && Number(r.tag_promo) > 0) {
+      addEntry({
+        coaKey: 'PROMO',
+        debet: r.tag_promo,
+        kredit: 0,
+        prefix: '', // baris promo di foto tidak ada awalan
+        kwitansi
+      });
+    }
+
+    // 2. Pendapatan Toko
+    if (r.pendapatan_toko && Number(r.pendapatan_toko) > 0) {
+      let pfx = '';
+      if (namaRefUpper.includes('OMI')) pfx = 'OMSET OMI';
+      else if (namaRefUpper.includes('SMART')) pfx = 'OMSET SMART';
+      else pfx = `${namaRef} ${namaRef}`; // Pada contoh baris 18: BNI DIVISI INS1 BNI DIVISI INS1
+
+      addEntry({
+        coaKey: 'PENDAPATAN_BARANG',
+        debet: 0,
+        kredit: r.pendapatan_toko,
+        prefix: pfx,
+        kwitansi
+      });
+    }
+
+    // 3. Non Pajak
+    if (r.non_pajak && Number(r.non_pajak) > 0) {
+      addEntry({
+        coaKey: 'NON_PAJAK',
+        debet: 0,
+        kredit: r.non_pajak,
+        prefix: 'OMSET OMI',
+        kwitansi
+      });
+    }
+
+    // 4. PPN PK
+    if (r.ppn_pk && Number(r.ppn_pk) > 0) {
+      let pfx = '';
+      if (namaRefUpper.includes('OMI')) pfx = 'OMSET OMI';
+      else if (namaRefUpper.includes('SMART')) pfx = 'OMSET SMART';
+      else pfx = `${namaRef} ${namaRef}`; // Pada contoh baris 19: BNI DIVISI INS1 BNI DIVISI INS1
+
+      addEntry({
+        coaKey: 'PPN_PK',
+        debet: 0,
+        kredit: r.ppn_pk,
+        prefix: pfx,
+        kwitansi
+      });
+    }
+
+    // 5. Beban Toko & Persediaan Toko (HPP)
+    if (r.beban_toko && Number(r.beban_toko) > 0) {
+      const hppVal = Number(r.beban_toko);
+      // Beban Pokok (Debet)
+      addEntry({
+        coaKey: 'HPP_BEBAN',
+        debet: hppVal,
+        kredit: 0,
+        prefix: '',
+        kwitansi
+      });
+      // Persediaan (Kredit)
+      addEntry({
+        coaKey: 'PERSEDIAAN',
+        debet: 0,
+        kredit: hppVal,
+        prefix: '',
+        kwitansi
+      });
+    }
+
+    // 6. Piutang (Pegawai / Divisi)
+    if (r.piutang && Number(r.piutang) > 0) {
+      let pfx = '';
+      if (namaRefUpper === 'PEGAWAI' || namaRefUpper.includes('PEGAWAI')) {
+        pfx = 'PEGAWAI';
+      } else {
+        pfx = `${namaRef} ${namaRef}`; // Pada contoh baris 17: BNI DIVISI INS1 BNI DIVISI INS1
+      }
+
+      addEntry({
+        coaKey: 'PIUTANG_TOKO',
+        debet: r.piutang,
+        kredit: 0,
+        prefix: pfx,
+        kwitansi
+      });
+    }
+
+    // 7. Piutang EDC / E-Money
+    if (r.piutang_edc && Number(r.piutang_edc) > 0) {
+      addEntry({
+        coaKey: 'PIUTANG_EDC',
+        debet: r.piutang_edc,
+        kredit: 0,
+        prefix: '',
+        kwitansi
+      });
+    }
+
+    // 8. Kas UKS (Tunai)
+    if (r.kas_uks && Number(r.kas_uks) > 0) {
+      addEntry({
+        coaKey: 'KAS_UKS',
+        debet: r.kas_uks,
+        kredit: 0,
+        prefix: 'TUNAI',
+        kwitansi
+      });
+    }
+  });
+
+  return journal;
+}
+
+/**
+ * Generate dan unduh PDF Voucher Akuntansi Koperasi Swadharma
+ * Didesain presisi untuk A4 Portrait sesuai bukti fisik resmi.
+ */
+export async function exportReportToPdf(report, rows, totalDebit, totalKredit, selisih, options = {}) {
+  const {
+    voucherNo = '',
+    userName = 'Staff',
+    coaSettings = null
+  } = options;
+
+  // Baca pengaturan COA (dari parameter atau localStorage atau fallback default)
+  let coaMap = coaSettings;
+  if (!coaMap) {
+    try {
+      const saved = localStorage.getItem('laporgo_coa_settings');
+      if (saved) coaMap = JSON.parse(saved);
+    } catch (e) {}
+  }
+  if (!coaMap || !Array.isArray(coaMap)) coaMap = DEFAULT_COA_MAP;
+
   const doc = new jsPDF({
-    orientation: 'landscape',
+    orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
   });
 
-  const pageWidth  = doc.internal.pageSize.getWidth();  // 297 mm
-  const pageHeight = doc.internal.pageSize.getHeight(); // 210 mm
+  const pageWidth = doc.internal.pageSize.getWidth();   // 210 mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // 297 mm
+  const leftMargin = 12;
+  const rightMargin = pageWidth - 12;
 
-  // 1. Header Banner Atas (#051923)
-  const bannerHeight = 20;
-  doc.setFillColor(5, 25, 35);
-  doc.rect(0, 0, pageWidth, bannerHeight, 'F');
+  const tglLaporan = report?.tanggal || '';
+  const tglIndo = formatTanggalIndo(tglLaporan);
+  const tglTrans = formatTanggalTrans(tglLaporan);
 
-  // Judul Utama Banner
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text('KOPERASI SWADHARMA', 10, 9);
-
-  // Sub-judul Banner
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(203, 213, 225);
-  doc.text('LaporGo - Sistem Penggabungan Laporan Harian Toko OMI & SMART', 10, 15);
-
-  // Status Badge di kanan banner
-  const isBalance  = totalDebit === totalKredit;
-  const statusText = isBalance ? 'STATUS: BALANCE ✅' : 'STATUS: UNBALANCE ⚠️';
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  
-  if (isBalance) {
-    doc.setFillColor(22, 163, 74); // emerald-600
-  } else {
-    doc.setFillColor(217, 119, 6); // amber-600
+  // ── 1. LOGO & KOP SURAT ────────────────────────────────────────
+  // Pasang Logo Koperasi Swadharma monochrome jika tersedia
+  try {
+    doc.addImage('/Logo_Kopswa_mono.png', 'PNG', leftMargin, 10, 48, 12);
+  } catch (e) {
+    // Fallback teks jika file logo belum termuat
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(30, 30, 30);
+    doc.text('KOPERASI SWADHARMA', leftMargin, 16);
   }
-  doc.roundedRect(pageWidth - 54, 4.5, 44, 11, 2.5, 2.5, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.text(statusText, pageWidth - 32, 11.5, { align: 'center' });
 
-  // 2. Metadata Laporan
-  doc.setTextColor(15, 23, 42);
+  // Judul Tengah: V O U C H E R
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('LAPORAN GABUNGAN OMSET HARIAN', 10, 27);
+  doc.setTextColor(0, 0, 0);
+  const titleText = 'V O U C H E R';
+  const titleWidth = doc.getTextWidth(titleText);
+  const titleX = pageWidth / 2 - titleWidth / 2;
+  doc.text(titleText, titleX, 16);
+  doc.setLineWidth(0.3);
+  doc.line(titleX - 10, 18, titleX + titleWidth + 10, 18);
 
+  // Info Kanan Atas: No. Voucher & Tanggal
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(0, 0, 0);
+  
+  const displayVoucherNo = voucherNo && voucherNo.trim() !== '' ? `${voucherNo.trim()} ( - )` : '-';
+  doc.text('No.  : ' + displayVoucherNo, rightMargin - 65, 14);
+  doc.text('Tgl. : ' + tglIndo, rightMargin - 65, 18.5);
+
+  // ── 2. METADATA TRANSAKSI ──────────────────────────────────────
+  const metaY = 27;
+  doc.setFont('courier', 'normal');
   doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  const tglStr = report?.tanggal || '-';
-  const idStr  = report?.id || '-';
-  const userStr= report?.dibuat_oleh_nama || 'System';
-  doc.text(`Tanggal Laporan: ${tglStr}   |   ID Laporan: ${idStr}   |   Diproses Oleh: ${userStr}`, 10, 32);
 
-  // 3. Ringkasan Kartu Stats (Total Debit, Total Kredit, Selisih)
-  const cardWidth = (pageWidth - 20 - 8) / 3; // ~89mm masing-masing
-  const cardY = 35;
-  const cardHeight = 12;
+  // Uraian
+  doc.text('Uraian', leftMargin, metaY);
+  doc.text(':', leftMargin + 22, metaY);
+  doc.text(`Omset Penjualan Toko SMart Saharjo Tgl ${tglTrans} (Upload)`, leftMargin + 25, metaY);
 
-  // Card 1: TOTAL DEBIT
-  doc.setFillColor(241, 245, 249);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(10, cardY, cardWidth, cardHeight, 2, 2, 'FD');
-  doc.setFontSize(6.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139);
-  doc.text('TOTAL DEBIT', 14, cardY + 4);
-  doc.setFontSize(9.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(formatRupiah(totalDebit), 14, cardY + 9.5);
+  // Jumlah
+  doc.text('Jumlah', leftMargin, metaY + 4.5);
+  doc.text(':', leftMargin + 22, metaY + 4.5);
+  doc.setFont('courier', 'bold');
+  doc.text(`Rp ${formatNumber(totalDebit)}`, leftMargin + 25, metaY + 4.5);
+  doc.setFont('courier', 'normal');
 
-  // Card 2: TOTAL KREDIT
-  const card2X = 10 + cardWidth + 4;
-  doc.setFillColor(241, 245, 249);
-  doc.roundedRect(card2X, cardY, cardWidth, cardHeight, 2, 2, 'FD');
-  doc.setFontSize(6.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139);
-  doc.text('TOTAL KREDIT', card2X + 4, cardY + 4);
-  doc.setFontSize(9.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(formatRupiah(totalKredit), card2X + 4, cardY + 9.5);
+  // Terbilang
+  doc.text('Terbilang', leftMargin, metaY + 9);
+  doc.text(':', leftMargin + 22, metaY + 9);
+  const kalimatTerbilang = terbilang(totalDebit);
+  const splitTerbilang = doc.splitTextToSize(kalimatTerbilang, pageWidth - leftMargin - 40);
+  doc.text(splitTerbilang, leftMargin + 25, metaY + 9);
 
-  // Card 3: SELISIH
-  const card3X = card2X + cardWidth + 4;
-  doc.setFillColor(241, 245, 249);
-  doc.roundedRect(card3X, cardY, cardWidth, cardHeight, 2, 2, 'FD');
-  doc.setFontSize(6.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139);
-  doc.text('SELISIH', card3X + 4, cardY + 4);
-  doc.setFontSize(9.5);
-  if (selisih === 0) {
-    doc.setTextColor(22, 163, 74);
-  } else {
-    doc.setTextColor(217, 119, 6);
-  }
-  doc.text(formatRupiah(selisih), card3X + 4, cardY + 9.5);
+  const startTableY = metaY + 12 + (splitTerbilang.length > 1 ? (splitTerbilang.length - 1) * 3.5 : 0);
 
-  // 4. Data Tabel 23 Kolom (Header 2 Baris agar Tidak Menyempit)
-  const headers = [
-    'NO', 'NAMA & REF', 'JENIS', 'KWITANSI', 'KETERANGAN',
-    'TAG\nPROMO', 'GIRO\nUDP', 'PIUTANG\n(D)', 'PEND.\nTOKO (K)', 'PEND.\nLOGO (K)',
-    'PEND.\nKERJASAMA', 'NON\nPAJAK (K)', 'PPN\nPK (K)', 'PPN\nWAPU (K)', 'BEBAN\nTOKO (D)',
-    'BEBAN\nLOGO (D)', 'PERS.\nTOKO (K)', 'PERS.\nLOGO (K)', 'SIMSEM\nUKS (K)', 'KAS\nUKS (D)',
-    'PIUTANG\nPADI (D)', 'PIUTANG\nEDC (D)', 'BEBAN\nPROMOSI'
-  ];
+  // ── 3. DATA TABEL JURNAL AKUNTANSI ────────────────────────────
+  const journalRows = buildVoucherJournalRows(rows, tglTrans, coaMap);
 
-  const colKeys = [
-    'tag_promo', 'giro_udp', 'piutang', 'pendapatan_toko', 'pendapatan_logo',
-    'pendapatan_kerjasama', 'non_pajak', 'ppn_pk', 'ppn_wapu', 'beban_toko',
-    'beban_logo', 'persediaan_toko', 'persediaan_logo', 'simsem_uks', 'kas_uks',
-    'piutang_padi', 'piutang_edc', 'beban_promosi'
-  ];
+  const headers = ['#', 'NOMOR', 'NAMA', 'TGL. TRANS', 'DEBET (Rp)', 'KREDIT (Rp)', 'KETERANGAN'];
 
-  const tableBody = rows.map((r, i) => [
-    r.no || i + 1,
-    r.nama_ref || '-',
-    r.jenis_transaksi || '-',
-    r.kwitansi || '-',
-    r.keterangan || '-',
-    ...colKeys.map(k => r[k] ? formatRupiah(r[k]) : '-')
+  const tableBody = journalRows.map((r, i) => [
+    `${i + 1}.`,
+    r.nomor,
+    r.nama,
+    r.tgl,
+    formatNumber(r.debet),
+    formatNumber(r.kredit),
+    r.keterangan
   ]);
 
-  const sumCol = (col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
-
-  const COLS_DEBIT  = ['tag_promo','giro_udp','piutang','beban_toko','beban_logo','kas_uks','piutang_padi','piutang_edc','beban_promosi'];
-  const COLS_KREDIT = ['pendapatan_toko','pendapatan_logo','pendapatan_kerjasama','non_pajak','ppn_pk','ppn_wapu','persediaan_toko','persediaan_logo','simsem_uks'];
-
-  // Baris Total Debit
-  const totalDebitRow = [
-    '', 'TOTAL DEBIT', '', '', '',
-    ...colKeys.map(k => COLS_DEBIT.includes(k) ? formatRupiah(sumCol(k)) : '-')
+  // Baris Total Jumlah
+  const totalRow = [
+    '',
+    '',
+    'Jumlah :',
+    '',
+    formatNumber(totalDebit),
+    formatNumber(totalKredit),
+    ''
   ];
-
-  // Baris Total Kredit
-  const totalKreditRow = [
-    '', 'TOTAL KREDIT', '', '', '',
-    ...colKeys.map(k => COLS_KREDIT.includes(k) ? formatRupiah(sumCol(k)) : '-')
-  ];
-
-  // Baris Selisih
-  const selisihRow = [
-    '', 'SELISIH', '', '', '',
-    ...colKeys.map((k, idx) => idx === colKeys.length - 1 ? formatRupiah(selisih) : '-')
-  ];
-
-  // Konfigurasi Spesifik Tiap Kolom
-  const columnStylesConfig = {
-    0: { cellWidth: 7, halign: 'center' },  // NO
-    1: { cellWidth: 20 },                  // NAMA & REF
-    2: { cellWidth: 16 },                  // JENIS
-    3: { cellWidth: 14 },                  // KWITANSI
-    4: { cellWidth: 24 },                  // KETERANGAN
-  };
-
-  // Kolom 5 s/d 22 (Financial Columns) dibuat Rata Kanan & Ukuran Presisi
-  for (let c = 5; c < 23; c++) {
-    columnStylesConfig[c] = { halign: 'right' };
-  }
 
   autoTable(doc, {
-    startY: 50,
+    startY: startTableY,
     head: [headers],
-    body: [...tableBody, totalDebitRow, totalKreditRow, selisihRow],
+    body: [...tableBody, totalRow],
+    theme: 'plain',
     styles: {
-      fontSize: 6,
-      cellPadding: 1.2,
-      valign: 'middle',
-      overflow: 'linebreak',
-      lineColor: [226, 232, 240],
-      lineWidth: 0.1,
+      font: 'courier',
+      fontSize: 6.5,
+      cellPadding: 1,
+      textColor: [0, 0, 0],
+      valign: 'top',
+      lineColor: [220, 220, 220],
+      lineWidth: 0,
     },
     headStyles: {
-      fillColor: [5, 25, 35],
-      textColor: [255, 255, 255],
+      font: 'courier',
       fontStyle: 'bold',
-      halign: 'center',
-      valign: 'middle',
-      fontSize: 5.5,
-      cellPadding: 1.5,
+      fontSize: 7,
+      textColor: [0, 0, 0],
+      halign: 'left',
+      cellPadding: { top: 1.5, bottom: 1.5, left: 1, right: 1 },
+      lineWidth: { top: 0.3, bottom: 0.3 },
+      lineColor: [0, 0, 0],
     },
-    columnStyles: columnStylesConfig,
+    columnStyles: {
+      0: { cellWidth: 7, halign: 'center' },   // #
+      1: { cellWidth: 17, halign: 'left' },    // NOMOR (COA)
+      2: { cellWidth: 42, halign: 'left' },    // NAMA AKUN
+      3: { cellWidth: 18, halign: 'center' },  // TGL TRANS
+      4: { cellWidth: 19, halign: 'right' },   // DEBET
+      5: { cellWidth: 19, halign: 'right' },   // KREDIT
+      6: { cellWidth: 64, halign: 'left' },    // KETERANGAN
+    },
     didParseCell: function(data) {
-      // Style khusus untuk 3 baris total di bagian bawah tabel
-      if (data.row.index >= tableBody.length) {
+      // Style khusus untuk baris Total Jumlah di akhir
+      if (data.row.index === tableBody.length) {
         data.cell.styles.fontStyle = 'bold';
-        if (data.row.index === tableBody.length) {
-          data.cell.styles.fillColor = [219, 234, 254]; // TOTAL DEBIT (blue)
-          data.cell.styles.textColor = [30, 58, 138];
-        } else if (data.row.index === tableBody.length + 1) {
-          data.cell.styles.fillColor = [209, 250, 229]; // TOTAL KREDIT (green)
-          data.cell.styles.textColor = [6, 78, 59];
-        } else if (data.row.index === tableBody.length + 2) {
-          data.cell.styles.fillColor = selisih === 0 ? [240, 253, 244] : [254, 242, 242];
-          data.cell.styles.textColor = selisih === 0 ? [22, 163, 74] : [220, 38, 38];
+        if (data.column.index === 2) {
+          data.cell.styles.halign = 'right';
         }
+        data.cell.styles.lineWidth = { top: 0.3, bottom: 0.3 };
+        data.cell.styles.lineColor = [0, 0, 0];
       }
     },
-    margin: { top: 8, right: 8, bottom: 10, left: 8 },
+    margin: { left: leftMargin, right: 12, bottom: 35 },
   });
 
-  // Footer di setiap halaman PDF
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor(148, 163, 184);
-    doc.text('LaporGo Kopswa © 2026   |   Dokumen Resmi Koperasi Swadharma', 10, pageHeight - 4);
-    doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - 10, pageHeight - 4, { align: 'right' });
-  }
+  // ── 4. KOLOM TANDA TANGAN & FOOTER ────────────────────────────
+  const finalY = doc.lastAutoTable.finalY + 8;
+  const colWidth = (pageWidth - 24) / 3;
 
-  // Auto download file PDF
-  doc.save(`Laporan_Gabungan_${report?.tanggal || 'export'}.pdf`);
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(0, 0, 0);
+
+  // 3 Kolom Tanda Tangan: Mengetahui, Menyetujui, Penerima
+  const sig1X = leftMargin + colWidth * 0.5;
+  const sig2X = leftMargin + colWidth * 1.5;
+  const sig3X = leftMargin + colWidth * 2.5;
+
+  doc.text('Mengetahui', sig1X, finalY, { align: 'center' });
+  doc.text('Menyetujui', sig2X, finalY, { align: 'center' });
+  doc.text('Penerima', sig3X, finalY, { align: 'center' });
+
+  // Ruang Tanda Tangan
+  const sigLineY = finalY + 18;
+  doc.text('(                          )', sig1X, sigLineY, { align: 'center' });
+  doc.text('(                          )', sig2X, sigLineY, { align: 'center' });
+  doc.text('(                          )', sig3X, sigLineY, { align: 'center' });
+
+  // ── 5. CATATAN PEMBUAT DI POJOK KIRI BAWAH ────────────────────
+  const now = new Date();
+  const dayStr = String(now.getDate()).padStart(2, '0');
+  const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+  const yearStr = now.getFullYear();
+  const hoursStr = String(now.getHours()).padStart(2, '0');
+  const minsStr = String(now.getMinutes()).padStart(2, '0');
+  const secsStr = String(now.getSeconds()).padStart(2, '0');
+  const stampTime = `${dayStr}/${monthStr}/${yearStr} ${hoursStr}:${minsStr}:${secsStr}`;
+
+  const currentUserName = userName || 'Staff';
+
+  doc.setFont('courier', 'italic');
+  doc.setFontSize(6.5);
+  doc.setTextColor(80, 80, 80);
+  doc.text(`Pembuat : ${currentUserName}`, leftMargin, pageHeight - 12);
+  doc.text(stampTime, leftMargin, pageHeight - 9);
+
+  // Simpan/Unduh file PDF
+  const filename = `VOUCHER_${tglLaporan || 'export'}.pdf`;
+  doc.save(filename);
 }
