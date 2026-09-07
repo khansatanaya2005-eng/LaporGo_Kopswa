@@ -167,10 +167,6 @@ function buildOmsetRows({ txt, omi, smartResults }) {
           pendapatan_toko: tokoData.summary.dpp, ppn_pk: tokoData.summary.ppn,
           beban_toko: tokoData.summary.hpp, persediaan_toko: tokoData.summary.hpp });
   }
-  if (logoData) {
-    add({ nama_ref: 'omset logo', keterangan: 'Penjualan SMART LOGO',
-          beban_toko: logoData.summary.hpp, persediaan_toko: logoData.summary.hpp });
-  }
 
   add({ nama_ref: 'pegawai',  keterangan: 'Kredit Anggota Pegawai',  piutang: omi.kredit });
   add({ nama_ref: 'e-money',  keterangan: 'Transaksi E-Money OMI',   piutang_edc: omi.emoney });
