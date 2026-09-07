@@ -232,64 +232,65 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   const tglTrans = formatTanggalTrans(tglLaporan);
 
   // ── 1. LOGO & KOP SURAT ────────────────────────────────────────
+  // ── 1. KOP SURAT ATAS (Logo di kiri, No & Tgl di kanan) ──────
   // Pasang Logo Koperasi Swadharma monochrome jika tersedia
   try {
     doc.addImage('/Logo_Kopswa_mono.png', 'PNG', leftMargin, 10, 48, 12);
   } catch (e) {
-    // Fallback teks jika file logo belum termuat
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(30, 30, 30);
     doc.text('KOPERASI SWADHARMA', leftMargin, 16);
   }
 
-  // Judul Tengah: V O U C H E R
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  const titleText = 'V O U C H E R';
-  const titleWidth = doc.getTextWidth(titleText);
-  const titleX = pageWidth / 2 - titleWidth / 2;
-  doc.text(titleText, titleX, 16);
-  doc.setLineWidth(0.3);
-  doc.line(titleX - 10, 18, titleX + titleWidth + 10, 18);
-
-  // Info Kanan Atas: No. Voucher & Tanggal
+  // Info Kanan Atas: No. Voucher & Tanggal (Sejajar dengan area logo)
   doc.setFont('courier', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(0, 0, 0);
   
   const displayVoucherNo = voucherNo && voucherNo.trim() !== '' ? `${voucherNo.trim()} ( - )` : '-';
   doc.text('No.  : ' + displayVoucherNo, rightMargin - 65, 14);
-  doc.text('Tgl. : ' + tglIndo, rightMargin - 65, 18.5);
+  doc.text('Tgl. : ' + tglIndo, rightMargin - 65, 19);
 
-  // ── 2. METADATA TRANSAKSI ──────────────────────────────────────
-  const metaY = 27;
+  // ── 2. JUDUL VOUCHER (Diturunkan sedikit di bawah header logo) ─
+  const voucherTitleY = 24;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  const titleText = 'V O U C H E R';
+  const titleWidth = doc.getTextWidth(titleText);
+  const titleX = pageWidth / 2 - titleWidth / 2;
+  doc.text(titleText, titleX, voucherTitleY);
+  doc.setLineWidth(0.35);
+  doc.line(titleX - 10, voucherTitleY + 1.8, titleX + titleWidth + 10, voucherTitleY + 1.8);
+
+  // ── 3. METADATA TRANSAKSI ──────────────────────────────────────
+  const metaY = 32;
   doc.setFont('courier', 'normal');
   doc.setFontSize(8);
 
   // Uraian
   doc.text('Uraian', leftMargin, metaY);
-  doc.text(':', leftMargin + 22, metaY);
-  doc.text(`Omset Penjualan Toko SMart Saharjo Tgl ${tglTrans} (Upload)`, leftMargin + 25, metaY);
+  doc.text(':', leftMargin + 20, metaY);
+  doc.text(`Omset Penjualan Toko SMart Saharjo Tgl ${tglTrans} (Upload)`, leftMargin + 23, metaY);
 
   // Jumlah
-  doc.text('Jumlah', leftMargin, metaY + 4.5);
-  doc.text(':', leftMargin + 22, metaY + 4.5);
+  doc.text('Jumlah', leftMargin, metaY + 4.2);
+  doc.text(':', leftMargin + 20, metaY + 4.2);
   doc.setFont('courier', 'bold');
-  doc.text(`Rp ${formatNumber(totalDebit)}`, leftMargin + 25, metaY + 4.5);
+  doc.text(`Rp ${formatNumber(totalDebit)}`, leftMargin + 23, metaY + 4.2);
   doc.setFont('courier', 'normal');
 
   // Terbilang
-  doc.text('Terbilang', leftMargin, metaY + 9);
-  doc.text(':', leftMargin + 22, metaY + 9);
+  doc.text('Terbilang', leftMargin, metaY + 8.4);
+  doc.text(':', leftMargin + 20, metaY + 8.4);
   const kalimatTerbilang = terbilang(totalDebit);
-  const splitTerbilang = doc.splitTextToSize(kalimatTerbilang, pageWidth - leftMargin - 40);
-  doc.text(splitTerbilang, leftMargin + 25, metaY + 9);
+  const splitTerbilang = doc.splitTextToSize(kalimatTerbilang, pageWidth - leftMargin - 35);
+  doc.text(splitTerbilang, leftMargin + 23, metaY + 8.4);
 
-  const startTableY = metaY + 12 + (splitTerbilang.length > 1 ? (splitTerbilang.length - 1) * 3.5 : 0);
+  const startTableY = metaY + 11.5 + (splitTerbilang.length > 1 ? (splitTerbilang.length - 1) * 3.5 : 0);
 
-  // ── 3. DATA TABEL JURNAL AKUNTANSI ────────────────────────────
+  // ── 4. DATA TABEL JURNAL AKUNTANSI ────────────────────────────
   const journalRows = buildVoucherJournalRows(rows, tglTrans, coaMap);
 
   const headers = ['#', 'NOMOR', 'NAMA', 'TGL. TRANS', 'DEBET (Rp)', 'KREDIT (Rp)', 'KETERANGAN'];
@@ -322,31 +323,32 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
     theme: 'plain',
     styles: {
       font: 'courier',
-      fontSize: 7.2,
-      cellPadding: { top: 2.2, bottom: 2.2, left: 1, right: 1 },
+      fontSize: 6.8,
+      cellPadding: { top: 1.25, bottom: 1.25, left: 1, right: 1 },
       textColor: [0, 0, 0],
       valign: 'top',
       lineColor: [220, 220, 220],
       lineWidth: 0,
+      overflow: 'linebreak',
     },
     headStyles: {
       font: 'courier',
       fontStyle: 'bold',
-      fontSize: 7.5,
+      fontSize: 7.2,
       textColor: [0, 0, 0],
       halign: 'left',
-      cellPadding: { top: 2.5, bottom: 2.5, left: 1, right: 1 },
+      cellPadding: { top: 1.8, bottom: 1.8, left: 1, right: 1 },
       lineWidth: { top: 0.35, bottom: 0.35 },
       lineColor: [0, 0, 0],
     },
     columnStyles: {
       0: { cellWidth: 7, halign: 'center' },   // #
-      1: { cellWidth: 17, halign: 'left' },    // NOMOR (COA)
-      2: { cellWidth: 42, halign: 'left' },    // NAMA AKUN
+      1: { cellWidth: 16, halign: 'left' },    // NOMOR (COA)
+      2: { cellWidth: 41, halign: 'left' },    // NAMA AKUN
       3: { cellWidth: 18, halign: 'center' },  // TGL TRANS
-      4: { cellWidth: 19, halign: 'right' },   // DEBET
-      5: { cellWidth: 19, halign: 'right' },   // KREDIT
-      6: { cellWidth: 64, halign: 'left' },    // KETERANGAN
+      4: { cellWidth: 18, halign: 'right' },   // DEBET
+      5: { cellWidth: 18, halign: 'right' },   // KREDIT
+      6: { cellWidth: 68, halign: 'left' },    // KETERANGAN (diperlebar agar tidak wrap banyak baris)
     },
     didParseCell: function(data) {
       // Style khusus untuk baris Total Jumlah di akhir
@@ -357,24 +359,21 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
         }
         data.cell.styles.lineWidth = { top: 0.35, bottom: 0.35 };
         data.cell.styles.lineColor = [0, 0, 0];
-        data.cell.styles.cellPadding = { top: 2.5, bottom: 2.5, left: 1, right: 1 };
+        data.cell.styles.cellPadding = { top: 2, bottom: 2, left: 1, right: 1 };
       }
     },
-    margin: { left: leftMargin, right: 12, bottom: 48 },
+    margin: { left: leftMargin, right: 12, bottom: 35 },
   });
 
-  // ── 4. KOLOM TANDA TANGAN & FOOTER ────────────────────────────
-  // Letakkan tanda tangan proporsional mendekati bagian bawah halaman
+  // ── 5. KOLOM TANDA TANGAN & FOOTER ────────────────────────────
   const tableBottomY = doc.lastAutoTable.finalY;
   const colWidth = (pageWidth - 24) / 3;
 
-  // Pastikan posisi tanda tangan tidak menabrak tabel namun berada di posisi ideal bawah
-  const minSigY = tableBottomY + 10;
-  const idealSigY = pageHeight - 46;
-  const finalY = Math.max(minSigY, idealSigY);
+  // Letakkan tanda tangan dengan jarak 7mm setelah tabel total
+  const finalY = tableBottomY + 7;
 
   doc.setFont('courier', 'normal');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(0, 0, 0);
 
   // 3 Kolom Tanda Tangan: Mengetahui, Menyetujui, Penerima
@@ -387,12 +386,12 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   doc.text('Penerima', sig3X, finalY, { align: 'center' });
 
   // Ruang Tanda Tangan (Garis kurung tanda tangan)
-  const sigLineY = finalY + 22;
+  const sigLineY = finalY + 16;
   doc.text('(                          )', sig1X, sigLineY, { align: 'center' });
   doc.text('(                          )', sig2X, sigLineY, { align: 'center' });
   doc.text('(                          )', sig3X, sigLineY, { align: 'center' });
 
-  // ── 5. CATATAN PEMBUAT DI POJOK KIRI BAWAH ────────────────────
+  // ── 6. CATATAN PEMBUAT DI POJOK KIRI BAWAH ────────────────────
   const now = new Date();
   const dayStr = String(now.getDate()).padStart(2, '0');
   const monthStr = String(now.getMonth() + 1).padStart(2, '0');
@@ -405,13 +404,14 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   const currentUserName = userName || 'Staff';
 
   doc.setFont('courier', 'italic');
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setTextColor(80, 80, 80);
-  doc.text(`Pembuat : ${currentUserName}`, leftMargin, pageHeight - 14);
-  doc.text(stampTime, leftMargin, pageHeight - 10.5);
+  doc.text(`Pembuat : ${currentUserName}`, leftMargin, pageHeight - 10);
+  doc.text(stampTime, leftMargin, pageHeight - 7);
 
   // Simpan/Unduh file PDF
   const filename = `VOUCHER_${tglLaporan || 'export'}.pdf`;
   doc.save(filename);
 }
+
 
