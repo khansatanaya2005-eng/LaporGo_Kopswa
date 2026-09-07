@@ -402,22 +402,29 @@ const UserManagement = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Password Akun
+                  Password Akun {editingUser && <span className="text-slate-400 font-normal">(Tersimpan)</span>}
                 </label>
                 <div 
-                  className="relative flex items-center cursor-pointer"
-                  onClick={() => setShowPassword(!showPassword)}
+                  className={`relative flex items-center ${editingUser ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (editingUser) setShowPassword(!showPassword);
+                  }}
                 >
                   <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 z-10 pointer-events-none" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required={!editingUser}
-                    readOnly
+                    readOnly={Boolean(editingUser || formData.isReadOnly)}
+                    disabled={formData.isReadOnly}
                     autoComplete="new-password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Password akun"
-                    className="w-full pl-8 pr-10 py-2 text-xs border border-slate-200 rounded-lg font-mono bg-slate-50 text-slate-700 cursor-pointer select-none focus:outline-none"
+                    placeholder={editingUser ? "Password akun tersimpan" : "Masukkan password baru (min. 6 karakter)"}
+                    className={`w-full pl-8 pr-10 py-2 text-xs border border-slate-200 rounded-lg font-mono ${
+                      editingUser || formData.isReadOnly
+                        ? 'bg-slate-50 text-slate-700 cursor-pointer select-none focus:outline-none'
+                        : 'bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0A4D68]'
+                    }`}
                   />
                   <button
                     type="button"
@@ -432,7 +439,9 @@ const UserManagement = () => {
                   </button>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1 font-sans">
-                  Klik kolom ini atau ikon mata untuk melihat password.
+                  {editingUser 
+                    ? 'Klik kolom ini atau ikon mata untuk melihat password.' 
+                    : 'Ketik password untuk akun baru ini (klik mata untuk melihat).'}
                 </p>
               </div>
 
