@@ -322,8 +322,8 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
     theme: 'plain',
     styles: {
       font: 'courier',
-      fontSize: 6.5,
-      cellPadding: 1,
+      fontSize: 7.2,
+      cellPadding: { top: 2.2, bottom: 2.2, left: 1, right: 1 },
       textColor: [0, 0, 0],
       valign: 'top',
       lineColor: [220, 220, 220],
@@ -332,11 +332,11 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
     headStyles: {
       font: 'courier',
       fontStyle: 'bold',
-      fontSize: 7,
+      fontSize: 7.5,
       textColor: [0, 0, 0],
       halign: 'left',
-      cellPadding: { top: 1.5, bottom: 1.5, left: 1, right: 1 },
-      lineWidth: { top: 0.3, bottom: 0.3 },
+      cellPadding: { top: 2.5, bottom: 2.5, left: 1, right: 1 },
+      lineWidth: { top: 0.35, bottom: 0.35 },
       lineColor: [0, 0, 0],
     },
     columnStyles: {
@@ -355,19 +355,26 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
         if (data.column.index === 2) {
           data.cell.styles.halign = 'right';
         }
-        data.cell.styles.lineWidth = { top: 0.3, bottom: 0.3 };
+        data.cell.styles.lineWidth = { top: 0.35, bottom: 0.35 };
         data.cell.styles.lineColor = [0, 0, 0];
+        data.cell.styles.cellPadding = { top: 2.5, bottom: 2.5, left: 1, right: 1 };
       }
     },
-    margin: { left: leftMargin, right: 12, bottom: 35 },
+    margin: { left: leftMargin, right: 12, bottom: 48 },
   });
 
   // ── 4. KOLOM TANDA TANGAN & FOOTER ────────────────────────────
-  const finalY = doc.lastAutoTable.finalY + 8;
+  // Letakkan tanda tangan proporsional mendekati bagian bawah halaman
+  const tableBottomY = doc.lastAutoTable.finalY;
   const colWidth = (pageWidth - 24) / 3;
 
+  // Pastikan posisi tanda tangan tidak menabrak tabel namun berada di posisi ideal bawah
+  const minSigY = tableBottomY + 10;
+  const idealSigY = pageHeight - 46;
+  const finalY = Math.max(minSigY, idealSigY);
+
   doc.setFont('courier', 'normal');
-  doc.setFontSize(7.5);
+  doc.setFontSize(8.5);
   doc.setTextColor(0, 0, 0);
 
   // 3 Kolom Tanda Tangan: Mengetahui, Menyetujui, Penerima
@@ -379,8 +386,8 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   doc.text('Menyetujui', sig2X, finalY, { align: 'center' });
   doc.text('Penerima', sig3X, finalY, { align: 'center' });
 
-  // Ruang Tanda Tangan
-  const sigLineY = finalY + 18;
+  // Ruang Tanda Tangan (Garis kurung tanda tangan)
+  const sigLineY = finalY + 22;
   doc.text('(                          )', sig1X, sigLineY, { align: 'center' });
   doc.text('(                          )', sig2X, sigLineY, { align: 'center' });
   doc.text('(                          )', sig3X, sigLineY, { align: 'center' });
@@ -398,12 +405,13 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   const currentUserName = userName || 'Staff';
 
   doc.setFont('courier', 'italic');
-  doc.setFontSize(6.5);
+  doc.setFontSize(7);
   doc.setTextColor(80, 80, 80);
-  doc.text(`Pembuat : ${currentUserName}`, leftMargin, pageHeight - 12);
-  doc.text(stampTime, leftMargin, pageHeight - 9);
+  doc.text(`Pembuat : ${currentUserName}`, leftMargin, pageHeight - 14);
+  doc.text(stampTime, leftMargin, pageHeight - 10.5);
 
   // Simpan/Unduh file PDF
   const filename = `VOUCHER_${tglLaporan || 'export'}.pdf`;
   doc.save(filename);
 }
+
