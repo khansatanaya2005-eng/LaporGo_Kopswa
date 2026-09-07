@@ -341,7 +341,7 @@ const ManageReport = () => {
             title="Unduh Voucher Akuntansi PDF"
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Unduh PDF</span>
+            <span>Unduh Voucher</span>
           </button>
 
 
