@@ -79,10 +79,13 @@ const ReportPreview = () => {
   const [saving,       setSaving]       = useState(false);
   const [saved,        setSaved]        = useState(false);
   const [customDate,   setCustomDate]   = useState('');
+  // State progress upload dokumen
+  const [saveProgress, setSaveProgress] = useState(null); // { current, total, fileName, percent, stage }
   // State preview dokumen
   const [previewFile,    setPreviewFile]    = useState(null);
   const [previewData,    setPreviewData]    = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
 
   const sumCol = (rows, col) => rows.reduce((s, r) => s + (Number(r[col]) || 0), 0);
 
@@ -196,37 +199,130 @@ const ReportPreview = () => {
     }
   };
 
-  // Simpan ke Supabase (laporan + omset_rows + warnings + upload files ke Storage)
+  // Simpan ke Supabase (laporan + omset_rows + warnings + upload files ke Storage dengan Progress Bar)
   const handleSave = async () => {
-    if (saved) return;
+    if (saved || saving) return;
+    if (!customDate) return alert("Pilih tanggal laporan terlebih dahulu!");
+
     setSaving(true);
+    setSaveProgress({ stage: 'laporan', percent: 10, message: 'Menyimpan ringkasan & baris transaksi...' });
+
     try {
       if (isSupabaseConfigured()) {
-        // 1. Simpan laporan, omset_rows, warnings ke DB
-        //    (filesMeta kosong karena file akan diupload ke Storage secara terpisah)
+        // 1. Simpan laporan, omset_rows, warnings ke database
         const laporan = await saveLaporanToSupabase(
           { tanggal: customDate, summary: dynamicSummary, omsetRows: present, warnings },
-          [] // file metadata ditangani oleh uploadLaporanFilesToStorage
+          []
         );
 
-        // 2. Upload file asli ke Supabase Storage + simpan metadata
-        const allFileObjects = sourceFiles?.allFiles || [];
-        if (laporan?.id && allFileObjects.length > 0) {
-          await uploadLaporanFilesToStorage(laporan.id, allFileObjects);
+        if (!laporan?.id) {
+          throw new Error('Gagal membuat ID laporan di Supabase');
         }
+
+        // 2. Upload file fisik ke Supabase Storage dengan real-time progress
+        const allFileObjects = sourceFiles?.allFiles || [];
+        const totalFiles = allFileObjects.length;
+
+        if (totalFiles > 0) {
+          setSaveProgress({
+            stage: 'files',
+            current: 0,
+            total: totalFiles,
+            percent: 15,
+            message: `Menyiapkan ${totalFiles} berkas sumber...`
+          });
+
+          const uploadResult = await uploadLaporanFilesToStorage(
+            laporan.id,
+            allFileObjects,
+            (current, total, fileName) => {
+              const filePercent = Math.round(15 + (current / total) * 80);
+              setSaveProgress({
+                stage: 'files',
+                current,
+                total,
+                fileName,
+                percent: filePercent,
+                message: `Mengunggah (${current}/${total}): ${fileName}`
+              });
+            }
+          );
+
+          if (!uploadResult.success) {
+            console.warn('[Upload Files] Beberapa file gagal terunggah:', uploadResult.errors);
+          }
+        }
+
+        setSaveProgress({ stage: 'done', percent: 100, message: 'Semua berkas & laporan berhasil tersimpan!' });
+        setSaved(true);
+
+        // Beri jeda 1 detik agar user melihat 100%, lalu arahkan ke Kelola Laporan
+        setTimeout(() => {
+          navigate(`/kelola/${laporan.id}`);
+        }, 1200);
+      } else {
+        setSaved(true);
       }
-      setSaved(true);
     } catch (e) {
-      alert('Gagal menyimpan: ' + e.message);
+      alert('Gagal menyimpan laporan: ' + e.message);
+      setSaveProgress(null);
     } finally {
       setSaving(false);
     }
   };
 
+
   return (
     <div className="space-y-6">
+      {/* ── MODAL / BANNER PROGRESS UPLOAD DOKUMEN ── */}
+      {saveProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(5, 25, 35, 0.7)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                saveProgress.stage === 'done' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-[#0A4D68]'
+              }`}>
+                {saveProgress.stage === 'done' ? (
+                  <CheckCircle2 className="w-6 h-6" />
+                ) : (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-bold text-slate-900">
+                  {saveProgress.stage === 'done' ? 'Laporan & Berkas Tersimpan!' : 'Menyimpan ke Database & Storage...'}
+                </h4>
+                <p className="text-xs text-slate-500 truncate mt-0.5">
+                  {saveProgress.message}
+                </p>
+              </div>
+              <span className="text-xs font-mono font-bold text-[#0A4D68]">
+                {saveProgress.percent}%
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 rounded-full ${
+                  saveProgress.stage === 'done' ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#0A4D68] to-[#088395]'
+                }`}
+                style={{ width: `${saveProgress.percent}%` }}
+              />
+            </div>
+
+            {saveProgress.total > 0 && (
+              <p className="text-[11px] text-slate-400 text-center font-mono">
+                Mengunggah berkas {saveProgress.current || 0} dari {saveProgress.total} file total
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)}
             className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer shrink-0">

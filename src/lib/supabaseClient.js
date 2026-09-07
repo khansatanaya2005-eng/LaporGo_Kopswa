@@ -158,11 +158,22 @@ export async function saveLaporanToSupabase(laporanData, filesMeta = []) {
  * Upload file asli ke Supabase Storage dan simpan metadata ke laporan_files
  * @param {string} laporanId - UUID laporan
  * @param {Array}  allFiles  - [{ file: File, kategori: string }]
+ * @param {Function} onProgress - callback(current, total, currentFileName)
  */
-export async function uploadLaporanFilesToStorage(laporanId, allFiles = []) {
-  if (!isSupabaseConfigured() || allFiles.length === 0) return;
+export async function uploadLaporanFilesToStorage(laporanId, allFiles = [], onProgress = null) {
+  if (!isSupabaseConfigured() || allFiles.length === 0) return { success: true, uploaded: 0 };
 
-  for (const { file, kategori } of allFiles) {
+  const validFiles = allFiles.filter(item => item && item.file);
+  const total = validFiles.length;
+  let successCount = 0;
+  const errors = [];
+
+  for (let i = 0; i < total; i++) {
+    const { file, kategori } = validFiles[i];
+    if (onProgress) {
+      onProgress(i + 1, total, file.name);
+    }
+
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._\-]/g, '_');
       const storagePath = `laporan/${laporanId}/${kategori}/${safeName}`;
@@ -174,6 +185,7 @@ export async function uploadLaporanFilesToStorage(laporanId, allFiles = []) {
 
       if (uploadError) {
         console.error(`[Storage] Gagal upload ${file.name}:`, uploadError);
+        errors.push(`${file.name}: ${uploadError.message}`);
         continue;
       }
 
@@ -191,12 +203,26 @@ export async function uploadLaporanFilesToStorage(laporanId, allFiles = []) {
         storage_path: urlData.publicUrl,
       });
 
-      if (dbError) console.error(`[Storage] Gagal simpan metadata ${file.name}:`, dbError);
+      if (dbError) {
+        console.error(`[Storage] Gagal simpan metadata ${file.name}:`, dbError);
+        errors.push(`${file.name}: ${dbError.message}`);
+      } else {
+        successCount++;
+      }
     } catch (err) {
       console.error(`[Storage] Error pada ${file.name}:`, err);
+      errors.push(`${file.name}: ${err.message}`);
     }
   }
+
+  return {
+    success: errors.length === 0,
+    uploaded: successCount,
+    total,
+    errors
+  };
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // LAPORAN — READ (List & Detail)
