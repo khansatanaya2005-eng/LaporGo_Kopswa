@@ -252,8 +252,8 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   doc.text('No.  : ' + displayVoucherNo, rightMargin - 65, 14);
   doc.text('Tgl. : ' + tglIndo, rightMargin - 65, 19);
 
-  // ── 2. JUDUL VOUCHER (Diturunkan sedikit di bawah header logo) ─
-  const voucherTitleY = 24;
+  // ── 2. JUDUL VOUCHER (Diturunkan sedikit lagi) ─────────────────
+  const voucherTitleY = 26;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
@@ -265,7 +265,7 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   doc.line(titleX - 10, voucherTitleY + 1.8, titleX + titleWidth + 10, voucherTitleY + 1.8);
 
   // ── 3. METADATA TRANSAKSI ──────────────────────────────────────
-  const metaY = 32;
+  const metaY = 34;
   doc.setFont('courier', 'normal');
   doc.setFontSize(8);
 
@@ -324,7 +324,7 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
     styles: {
       font: 'courier',
       fontSize: 6.8,
-      cellPadding: { top: 1.25, bottom: 1.25, left: 1, right: 1 },
+      cellPadding: { top: 1.15, bottom: 1.15, left: 1, right: 1 },
       textColor: [0, 0, 0],
       valign: 'top',
       lineColor: [220, 220, 220],
@@ -348,7 +348,7 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
       3: { cellWidth: 18, halign: 'center' },  // TGL TRANS
       4: { cellWidth: 18, halign: 'right' },   // DEBET
       5: { cellWidth: 18, halign: 'right' },   // KREDIT
-      6: { cellWidth: 68, halign: 'left' },    // KETERANGAN (diperlebar agar tidak wrap banyak baris)
+      6: { cellWidth: 68, halign: 'left' },    // KETERANGAN
     },
     didParseCell: function(data) {
       // Style khusus untuk baris Total Jumlah di akhir
@@ -359,7 +359,7 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
         }
         data.cell.styles.lineWidth = { top: 0.35, bottom: 0.35 };
         data.cell.styles.lineColor = [0, 0, 0];
-        data.cell.styles.cellPadding = { top: 2, bottom: 2, left: 1, right: 1 };
+        data.cell.styles.cellPadding = { top: 1.8, bottom: 1.8, left: 1, right: 1 };
       }
     },
     margin: { left: leftMargin, right: 12, bottom: 35 },
@@ -369,7 +369,7 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   const tableBottomY = doc.lastAutoTable.finalY;
   const colWidth = (pageWidth - 24) / 3;
 
-  // Letakkan tanda tangan dengan jarak 7mm setelah tabel total
+  // Letakkan judul tanda tangan dengan jarak 7mm setelah tabel total
   const finalY = tableBottomY + 7;
 
   doc.setFont('courier', 'normal');
@@ -385,11 +385,12 @@ export async function exportReportToPdf(report, rows, totalDebit, totalKredit, s
   doc.text('Menyetujui', sig2X, finalY, { align: 'center' });
   doc.text('Penerima', sig3X, finalY, { align: 'center' });
 
-  // Ruang Tanda Tangan (Garis kurung tanda tangan)
-  const sigLineY = finalY + 16;
+  // Ruang Tanda Tangan (Garis kurung tanda tangan dibuat turun sedikit lagi ke 19mm)
+  const sigLineY = finalY + 19;
   doc.text('(                          )', sig1X, sigLineY, { align: 'center' });
   doc.text('(                          )', sig2X, sigLineY, { align: 'center' });
   doc.text('(                          )', sig3X, sigLineY, { align: 'center' });
+
 
   // ── 6. CATATAN PEMBUAT DI POJOK KIRI BAWAH ────────────────────
   const now = new Date();
