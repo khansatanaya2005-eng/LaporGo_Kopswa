@@ -29,9 +29,11 @@ const UploadReport = () => {
   const [omiPersediaan,  setOmiPersediaan]  = useState([]);  // opsional
 
   // ── Slot SMART ────────────────────────────────────
-  const [smartFiles,  setSmartFiles]  = useState([]);  // WAJIB (multi, auto-detect TOKO/LOGO)
+  const [smartToko,   setSmartToko]   = useState([]);  // Ringkasan Pembayaran TOKO
+  const [smartLogo,   setSmartLogo]   = useState([]);  // Ringkasan Pembayaran LOGO
   const [smartDetail, setSmartDetail] = useState([]);  // opsional
 
+  const smartFiles = [...smartToko, ...smartLogo];
   const [showSmartModal, setShowSmartModal] = useState(false);
 
   // ── Validasi mandatory ────────────────────────────
@@ -44,7 +46,7 @@ const UploadReport = () => {
     setOmiPerTanggal([]); setOmiTutupHarian([]); setOmiPerMember([]);
     setOmiDiscItem([]); setOmiStrukTxt([]); setOmiPareto([]);
     setOmiAnalisa([]); setOmiPerStruk([]); setOmiPersediaan([]);
-    setSmartFiles([]); setSmartDetail([]);
+    setSmartToko([]); setSmartLogo([]); setSmartDetail([]);
     setProcessError('');
   };
 
@@ -94,7 +96,8 @@ const UploadReport = () => {
             allFiles: [
               omiPerTanggal[0] ? { file: omiPerTanggal[0], kategori: 'omi_per_tanggal' } : null,
               ...omiTutupHarian.map(f => ({ file: f, kategori: 'omi_tutup_harian' })),
-              ...smartFiles.map(f     => ({ file: f, kategori: 'smart_toko' })),
+              ...smartToko.map(f => ({ file: f, kategori: 'smart_toko' })),
+              ...smartLogo.map(f => ({ file: f, kategori: 'smart_logo' })),
               ...omiPerMember.map(f   => ({ file: f, kategori: 'omi_per_member' })),
               ...omiDiscItem.map(f    => ({ file: f, kategori: 'omi_disc_item' })),
               ...omiStrukTxt.map(f    => ({ file: f, kategori: 'omi_struk_txt' })),
@@ -204,7 +207,7 @@ const UploadReport = () => {
                 </div>
                 <div className="space-y-2.5">
                   <FileSlotRow title="LAPORAN PENJUALAN ANGGOTA PER MEMBER.xls"
-                    description="Validasi total kredit pegawai" accept=".xls,.xlsx"
+                    description="Rincian kredit anggota & transaksi Divisi (*)" accept=".xls,.xlsx"
                     uploadedFiles={omiPerMember} onUpload={setOmiPerMember} onRemove={() => setOmiPerMember([])} />
                   <FileSlotRow title="LAPORAN DISC. ITEM.xls"
                     description="Rincian diskon per item" accept=".xls,.xlsx"
@@ -261,23 +264,25 @@ const UploadReport = () => {
               exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}
               className="p-6 space-y-4 border-t border-slate-100">
 
-              {/* Slot Ringkasan Pembayaran (Disamakan dengan tampilan baris slot lainnya) */}
-              <FileSlotRow
-                title="ringkasan pembayaran.xlsx (TOKO & LOGO)"
-                accept=".xlsx,.xls"
-                isMandatory={true}
-                isMulti={true}
-                description="Upload file TOKO & LOGO sekaligus (sistem auto-detect kategorinya)"
-                uploadedFiles={smartFiles}
-                onUpload={(filesArr) => setSmartFiles(p => [...p, ...filesArr])}
-                onRemove={(idx) => {
-                  if (idx !== undefined) {
-                    setSmartFiles(p => p.filter((_, i) => i !== idx));
-                  } else {
-                    setSmartFiles([]);
-                  }
-                }}
-              />
+              {/* Slot Ringkasan Pembayaran TOKO & LOGO Terpisah */}
+              <div className="space-y-2.5">
+                <FileSlotRow
+                  title="ringkasan pembayaran toko.xlsx (TOKO)"
+                  accept=".xlsx,.xls"
+                  description="Upload file Ringkasan Pembayaran SMART TOKO (wajib jika ada transaksi TOKO)"
+                  uploadedFiles={smartToko}
+                  onUpload={setSmartToko}
+                  onRemove={() => setSmartToko([])}
+                />
+                <FileSlotRow
+                  title="ringkasan pembayaran logo.xlsx (LOGO)"
+                  accept=".xlsx,.xls"
+                  description="Upload file Ringkasan Pembayaran SMART LOGO (wajib jika ada transaksi LOGO)"
+                  uploadedFiles={smartLogo}
+                  onUpload={setSmartLogo}
+                  onRemove={() => setSmartLogo([])}
+                />
+              </div>
 
               {/* Detail Smart (opsional) */}
               <div className="space-y-3 pt-2">
