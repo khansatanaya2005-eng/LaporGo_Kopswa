@@ -57,7 +57,7 @@ function buildVoucherJournalRows(rows, tglTrans, coaMap) {
     
     // Format Keterangan: [AWALAN] + [KWITANSI] + [TEKS STANDAR]
     const kwtPart = kwitansi && kwitansi !== '-' ? `(kwt ${kwitansi}) ` : '';
-    const prefixPart = prefix ? `${prefix} ` : '';
+    const prefixPart = prefix ? `${prefix.replace(/\*/g, '').trim()} ` : '';
     keterangan = `${prefixPart}${kwtPart}Omset Penjualan Toko SMart Saharjo Tgl ${tglTrans} (Upload)`.replace(/\s+/g, ' ').trim();
 
     journal.push({

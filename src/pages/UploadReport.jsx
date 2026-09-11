@@ -32,10 +32,12 @@ const UploadReport = () => {
   const [smartFiles,  setSmartFiles]  = useState([]);  // WAJIB (multi, auto-detect TOKO/LOGO)
   const [smartDetail, setSmartDetail] = useState([]);  // opsional
 
+  const [showSmartModal, setShowSmartModal] = useState(false);
+
   // ── Validasi mandatory ────────────────────────────
   const isOmiOk   = omiPerTanggal.length > 0 && omiTutupHarian.length > 0;
   const isSmartOk = smartFiles.length > 0;
-  const isAllOk   = isOmiOk && isSmartOk;
+  const isAllOk   = isOmiOk; // OMI wajib, SMART wajib-bersyarat (dengan konfirmasi modal)
 
   const handleResetAll = () => {
     if (!confirm('Reset semua slot file?')) return;
@@ -47,8 +49,17 @@ const UploadReport = () => {
   };
 
   // ── Proses Laporan ────────────────────────────────
-  const handleProcessReport = async () => {
-    if (!isAllOk) return;
+  const handleProcessReport = (allowNoSmart = false) => {
+    if (!isOmiOk) return;
+    if (smartFiles.length === 0 && !allowNoSmart) {
+      setShowSmartModal(true);
+      return;
+    }
+    executeProcess(allowNoSmart);
+  };
+
+  const executeProcess = async (allowNoSmart) => {
+    setShowSmartModal(false);
     setIsProcessing(true);
     setProcessError('');
 
@@ -59,7 +70,7 @@ const UploadReport = () => {
         smartFiles,
         omiMember:   omiPerMember,
         detailSmart: smartDetail,
-      });
+      }, allowNoSmart);
 
       navigate('/preview', {
         state: {
@@ -305,7 +316,7 @@ const UploadReport = () => {
           </div>
         </div>
 
-        <button onClick={handleProcessReport} disabled={!isAllOk || isProcessing}
+        <button onClick={() => handleProcessReport(false)} disabled={!isAllOk || isProcessing}
           className={`w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all ${
             isAllOk && !isProcessing
               ? 'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95 cursor-pointer'
@@ -315,6 +326,39 @@ const UploadReport = () => {
             : <><Sparkles className="w-4 h-4" /><span>Proses Laporan</span></>}
         </button>
       </div>
+
+      {/* Modal Konfirmasi SMART kosong */}
+      {showSmartModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">Konfirmasi Kelengkapan Berkas SMART</h4>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Berkas SMART (Ringkasan Pembayaran TOKO/LOGO) belum diunggah. Apakah memang <strong>tidak ada transaksi SMART</strong> pada tanggal ini?
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setShowSmartModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
+              >
+                Lupa Upload (Kembali)
+              </button>
+              <button
+                onClick={() => executeProcess(true)}
+                className="px-4 py-2 bg-[#FF5000] hover:bg-[#e04600] text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer"
+              >
+                Ya, Memang 0 Transaksi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

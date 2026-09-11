@@ -44,6 +44,18 @@ function findRowByText(ws, text, colIdx = 1, maxRow = 120) {
   return -1;
 }
 
+// Helper pendeteksi transaksi Divisi (ditandai dengan bintang * di akhir nama atau kata DIVISI)
+function isDivisi(namaStr) {
+  if (!namaStr) return false;
+  const str = String(namaStr).trim();
+  return str.endsWith('*') || str.includes('*') || str.toUpperCase().includes('DIVISI');
+}
+
+function cleanNamaDivisi(namaStr) {
+  if (!namaStr) return '';
+  return String(namaStr).replace(/\*/g, '').trim();
+}
+
 function defaultRow() {
   return {
     no: 0, nama_ref: '', jenis_transaksi: '', kwitansi: '', keterangan: '',
@@ -91,21 +103,28 @@ function parseLaporanPerTanggal(buffer) {
 function parseTutupHarian(buffer) {
   const lines = buffer.toString('latin1').split('\n');
   let potProduk = 0, tunai = 0, kredit = 0, emoney = 0, ppn = 0, tanggal = '';
+  let debitCard = 0, creditCard = 0; // Capture baru untuk pembayaran kartu
 
   for (const raw of lines) {
     const line = raw.replace(/\r/, '').trim();
-    if (/Pot\.Produk/i.test(line))                    potProduk = parseTxtAmount(line);
-    else if (/^-\s*Tunai/i.test(line))                tunai     = parseTxtAmount(line);
-    else if (/^-\s*Kredit/i.test(line))               kredit    = parseTxtAmount(line);
-    else if (/^-\s*E-Money/i.test(line))              emoney    = parseTxtAmount(line);
+    if (/Pot\.Produk/i.test(line))                    potProduk  = parseTxtAmount(line);
+    else if (/^-\s*Tunai/i.test(line))                tunai      = parseTxtAmount(line);
+    else if (/^-\s*Kredit/i.test(line))               kredit     = parseTxtAmount(line);
+    else if (/^-\s*E-Money/i.test(line))              emoney     = parseTxtAmount(line);
+    else if (/^-\s*Debit\s*Card/i.test(line))         debitCard  = parseTxtAmount(line); // regex baru
+    else if (/^-\s*Credit\s*Card/i.test(line))        creditCard = parseTxtAmount(line); // regex baru
     else if (/^-\s*PPN\s+[\d]/i.test(line) ||
              /^-\s*PPN$/.test(line.replace(/\s+[\d.,]+$/, ''))) ppn = parseTxtAmount(line);
+
+    // TODO Field Registry Tutup Harian:
+    // - Voucher, Point Belanja, Pot.GWP, Disc.Tot.Struk, Ambil Tunai, Ambil Drawer, Pay Out
+    // (Menunggu kepastian alokasi akun dari mentor jika ada nominalnya di masa depan)
 
     const mTgl = raw.match(/Tanggal\s*:\s*(\d{2}-\d{2}-\d{4})/i);
     if (mTgl && !tanggal) tanggal = mTgl[1];
   }
 
-  return { potProduk, tunai, kredit, emoney, ppn, tanggal };
+  return { potProduk, tunai, kredit, emoney, debitCard, creditCard, ppn, tanggal };
 }
 
 // ─────────────────────────────────────────────
@@ -126,16 +145,26 @@ function parseSmartRingkasan(buffer) {
     throw new Error(`File SMART tidak dikenali. Header B5: "${header}", Sheet: "${sheetName}"`);
   }
 
-  // Parse summary baris B12-B16
+  // Parse summary secara dinamis menggunakan findRowByText
   const parseLine = (v) => {
     const m = String(v || '').match(/([\d.,]+)\s*$/);
     return m ? parseRupiah('Rp ' + m[1]) : 0;
   };
+
+  const rowPenjualan = findRowByText(ws, 'Penjualan :');
+  const rowDpp       = findRowByText(ws, 'DPP :');
+  const rowPpn       = findRowByText(ws, 'PPN :');
+  const rowHpp       = findRowByText(ws, 'HPP :');
+
+  if ([rowPenjualan, rowDpp, rowPpn, rowHpp].some(r => r === -1)) {
+    throw new Error(`File SMART (${category}): Baris ringkasan (Penjualan/DPP/PPN/HPP) tidak ditemukan`);
+  }
+
   const summary = {
-    penjualan : parseLine(ws['B12']?.v),
-    dpp       : parseLine(ws['B13']?.v),
-    ppn       : parseLine(ws['B14']?.v),
-    hpp       : parseLine(ws['B15']?.v),
+    penjualan : parseLine(getCellVal(ws, rowPenjualan, 1)),
+    dpp       : parseLine(getCellVal(ws, rowDpp, 1)),
+    ppn       : parseLine(getCellVal(ws, rowPpn, 1)),
+    hpp       : parseLine(getCellVal(ws, rowHpp, 1)),
   };
 
   // Loop entri pembayaran B10+ sampai "Penjualan :"
@@ -180,17 +209,23 @@ function buildOmsetRows({ txt, omi, smartResults }) {
 
   add({ nama_ref: 'pegawai',  keterangan: 'Kredit Anggota Pegawai',  piutang: omi.kredit });
   add({ nama_ref: 'e-money',  keterangan: 'Transaksi E-Money OMI',   piutang_edc: omi.emoney });
+  if (txt.debitCard > 0) {
+    add({ nama_ref: 'debit card', keterangan: 'Transaksi Debit Card Kasir', piutang_edc: txt.debitCard });
+  }
+  if (txt.creditCard > 0) {
+    add({ nama_ref: 'credit card', keterangan: 'Transaksi Credit Card Kasir', piutang_edc: txt.creditCard });
+  }
   add({ nama_ref: 'tunai',    keterangan: 'Kas Tunai Aktual',        kas_uks: txt.tunai });
 
   if (tokoData) {
     tokoData.entries.forEach(e => add({
-      nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+      nama_ref: cleanNamaDivisi(e.pelanggan), jenis_transaksi: e.voucherName,
       keterangan: 'Pembayaran SMART TOKO', piutang_edc: e.total,
     }));
   }
   if (logoData) {
     logoData.entries.forEach(e => add({
-      nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+      nama_ref: cleanNamaDivisi(e.pelanggan), jenis_transaksi: e.voucherName,
       keterangan: 'Pembelian SMART LOGO',
       piutang: e.total, pendapatan_toko: e.dpp, ppn_pk: e.ppn,
     }));
@@ -217,7 +252,7 @@ function calculateTotals(rows) {
 // ─────────────────────────────────────────────
 // VALIDASI SILANG
 // ─────────────────────────────────────────────
-function runValidations({ txt, omi }) {
+function runValidations({ txt, omi, smartResults = [] }) {
   const warns = [];
   if (omi.kredit !== txt.kredit)
     warns.push({ type: 'MISMATCH_KREDIT', severity: 'WARNING',
@@ -228,6 +263,21 @@ function runValidations({ txt, omi }) {
   if (Math.abs(omi.ppnOmi - txt.ppn) > 1)
     warns.push({ type: 'MISMATCH_PPN', severity: 'WARNING',
       message: `PPN selisih > 1: OMI=${omi.ppnOmi}, TXT=${txt.ppn}` });
+
+  // Validasi Kelengkapan Pembayaran Independen (Task 4)
+  const totalPenjualanOmi = (omi.dppBKP || 0) + (omi.nonPajak || 0) + (omi.ppnOmi || 0);
+  const totalSmartVouchers = smartResults.reduce((sum, s) => sum + s.entries.reduce((vSum, e) => vSum + e.total, 0), 0);
+  const totalPembayaranAktual = (txt.tunai || 0) + (omi.kredit || 0) + (omi.emoney || 0) + (txt.debitCard || 0) + (txt.creditCard || 0) + totalSmartVouchers;
+
+  const selisihPembayaran = Math.abs(totalPenjualanOmi - totalPembayaranAktual);
+  if (selisihPembayaran > 5) {
+    warns.push({
+      type: 'MISMATCH_TOTAL_PEMBAYARAN',
+      severity: 'WARNING',
+      message: `Total Pembayaran (Rp ${totalPembayaranAktual.toLocaleString('id-ID')}) selisih Rp ${selisihPembayaran.toLocaleString('id-ID')} dari Total Penjualan OMI (Rp ${totalPenjualanOmi.toLocaleString('id-ID')}). Periksa kelengkapan file upload/transaksi!`
+    });
+  }
+
   return warns;
 }
 
@@ -399,11 +449,15 @@ app.post('/api/process-laporan', upload.fields([
   try {
     const files = req.files || {};
 
-    // Validasi wajib
+    // Validasi wajib (OMI). SMART bersifat wajib-bersyarat.
     const missing = [];
     if (!files.omi_per_tanggal?.[0])  missing.push('LAPORAN PER TANGGAL');
     if (!files.omi_tutup_harian?.[0]) missing.push('LAPORAN TUTUP HARIAN');
-    if (!files.smart_files?.length)   missing.push('ringkasan pembayaran SMART');
+
+    const allowNoSmart = req.body?.allow_no_smart === 'true' || req.body?.allow_no_smart === true;
+    if (!files.smart_files?.length && !allowNoSmart) {
+      missing.push('ringkasan pembayaran SMART (Upload file SMART atau konfirmasi 0 transaksi)');
+    }
     if (missing.length) return res.status(400).json({ success: false, error: `File wajib kurang: ${missing.join(', ')}` });
 
     // Parse file wajib
@@ -413,11 +467,13 @@ app.post('/api/process-laporan', upload.fields([
     // Parse semua file SMART (auto-detect TOKO/LOGO)
     const smartResults = [];
     const smartErrors  = [];
-    for (const f of files.smart_files) {
-      try {
-        smartResults.push(parseSmartRingkasan(f.buffer));
-      } catch (e) {
-        smartErrors.push(`${f.originalname}: ${e.message}`);
+    if (files.smart_files?.length) {
+      for (const f of files.smart_files) {
+        try {
+          smartResults.push(parseSmartRingkasan(f.buffer));
+        } catch (e) {
+          smartErrors.push(`${f.originalname}: ${e.message}`);
+        }
       }
     }
 
@@ -426,7 +482,10 @@ app.post('/api/process-laporan', upload.fields([
 
     // Hitung total & validasi
     const summary  = calculateTotals(omsetRows);
-    const warnings = runValidations({ txt, omi });
+    const warnings = runValidations({ txt, omi, smartResults });
+    if (!files.smart_files?.length && allowNoSmart) {
+      warnings.push({ type: 'INFO_NO_SMART', severity: 'INFO', message: 'Laporan diproses tanpa file SMART (Dikonfirmasi 0 transaksi SMART hari ini)' });
+    }
     if (smartErrors.length) {
       smartErrors.forEach(e => warnings.push({ type: 'SMART_PARSE_ERROR', severity: 'ERROR', message: e }));
     }
@@ -513,7 +572,16 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', message: `LaporGo server running on port ${PORT}`, version: '2.0.0' });
 });
 
-module.exports = app;
+export {
+  parseLaporanPerTanggal,
+  parseTutupHarian,
+  parseSmartRingkasan,
+  buildOmsetRows,
+  calculateTotals,
+  runValidations,
+  isDivisi
+};
+export default app;
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, () => {

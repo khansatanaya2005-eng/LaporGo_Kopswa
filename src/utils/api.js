@@ -14,7 +14,7 @@ const BASE_URL = _raw ? _raw.replace(/\/api\/?$/, '') : '';
  * @param {Object} fileSlots - Object berisi array File dari tiap slot
  * @returns {Promise<{success: boolean, data: Object}>}
  */
-export async function processLaporan(fileSlots) {
+export async function processLaporan(fileSlots, allowNoSmart = false) {
   const {
     omiPerTanggal = [],
     omiTutupHarian = [],
@@ -31,6 +31,10 @@ export async function processLaporan(fileSlots) {
 
   // File SMART (bisa lebih dari 1 — TOKO + LOGO)
   smartFiles.forEach(f => formData.append('smart_files', f));
+
+  if (allowNoSmart) {
+    formData.append('allow_no_smart', 'true');
+  }
 
   // File opsional
   if (omiMember[0]) formData.append('omi_member', omiMember[0]);
