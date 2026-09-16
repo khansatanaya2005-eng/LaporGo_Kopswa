@@ -15,11 +15,15 @@ const Sidebar = () => {
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Proses Laporan', path: '/upload', icon: Upload },
-    { label: 'Riwayat & Kelola', path: '/riwayat', icon: FolderArchive },
   ];
 
+  if (user?.role === 'Staff') {
+    navItems.push({ label: 'Proses Laporan', path: '/upload', icon: Upload });
+  }
+
   if (user?.role === 'Admin') {
+    navItems.push({ label: 'Review Laporan', path: '/review', icon: FileSpreadsheet });
+    navItems.push({ label: 'Riwayat & Kelola', path: '/riwayat', icon: FolderArchive });
     navItems.push({ label: 'Manajemen User', path: '/users', icon: Users });
   }
 

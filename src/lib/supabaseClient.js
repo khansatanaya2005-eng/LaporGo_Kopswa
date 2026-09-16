@@ -346,7 +346,7 @@ export async function getLaporanById(laporanId) {
 export async function updateLaporan(laporanId, updates = {}) {
   if (!isSupabaseConfigured()) return null;
 
-  const allowed = ['catatan', 'file_output_url', 'status_balance', 'total_debit', 'total_kredit', 'selisih'];
+  const allowed = ['catatan', 'file_output_url', 'status_balance', 'total_debit', 'total_kredit', 'selisih', 'status_workflow'];
   const payload = Object.fromEntries(
     Object.entries(updates).filter(([k]) => allowed.includes(k))
   );
@@ -781,4 +781,45 @@ export async function listStorageFiles(laporanId) {
 
   if (error) { console.error('[Supabase Storage] list:', error); return []; }
   return data || [];
+}
+
+// ─────────────────────────────────────────────────────────────
+// REPORT MESSAGES — CHAT SYSTEM
+// ─────────────────────────────────────────────────────────────
+
+export async function getReportMessages(reportId) {
+  if (!isSupabaseConfigured()) return [];
+
+  const { data, error } = await supabase
+    .from('report_messages')
+    .select('*')
+    .eq('report_id', reportId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('[Supabase] getReportMessages error:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function sendReportMessage(reportId, userId, userName, message) {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await supabase
+    .from('report_messages')
+    .insert([{
+      report_id: reportId,
+      user_id: userId,
+      user_name: userName || 'Unknown',
+      message: message
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Supabase] sendReportMessage error:', error);
+    throw new Error(error.message);
+  }
+  return data;
 }

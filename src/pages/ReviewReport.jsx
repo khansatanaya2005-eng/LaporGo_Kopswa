@@ -24,7 +24,7 @@ const StatusBadge = ({ status }) => {
     <Clock className="w-3.5 h-3.5" /><span>Draft</span></span>;
 };
 
-const ReportHistory = () => {
+const ReviewReport = () => {
   const [reports,           setReports]           = useState([]);
   const [trashReports,      setTrashReports]      = useState([]);
   const [isSelectMode,      setIsSelectMode]      = useState(false);
@@ -61,7 +61,7 @@ const ReportHistory = () => {
               created_at:       r.created_at,
               file_output_url:  r.file_output_url,
             };
-          }).filter(r => r.status_workflow === 'Di verifikasi' || r.status_workflow === 'Arsip'));
+          }).filter(r => r.status_workflow !== 'Di verifikasi' && r.status_workflow !== 'Arsip'));
           setTrashReports((trashData || []).map(r => {
             const calculatedSelisih = Math.abs((Number(r.total_debit) || 0) - (Number(r.total_kredit) || 0));
             return {
@@ -271,9 +271,9 @@ const ReportHistory = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Riwayat Laporan</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Review Laporan</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Arsip laporan harian gabungan Toko OMI &amp; SMART.
+            Daftar laporan harian yang menunggu review atau verifikasi dari Admin.
           </p>
         </div>
 
@@ -708,4 +708,4 @@ const ReportHistory = () => {
   );
 };
 
-export default ReportHistory;
+export default ReviewReport;

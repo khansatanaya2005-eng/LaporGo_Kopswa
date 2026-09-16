@@ -5,10 +5,10 @@ import {
   Download, Printer, ArrowLeft, CheckCircle2,
   AlertTriangle, Clock, Search, ArrowUpDown,
   FileText, Layers, Building, Store, Eye, X, Loader2,
-  Pencil, Undo, Redo, Check, Save
+  Pencil, Undo, Redo, Check, Save, MessageSquare, Send, ShieldCheck, UserCircle2
 } from 'lucide-react';
 import { formatRupiah } from '../utils/cn';
-import { getLaporanById, updateOmsetRow, updateLaporan, isSupabaseConfigured } from '../lib/supabaseClient';
+import { getLaporanById, updateOmsetRow, updateLaporan, isSupabaseConfigured, getReportMessages, sendReportMessage } from '../lib/supabaseClient';
 import { downloadExcel } from '../utils/api';
 import { exportReportToPdf } from '../utils/pdfGenerator';
 import { MOCK_OMSET_DATA } from '../data/mockData';
@@ -42,6 +42,11 @@ const ManageReport = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
+  // Chat State
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
+
 
   useEffect(() => {
     async function loadDetail() {
@@ -53,6 +58,8 @@ const ManageReport = () => {
             setReport(data);
             setRows(data.omsetRows || []);
             setOriginalRows(data.omsetRows || []);
+            const msgs = await getReportMessages(id);
+            setMessages(msgs);
             setLoading(false);
             return;
           }
@@ -100,6 +107,39 @@ const ManageReport = () => {
   const omsetRows = rows;
   const isBalance = report?.status_balance === 'Balance';
   const isDraft   = report?.status_balance === 'Draft';
+  const isReadOnly = report?.status_workflow === 'Di verifikasi' || report?.status_workflow === 'Arsip';
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || sendingMsg) return;
+    setSendingMsg(true);
+    try {
+      const currentUserName = user?.name || user?.full_name || 'Staff Koperasi';
+      const newMsg = await sendReportMessage(id, user?.id || null, currentUserName, newMessage);
+      if (newMsg) {
+        setMessages([...messages, newMsg]);
+        setNewMessage('');
+      }
+    } catch (err) {
+      alert('Gagal mengirim pesan: ' + err.message);
+    } finally {
+      setSendingMsg(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!window.confirm('Verifikasi Laporan dan pindahkan ke Arsip? Laporan tidak akan bisa diedit lagi.')) return;
+    setSaving(true);
+    try {
+      await updateLaporan(id, { status_workflow: 'Di verifikasi' });
+      setReport(prev => ({ ...prev, status_workflow: 'Di verifikasi' }));
+      alert('Laporan berhasil diverifikasi.');
+    } catch (err) {
+      alert('Gagal verifikasi: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // ── Kolom numerik & debit/kredit (sama dgn ReportPreview) ──
   const NUMERIC_COLS = new Set(['tag_promo','giro_udp','piutang','beban_toko','beban_logo','kas_uks','piutang_padi','piutang_edc','beban_promosi','pendapatan_toko','pendapatan_logo','pendapatan_kerjasama','non_pajak','ppn_pk','ppn_wapu','persediaan_toko','persediaan_logo','simsem_uks']);
@@ -184,6 +224,7 @@ const ManageReport = () => {
 
   // ── Edit Cell (Hanya ubah state lokal, simpan dilakukan via tombol Save) ──
   const startEdit = (rowId, colKey, currentVal) => {
+    if (isReadOnly) return;
     setEditingCell({ rowId, colKey });
     setEditValue(NUMERIC_COLS.has(colKey) ? (currentVal || 0) : (currentVal || ''));
   };
@@ -296,6 +337,18 @@ const ManageReport = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {user?.role === 'Admin' && !isReadOnly && (
+            <button
+              onClick={handleVerify}
+              disabled={saving || isDirty}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0A4D68] hover:bg-[#083A4E] text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+              title={isDirty ? 'Simpan perubahan sebelum verifikasi' : 'Verifikasi & Arsipkan'}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Verifikasi</span>
+            </button>
+          )}
+
           {/* Tombol Simpan Perubahan jika data di-edit */}
           <button
             onClick={handleSaveChanges}
@@ -693,6 +746,57 @@ const ManageReport = () => {
           </div>
         </div>
       )}
+
+      {/* ── FITUR PESAN / CHAT ── */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[450px]">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-[#0A4D68]" />
+            Diskusi Laporan
+          </h3>
+        </div>
+        <div className="flex-1 p-4 overflow-y-auto bg-slate-50/50 space-y-4">
+          {messages.length === 0 ? (
+            <p className="text-center text-slate-400 text-sm mt-10">Belum ada pesan diskusi.</p>
+          ) : (
+            messages.map((msg) => {
+              const isMine = msg.user_id === user?.id;
+              return (
+                <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <UserCircle2 className="w-4 h-4 text-slate-400" />
+                    <span className="text-[10px] font-bold text-slate-500">{msg.user_name}</span>
+                    <span className="text-[10px] text-slate-400">
+                      {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                  </div>
+                  <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[80%] shadow-sm ${isMine ? 'bg-[#0A4D68] text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm'}`}>
+                    {msg.message}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <div className="p-4 border-t border-slate-200 bg-white">
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Ketik pesan..."
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A4D68]"
+            />
+            <button
+              type="submit"
+              disabled={sendingMsg || !newMessage.trim()}
+              className="p-2.5 bg-[#FF5000] hover:bg-[#E64800] text-white rounded-xl transition disabled:opacity-50"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </form>
+        </div>
+      </div>
 
       {/* Modal Input Nomor Voucher */}
       <VoucherModal

@@ -12,6 +12,7 @@ import UserManagement from './pages/UserManagement';
 import Settings from './pages/Settings';
 import UserGuide from './pages/UserGuide';
 import ManageReport from './pages/ManageReport';
+import ReviewReport from './pages/ReviewReport';
 
 function App() {
   return (
@@ -22,18 +23,23 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/panduan" element={<UserGuide />} />
 
+          {/* Protected Routes (Staff Only) */}
+          <Route element={<ProtectedRoute allowedRoles={['Staff']} />}>
+            <Route path="/upload" element={<UploadReport />} />
+            <Route path="/preview" element={<ReportPreview />} />
+          </Route>
+
           {/* Protected Routes (Staff & Admin) */}
           <Route element={<ProtectedRoute allowedRoles={['Admin', 'Staff']} />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/upload" element={<UploadReport />} />
-            <Route path="/preview" element={<ReportPreview />} />
-            <Route path="/riwayat" element={<ReportHistory />} />
             <Route path="/kelola/:id" element={<ManageReport />} />
             <Route path="/pengaturan" element={<Settings />} />
           </Route>
 
           {/* Protected Route (Admin Only) */}
           <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+            <Route path="/review" element={<ReviewReport />} />
+            <Route path="/riwayat" element={<ReportHistory />} />
             <Route path="/users" element={<UserManagement />} />
           </Route>
 
