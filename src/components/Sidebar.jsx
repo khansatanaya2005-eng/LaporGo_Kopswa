@@ -7,7 +7,8 @@ import {
   FileSpreadsheet, 
   FolderArchive, 
   Users, 
-  Settings 
+  Settings,
+  ClipboardList
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -19,6 +20,7 @@ const Sidebar = () => {
 
   if (user?.role === 'Staff') {
     navItems.push({ label: 'Proses Laporan', path: '/upload', icon: Upload });
+    navItems.push({ label: 'Status Review', path: '/my-review', icon: ClipboardList });
   }
 
   if (user?.role === 'Admin') {

@@ -199,13 +199,13 @@ const ReportPreview = () => {
     }
   };
 
-  // Simpan ke Supabase (laporan + omset_rows + warnings + upload files ke Storage dengan Progress Bar)
-  const handleSave = async () => {
+  // Kirim ke Review — simpan ke Supabase dengan status_workflow 'Belum di review'
+  const handleKirimReview = async () => {
     if (saved || saving) return;
     if (!customDate) return alert("Pilih tanggal laporan terlebih dahulu!");
 
     setSaving(true);
-    setSaveProgress({ stage: 'laporan', percent: 10, message: 'Menyimpan ringkasan & baris transaksi...' });
+    setSaveProgress({ stage: 'laporan', percent: 10, message: 'Menyimpan laporan & baris transaksi...' });
 
     try {
       if (isSupabaseConfigured()) {
@@ -254,12 +254,12 @@ const ReportPreview = () => {
           }
         }
 
-        setSaveProgress({ stage: 'done', percent: 100, message: 'Semua berkas & laporan berhasil tersimpan!' });
+        setSaveProgress({ stage: 'done', percent: 100, message: 'Laporan berhasil dikirim untuk review!' });
         setSaved(true);
 
-        // Beri jeda 1 detik agar user melihat 100%, lalu arahkan ke Kelola Laporan
+        // Beri jeda 1.2 detik agar user melihat 100%, lalu redirect ke halaman Status Review
         setTimeout(() => {
-          navigate(`/kelola/${laporan.id}`);
+          navigate('/my-review');
         }, 1200);
       } else {
         setSaved(true);
@@ -355,14 +355,14 @@ const ReportPreview = () => {
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Proses Ulang</span>
           </button>
-          <button onClick={handleSave} disabled={saving || saved || !customDate}
+          <button onClick={handleKirimReview} disabled={saving || saved || !customDate}
             className={`flex items-center gap-1.5 px-4 py-2 font-bold text-xs rounded-xl shadow-md transition cursor-pointer ${
               saved ? 'bg-emerald-500 text-white' : 
               !customDate ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 
               'bg-[#FF5000] hover:bg-[#e04600] text-white active:scale-95'}`}>
-            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Menyimpan...</span></>
-              : saved ? <><Check className="w-3.5 h-3.5" /><span>Tersimpan</span></>
-              : <><Save className="w-3.5 h-3.5" /><span>Simpan Laporan</span></>}
+            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Mengirim...</span></>
+              : saved ? <><Check className="w-3.5 h-3.5" /><span>Terkirim!</span></>
+              : <><Save className="w-3.5 h-3.5" /><span>Kirim ke Review</span></>}
           </button>
         </div>
       </div>

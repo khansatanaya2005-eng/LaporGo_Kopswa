@@ -5,7 +5,7 @@ import {
   Download, Printer, ArrowLeft, CheckCircle2,
   AlertTriangle, Clock, Search, ArrowUpDown,
   FileText, Layers, Building, Store, Eye, X, Loader2,
-  Pencil, Undo, Redo, Check, Save, MessageSquare, Send, ShieldCheck, UserCircle2
+  Pencil, Undo, Redo, Check, Save, MessageSquare, Send, ShieldCheck, UserCircle2, FileCheck
 } from 'lucide-react';
 import { formatRupiah } from '../utils/cn';
 import { getLaporanById, updateOmsetRow, updateLaporan, isSupabaseConfigured, getReportMessages, sendReportMessage } from '../lib/supabaseClient';
@@ -128,7 +128,7 @@ const ManageReport = () => {
   };
 
   const handleVerify = async () => {
-    if (!window.confirm('Verifikasi Laporan dan pindahkan ke Arsip? Laporan tidak akan bisa diedit lagi.')) return;
+    if (!window.confirm('Verifikasi Laporan ini? Status laporan akan menjadi Di Verifikasi.')) return;
     setSaving(true);
     try {
       await updateLaporan(id, { status_workflow: 'Di verifikasi' });
@@ -136,6 +136,20 @@ const ManageReport = () => {
       alert('Laporan berhasil diverifikasi.');
     } catch (err) {
       alert('Gagal verifikasi: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!window.confirm('Simpan Laporan ini ke Arsip? Laporan akan dipindahkan ke Arsip & Riwayat.')) return;
+    setSaving(true);
+    try {
+      await updateLaporan(id, { status_workflow: 'Arsip' });
+      setReport(prev => ({ ...prev, status_workflow: 'Arsip' }));
+      alert('Laporan berhasil disimpan ke Arsip.');
+    } catch (err) {
+      alert('Gagal menyimpan ke Arsip: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -337,16 +351,30 @@ const ManageReport = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {user?.role === 'Admin' && !isReadOnly && (
-            <button
-              onClick={handleVerify}
-              disabled={saving || isDirty}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0A4D68] hover:bg-[#083A4E] text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
-              title={isDirty ? 'Simpan perubahan sebelum verifikasi' : 'Verifikasi & Arsipkan'}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Verifikasi</span>
-            </button>
+          {user?.role === 'Admin' && report?.status_workflow !== 'Arsip' && (
+            <>
+              {report?.status_workflow !== 'Di verifikasi' ? (
+                <button
+                  onClick={handleVerify}
+                  disabled={saving || isDirty}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0A4D68] hover:bg-[#083A4E] text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  title={isDirty ? 'Simpan perubahan sebelum verifikasi' : 'Ubah status ke Di Verifikasi'}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Verifikasi</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleArchive}
+                  disabled={saving || isDirty}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  title="Simpan laporan ini ke Arsip & Riwayat"
+                >
+                  <FileCheck className="w-4 h-4" />
+                  <span>Simpan ke Arsip</span>
+                </button>
+              )}
+            </>
           )}
 
           {/* Tombol Simpan Perubahan jika data di-edit */}

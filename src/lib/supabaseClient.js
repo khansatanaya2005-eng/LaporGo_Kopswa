@@ -59,14 +59,16 @@ export async function saveLaporanToSupabase(laporanData, filesMeta = []) {
   const { data: laporan, error: errLaporan } = await supabase
     .from('laporan')
     .insert([{
-      tanggal:         tanggal || new Date().toISOString().split('T')[0],
-      status_balance:  summary.statusBalance,
-      total_debit:     summary.totalDebit,
-      total_kredit:    summary.totalKredit,
-      selisih:         summary.selisih,
-      jumlah_baris:    omsetRows.length,
-      jumlah_warnings: warnings.length,
-      dibuat_oleh:     user?.id || null,
+      tanggal:          tanggal || new Date().toISOString().split('T')[0],
+      status_balance:   summary.statusBalance,
+      total_debit:      summary.totalDebit,
+      total_kredit:     summary.totalKredit,
+      selisih:          summary.selisih,
+      jumlah_baris:     omsetRows.length,
+      jumlah_warnings:  warnings.length,
+      dibuat_oleh:      user?.id || null,
+      submitted_by:     user?.id || null,
+      status_workflow:  'Belum di review',
     }])
     .select()
     .single();
@@ -346,7 +348,7 @@ export async function getLaporanById(laporanId) {
 export async function updateLaporan(laporanId, updates = {}) {
   if (!isSupabaseConfigured()) return null;
 
-  const allowed = ['catatan', 'file_output_url', 'status_balance', 'total_debit', 'total_kredit', 'selisih', 'status_workflow'];
+  const allowed = ['catatan', 'file_output_url', 'status_balance', 'total_debit', 'total_kredit', 'selisih', 'status_workflow', 'submitted_by'];
   const payload = Object.fromEntries(
     Object.entries(updates).filter(([k]) => allowed.includes(k))
   );
@@ -781,6 +783,54 @@ export async function listStorageFiles(laporanId) {
 
   if (error) { console.error('[Supabase Storage] list:', error); return []; }
   return data || [];
+}
+
+// ─────────────────────────────────────────────────────────────
+// LAPORAN — FILTER BY SUBMITTED_BY (Staff view)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Ambil daftar laporan milik staff yang sedang login
+ * @param {string} userId - UUID user yang login
+ */
+export async function getMyLaporanList(userId) {
+  if (!isSupabaseConfigured() || !userId) return [];
+
+  const { data, error } = await supabase
+    .from('v_laporan_with_profile')
+    .select('*')
+    .eq('submitted_by', userId)
+    .not('is_trashed', 'eq', true)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[Supabase] getMyLaporanList:', error);
+    return [];
+  }
+  return data || [];
+}
+
+/**
+ * Update status workflow laporan
+ * @param {string} laporanId
+ * @param {string} status - 'Belum di review' | 'Di review' | 'Di verifikasi' | 'Arsip'
+ */
+export async function updateWorkflowStatus(laporanId, status) {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await supabase
+    .from('laporan')
+    .update({ status_workflow: status })
+    .eq('id', laporanId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Supabase] updateWorkflowStatus:', error);
+    throw new Error(error.message);
+  }
+  return data;
 }
 
 // ─────────────────────────────────────────────────────────────

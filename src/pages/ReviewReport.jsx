@@ -9,9 +9,11 @@ import {
 import { formatRupiah } from '../utils/cn';
 import {
   getLaporanList, getTrashLaporanList, softDeleteLaporan,
-  restoreLaporan, deleteLaporanPermanently, isSupabaseConfigured
+  restoreLaporan, deleteLaporanPermanently, isSupabaseConfigured,
+  updateWorkflowStatus
 } from '../lib/supabaseClient';
 import { MOCK_HISTORY_LAPORAN } from '../data/mockData';
+import { FileCheck, FileClock } from 'lucide-react';
 
 const StatusBadge = ({ status }) => {
   if (status === 'Balance')
@@ -24,6 +26,17 @@ const StatusBadge = ({ status }) => {
     <Clock className="w-3.5 h-3.5" /><span>Draft</span></span>;
 };
 
+const WorkflowBadge = ({ status }) => {
+  if (status === 'Di verifikasi')
+    return <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <CheckCircle2 className="w-3.5 h-3.5" /><span>Di Verifikasi</span></span>;
+  if (status === 'Di review')
+    return <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+      <FileClock className="w-3.5 h-3.5" /><span>Di Review</span></span>;
+  return <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+    <Clock className="w-3.5 h-3.5" /><span>Belum di Review</span></span>;
+};
+
 const ReviewReport = () => {
   const [reports,           setReports]           = useState([]);
   const [trashReports,      setTrashReports]      = useState([]);
@@ -34,6 +47,7 @@ const ReviewReport = () => {
   const [loading,           setLoading]           = useState(true);
   const [usingMock,         setUsingMock]         = useState(false);
   const [filterStatus,      setFilterStatus]      = useState('ALL');
+  const [filterWorkflow,    setFilterWorkflow]    = useState('ALL');
   const [searchQuery,       setSearchQuery]       = useState('');
   const [showTrashModal,    setShowTrashModal]    = useState(false);
   const [processing,        setProcessing]        = useState(false);
@@ -61,7 +75,7 @@ const ReviewReport = () => {
               created_at:       r.created_at,
               file_output_url:  r.file_output_url,
             };
-          }).filter(r => r.status_workflow !== 'Di verifikasi' && r.status_workflow !== 'Arsip'));
+          }).filter(r => r.status_workflow !== 'Arsip'));
           setTrashReports((trashData || []).map(r => {
             const calculatedSelisih = Math.abs((Number(r.total_debit) || 0) - (Number(r.total_kredit) || 0));
             return {
@@ -105,8 +119,27 @@ const ReviewReport = () => {
     const matchSearch = r.tanggal?.includes(searchQuery) ||
       r.dibuat_oleh_nama?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchStatus = filterStatus === 'ALL' || r.status_balance === filterStatus;
-    return matchSearch && matchStatus;
+    const matchWorkflow = filterWorkflow === 'ALL' || (r.status_workflow || 'Belum di review') === filterWorkflow;
+    return matchSearch && matchStatus && matchWorkflow;
   });
+
+  const handleUpdateStatusWorkflow = async (reportId, newStatus) => {
+    setProcessing(true);
+    try {
+      if (isSupabaseConfigured()) {
+        await updateWorkflowStatus(reportId, newStatus);
+      }
+      if (newStatus === 'Arsip') {
+        setReports(prev => prev.filter(r => r.id !== reportId));
+      } else {
+        setReports(prev => prev.map(r => r.id === reportId ? { ...r, status_workflow: newStatus } : r));
+      }
+    } catch (err) {
+      alert('Gagal mengubah status workflow: ' + err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   // ── Select Handlers (Main Table) ────────────────────────
   const handleSelectAll = (e) => {
@@ -354,9 +387,16 @@ const ReviewReport = () => {
         <div className="flex items-center gap-3 flex-wrap justify-end">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-slate-400" />
+            <select value={filterWorkflow} onChange={e => setFilterWorkflow(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#0A4D68]">
+              <option value="ALL">Semua Workflow</option>
+              <option value="Belum di review">Belum di Review</option>
+              <option value="Di review">Di Review</option>
+              <option value="Di verifikasi">Di Verifikasi</option>
+            </select>
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
               className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#0A4D68]">
-              <option value="ALL">Semua Status</option>
+              <option value="ALL">Semua Balance</option>
               <option value="Balance">Balance</option>
               <option value="Unbalance">Unbalance</option>
             </select>
@@ -388,7 +428,8 @@ const ReviewReport = () => {
                     </th>
                   )}
                   <th className="py-3.5 px-5">Tanggal</th>
-                  <th className="py-3.5 px-5">Status</th>
+                  <th className="py-3.5 px-5">Status Balance</th>
+                  <th className="py-3.5 px-5">Status Review</th>
                   <th className="py-3.5 px-5">Total Debit / Kredit</th>
                   <th className="py-3.5 px-5">Selisih</th>
                   <th className="py-3.5 px-5">Dibuat Oleh</th>
@@ -398,6 +439,7 @@ const ReviewReport = () => {
               <tbody className="divide-y divide-slate-100">
                 {filtered.length > 0 ? filtered.map(row => {
                   const isSelected = selectedIds.includes(row.id);
+                  const currentWf = row.status_workflow || 'Belum di review';
                   return (
                     <tr key={row.id} className={`transition ${isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
                       {isSelectMode && (
@@ -420,6 +462,23 @@ const ReviewReport = () => {
                         </p>
                       </td>
                       <td className="py-4 px-5"><StatusBadge status={row.status_balance} /></td>
+                      <td className="py-4 px-5">
+                        <div className="space-y-1">
+                          <WorkflowBadge status={currentWf} />
+                          <div className="mt-1">
+                            <select
+                              value={currentWf}
+                              onChange={(e) => handleUpdateStatusWorkflow(row.id, e.target.value)}
+                              disabled={processing}
+                              className="text-[11px] bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#0A4D68] cursor-pointer font-medium"
+                            >
+                              <option value="Belum di review">Belum di review</option>
+                              <option value="Di review">Sedang di review</option>
+                              <option value="Di verifikasi">Di verifikasi</option>
+                            </select>
+                          </div>
+                        </div>
+                      </td>
                       <td className="py-4 px-5 font-mono font-medium text-slate-800 text-xs">
                         <div>{formatRupiah(row.total_debit)}</div>
                         <div className="text-slate-400">{formatRupiah(row.total_kredit)}</div>
@@ -436,6 +495,16 @@ const ReviewReport = () => {
                             className="flex items-center gap-1 text-xs font-semibold text-[#0A4D68] bg-[#0A4D68]/10 hover:bg-[#0A4D68]/20 px-3 py-1.5 rounded-lg border border-[#0A4D68]/20 transition">
                             <Eye className="w-3.5 h-3.5" /><span>Detail</span>
                           </Link>
+                          {currentWf === 'Di verifikasi' && (
+                            <button
+                              onClick={() => handleUpdateStatusWorkflow(row.id, 'Arsip')}
+                              disabled={processing}
+                              className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg border border-emerald-300 transition cursor-pointer"
+                              title="Simpan laporan ini ke Arsip"
+                            >
+                              <FileCheck className="w-3.5 h-3.5" /><span>Simpan ke Arsip</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

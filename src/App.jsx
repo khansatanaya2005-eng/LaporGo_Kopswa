@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import UserGuide from './pages/UserGuide';
 import ManageReport from './pages/ManageReport';
 import ReviewReport from './pages/ReviewReport';
+import MyReview from './pages/MyReview';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           {/* Protected Routes (Staff & Admin) */}
           <Route element={<ProtectedRoute allowedRoles={['Admin', 'Staff']} />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/my-review" element={<MyReview />} />
             <Route path="/kelola/:id" element={<ManageReport />} />
             <Route path="/pengaturan" element={<Settings />} />
           </Route>

@@ -10,7 +10,10 @@ import {
   ArrowRight,
   Clock,
   Eye,
-  Loader2
+  Loader2,
+  ClipboardList,
+  FileClock,
+  CheckCheck
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -21,21 +24,28 @@ import {
   CartesianGrid, 
   Tooltip 
 } from 'recharts';
-import { getLaporanList } from '../lib/supabaseClient';
+import { getLaporanList, getMyLaporanList } from '../lib/supabaseClient';
 import { formatRupiah } from '../utils/cn';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [reports, setReports] = useState([]);
+  const [myReports, setMyReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d'); // '7d', '30d', '3m', '6m', '1y'
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      if (user?.role === 'Staff') {
+        const myData = await getMyLaporanList(user?.id);
+        setMyReports(myData || []);
+      }
       const data = await getLaporanList();
       setReports(data || []);
     } catch (err) {
@@ -113,24 +123,185 @@ const Dashboard = () => {
     { id: '1y', label: '1 Tahun' },
   ];
 
+  if (user?.role === 'Staff') {
+    const totalMyReports = myReports.length;
+    const pendingReviewCount = myReports.filter(r => !r.status_workflow || r.status_workflow === 'Belum di review').length;
+    const verifiedCount = myReports.filter(r => r.status_workflow === 'Di verifikasi' || r.status_workflow === 'Arsip').length;
+
+    return (
+      <div className="space-y-6">
+        {/* Welcome Banner Staff */}
+        <div className="bg-gradient-to-r from-[#051923] via-[#0A4D68] to-[#088395] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+          <div className="absolute right-0 top-0 w-80 h-full bg-white/5 transform skew-x-12 pointer-events-none"></div>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <span className="inline-block px-3 py-1 bg-white/10 text-teal-200 text-xs font-bold rounded-full mb-2">
+                Dasbor Operasional Staff
+              </span>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Halo, {user?.name || 'Staff Koperasi'} 👋
+              </h1>
+              <p className="text-teal-100/90 text-sm mt-1">
+                Upload laporan harian Anda, lalu pantau status review dan verifikasi dari Admin.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+              <Link
+                to="/upload"
+                className="inline-flex items-center justify-center gap-2 bg-[#FF5000] hover:bg-[#e04600] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95"
+              >
+                <FilePlus className="w-4 h-4" />
+                <span>Proses Laporan Baru</span>
+              </Link>
+              <Link
+                to="/my-review"
+                className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold text-xs border border-white/20 transition-all active:scale-95"
+              >
+                <ClipboardList className="w-4 h-4" />
+                <span>Status Review Saya</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Stat Cards Staff */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Laporan Diproses Saya</p>
+              <h3 className="text-2xl font-black text-slate-900 mt-1">{totalMyReports}</h3>
+              <p className="text-xs text-slate-500 mt-1">Total laporan tersimpan</p>
+            </div>
+            <div className="p-3 bg-blue-50 text-[#0A4D68] rounded-2xl">
+              <FileSpreadsheet className="w-6 h-6" />
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Belum di Review Admin</p>
+              <h3 className="text-2xl font-black text-amber-600 mt-1">{pendingReviewCount}</h3>
+              <p className="text-xs text-slate-500 mt-1">Menunggu pemeriksaan</p>
+            </div>
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+              <FileClock className="w-6 h-6" />
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Telah di Verifikasi</p>
+              <h3 className="text-2xl font-black text-emerald-600 mt-1">{verifiedCount}</h3>
+              <p className="text-xs text-slate-500 mt-1">Disetujui Admin</p>
+            </div>
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+              <CheckCheck className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+
+        {/* Table Laporan Terbaru Saya */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900">Laporan Terakhir Saya</h2>
+            <Link to="/my-review" className="text-xs font-semibold text-[#0A4D68] hover:text-[#088395] flex items-center gap-1">
+              <span>Lihat Status Review</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-600">
+              <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase border-b border-slate-100">
+                <tr>
+                  <th className="py-3.5 px-5">Tanggal</th>
+                  <th className="py-3.5 px-5">Status Balance</th>
+                  <th className="py-3.5 px-5">Status Review</th>
+                  <th className="py-3.5 px-5">Total Debit</th>
+                  <th className="py-3.5 px-5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" className="py-12 text-center text-slate-400 text-xs">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#0A4D68]" />
+                      <span>Memuat data...</span>
+                    </td>
+                  </tr>
+                ) : myReports.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="py-12 text-center text-slate-400 text-xs">
+                      Belum ada laporan yang Anda kirimkan. Silakan klik "Proses Laporan Baru".
+                    </td>
+                  </tr>
+                ) : (
+                  myReports.slice(0, 5).map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50 transition">
+                      <td className="py-4 px-5 font-bold text-slate-900">{row.tanggal}</td>
+                      <td className="py-4 px-5">
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                          row.status_balance === 'Balance' 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {row.status_balance === 'Balance' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                          {row.status_balance}
+                        </span>
+                      </td>
+                      <td className="py-4 px-5">
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${
+                          row.status_workflow === 'Di verifikasi'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : row.status_workflow === 'Di review'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          <Clock className="w-3.5 h-3.5" />
+                          {row.status_workflow || 'Belum di review'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-5 font-mono text-xs font-medium text-slate-800">
+                        {formatRupiah(row.total_debit)}
+                      </td>
+                      <td className="py-4 px-5 text-right">
+                        <Link
+                          to={`/kelola/${row.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0A4D68] bg-[#0A4D68]/10 hover:bg-[#0A4D68]/20 px-3 py-1.5 rounded-lg border border-[#0A4D68]/20 transition"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Detail</span>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
+      {/* Welcome Banner Admin */}
       <div className="bg-gradient-to-r from-[#051923] via-[#0A4D68] to-[#088395] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="absolute right-0 top-0 w-80 h-full bg-white/5 transform skew-x-12 pointer-events-none"></div>
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Ringkasan Laporan Harian</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Ringkasan Laporan Harian (Admin)</h1>
             <p className="text-teal-100/90 text-sm mt-1">
-              Pantau status sinkronisasi laporan keuangan OMI & SMART KOPSWA.
+              Pantau status sinkronisasi laporan keuangan OMI & SMART KOPSWA serta verifikasi laporan.
             </p>
           </div>
           <Link
-            to="/upload"
+            to="/review"
             className="inline-flex items-center justify-center gap-2 bg-[#FF5000] hover:bg-[#e04600] text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-all shrink-0 active:scale-95"
           >
-            <FilePlus className="w-4 h-4" />
-            <span>Proses Laporan Baru</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Review Laporan Masuk</span>
           </Link>
         </div>
       </div>
