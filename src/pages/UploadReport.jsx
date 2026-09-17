@@ -247,13 +247,6 @@ const UploadReport = () => {
                   <FileSlotRow title="LAPORAN DISC. ITEM.xls"
                     description="Rincian diskon per item" accept=".xls,.xlsx"
                     uploadedFiles={omiDiscItem} onUpload={setOmiDiscItem} onRemove={() => setOmiDiscItem([])} />
-                  <FileSlotRow title="BERKAS STRUK (.txt)" isMulti isStruk
-                    description="Upload lebih dari 1 file struk kasir/anggota sekaligus" accept=".txt"
-                    uploadedFiles={omiStrukTxt}
-                    onUpload={(f) => setOmiStrukTxt(p => [...p, ...f])}
-                    onRemove={(idx) => typeof idx === 'number'
-                      ? setOmiStrukTxt(p => p.filter((_, i) => i !== idx))
-                      : setOmiStrukTxt([])} />
                   <FileSlotRow title="LAPORAN PARETO.xls" accept=".xls,.xlsx"
                     description="Validasi silang total penjualan barang"
                     uploadedFiles={omiPareto} onUpload={setOmiPareto} onRemove={() => setOmiPareto([])} />
