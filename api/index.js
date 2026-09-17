@@ -35,6 +35,27 @@ function findRowByText(ws, text, colIdx = 1, maxRow = 120) {
   return -1;
 }
 
+function findHeaderRow(ws, maxRow = 20) {
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+  for (let r = range.s.r; r <= Math.min(range.e.r, maxRow); r++) {
+    for (let c = 0; c <= 40; c++) {
+      const v = String(getCellVal(ws, r, c) ?? '').toUpperCase();
+      if (v === 'TUNAI' || v === 'KREDIT' || v === 'DEBIT') return r;
+    }
+  }
+  return -1;
+}
+
+function findColByHeader(ws, headerRow, label) {
+  if (headerRow === -1) return -1;
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const v = String(getCellVal(ws, headerRow, c) ?? '').toUpperCase();
+    if (v.includes(label.toUpperCase())) return c;
+  }
+  return -1;
+}
+
 function defaultRow() {
   return {
     no: 0, nama_ref: '', jenis_transaksi: '', kwitansi: '', keterangan: '',
@@ -55,24 +76,36 @@ function parseLaporanPerTanggal(buffer) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const ws = wb.Sheets[wb.SheetNames[0]];
 
-  const rowBKP   = findRowByText(ws, 'BRG KENA PAJAK');
-  const rowCukai = findRowByText(ws, 'BRG KENA CUKAI');
-  const rowTotal = findRowByText(ws, 'TOTAL');
+  const rowBKP      = findRowByText(ws, 'BRG KENA PAJAK');
+  const rowCukai    = findRowByText(ws, 'BRG KENA CUKAI');
+  const rowPpnBebas = findRowByText(ws, 'PPN BEBAS');
+  const rowTotal    = findRowByText(ws, 'TOTAL');
 
   if (rowBKP === -1 || rowTotal === -1) {
     throw new Error('PER TANGGAL: Baris "BRG KENA PAJAK" atau "TOTAL" tidak ditemukan');
   }
 
+  const headerRow     = findHeaderRow(ws);
+  const debitColIdx   = findColByHeader(ws, headerRow, 'debit');
+  const voucherColIdx = findColByHeader(ws, headerRow, 'voucher');
+
   // Col indices (0-based): N=13, S=18, X=23, AH=33, AJ=35
   const g = (row, c) => Number(getCellVal(ws, row, c)) || 0;
 
+  const cukai    = rowCukai    !== -1 ? g(rowCukai, 33)    : 0;
+  const ppnBebas = rowPpnBebas !== -1 ? g(rowPpnBebas, 33) : 0;
+
   return {
-    dppBKP  : g(rowBKP,   33),   // col AH baris BRG KENA PAJAK → bersih
-    nonPajak: rowCukai !== -1 ? g(rowCukai, 33) : 0,  // col AH baris BRG KENA CUKAI
-    ppnOmi  : Math.round(g(rowTotal, 23)),  // col X  baris TOTAL
-    hppOmi  : Math.round(g(rowTotal, 35)),  // col AJ baris TOTAL
-    kredit  : g(rowTotal, 13),              // col N  baris TOTAL
-    emoney  : g(rowTotal, 18),              // col S  baris TOTAL
+    dppBKP          : g(rowBKP, 33),   // col AH baris BRG KENA PAJAK → bersih
+    cukai           : cukai,
+    ppnBebas        : ppnBebas,
+    nonPajak        : cukai + ppnBebas, // col AH baris BRG KENA CUKAI + PPN BEBAS
+    ppnOmi          : Math.round(g(rowTotal, 23)),  // col X  baris TOTAL
+    hppOmi          : Math.round(g(rowTotal, 35)),  // col AJ baris TOTAL
+    kredit          : g(rowTotal, 13),              // col N  baris TOTAL
+    emoney          : g(rowTotal, 18),              // col S  baris TOTAL
+    debitCard       : debitColIdx !== -1 ? g(rowTotal, debitColIdx) : 0,
+    voucherPotongan : voucherColIdx !== -1 ? g(rowTotal, voucherColIdx) : 0,
   };
 }
 
@@ -82,21 +115,33 @@ function parseLaporanPerTanggal(buffer) {
 function parseTutupHarian(buffer) {
   const lines = buffer.toString('latin1').split('\n');
   let potProduk = 0, tunai = 0, kredit = 0, emoney = 0, ppn = 0, tanggal = '';
+  let debitCard = 0, creditCard = 0, voucherPotongan = 0;
 
   for (const raw of lines) {
     const line = raw.replace(/\r/, '').trim();
-    if (/Pot\.Produk/i.test(line))                    potProduk = parseTxtAmount(line);
-    else if (/^-\s*Tunai/i.test(line))                tunai     = parseTxtAmount(line);
-    else if (/^-\s*Kredit/i.test(line))               kredit    = parseTxtAmount(line);
-    else if (/^-\s*E-Money/i.test(line))              emoney    = parseTxtAmount(line);
+    if (/Pot\.Produk/i.test(line))                    potProduk       = parseTxtAmount(line);
+    else if (/^-\s*Tunai/i.test(line))                tunai           = parseTxtAmount(line);
+    else if (/^-\s*Kredit/i.test(line))               kredit          = parseTxtAmount(line);
+    else if (/^-\s*E-Money/i.test(line))              emoney          = parseTxtAmount(line);
+    else if (/^-\s*Debit\s*Card/i.test(line))         debitCard       = parseTxtAmount(line);
+    else if (/^-\s*Credit\s*Card/i.test(line))        creditCard      = parseTxtAmount(line);
+    else if (/^-\s*Voucher/i.test(line))              voucherPotongan = parseTxtAmount(line);
     else if (/^-\s*PPN\s+[\d]/i.test(line) ||
              /^-\s*PPN$/.test(line.replace(/\s+[\d.,]+$/, ''))) ppn = parseTxtAmount(line);
+
+    // TODO: Point Belanja   — belum ada arahan masuk kolom jurnal mana
+    // TODO: Pot.GWP         — belum ada arahan
+    // TODO: Disc.Tot.Struk  — belum ada arahan
+    // TODO: Kas Aktual      — belum ada arahan
+    // TODO: Ambil Tunai     — belum ada arahan
+    // TODO: Ambil Drawer    — belum ada arahan
+    // TODO: Pay Out         — belum ada arahan
 
     const mTgl = raw.match(/Tanggal\s*:\s*(\d{2}-\d{2}-\d{4})/i);
     if (mTgl && !tanggal) tanggal = mTgl[1];
   }
 
-  return { potProduk, tunai, kredit, emoney, ppn, tanggal };
+  return { potProduk, tunai, kredit, emoney, ppn, tanggal, debitCard, creditCard, voucherPotongan };
 }
 
 // ─────────────────────────────────────────────
@@ -121,26 +166,34 @@ function parseSmartRingkasan(buffer) {
     return m ? parseRupiah('Rp ' + m[1]) : 0;
   };
 
+  const rowPenjualan = findRowByText(ws, 'Penjualan :');
+  const rowDpp       = findRowByText(ws, 'DPP :');
+  const rowPpnS      = findRowByText(ws, 'PPN :');
+  const rowHpp       = findRowByText(ws, 'HPP :');
+
   const summary = {
-    penjualan : parseLine(ws['B12']?.v),
-    dpp       : parseLine(ws['B13']?.v),
-    ppn       : parseLine(ws['B14']?.v),
-    hpp       : parseLine(ws['B15']?.v),
+    penjualan : rowPenjualan !== -1 ? parseLine(getCellVal(ws, rowPenjualan, 1)) : 0,
+    dpp       : rowDpp       !== -1 ? parseLine(getCellVal(ws, rowDpp,       1)) : 0,
+    ppn       : rowPpnS      !== -1 ? parseLine(getCellVal(ws, rowPpnS,      1)) : 0,
+    hpp       : rowHpp       !== -1 ? parseLine(getCellVal(ws, rowHpp,       1)) : 0,
   };
 
   // Loop entri voucher
   const entries = [];
+  let currentSection = null;
   const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
   for (let r = 9; r <= range.e.r; r++) {
-    const bVal = String(getCellVal(ws, r, 1) ?? '');
+    const bVal = String(getCellVal(ws, r, 1) ?? '').trim();
     if (bVal.startsWith('Penjualan :')) break;
+    if (bVal === '* Voucher') { currentSection = 'VOUCHER'; continue; }
+    if (bVal === '* Piutang') { currentSection = 'PIUTANG'; continue; }
     if (bVal.startsWith('  - Voucher:')) {
       const voucherName = bVal.replace('  - Voucher:', '').trim();
       const pelanggan   = String(getCellVal(ws, r, 2) ?? voucherName);
       const total       = parseRupiah(String(getCellVal(ws, r, 3) ?? '0'));
       const dpp         = Math.round(total / 1.11);
       const ppn         = total - dpp;
-      entries.push({ voucherName, pelanggan, total, dpp, ppn });
+      entries.push({ section: currentSection, voucherName, pelanggan, total, dpp, ppn });
     }
   }
 
@@ -148,43 +201,260 @@ function parseSmartRingkasan(buffer) {
 }
 
 // ─────────────────────────────────────────────
+// KLASIFIKASI ENTITAS & HELPER NON-TUNAI
+// ─────────────────────────────────────────────
+const E_WALLET_KEYWORDS = ['QRIS', 'DANA', 'OVO', 'GOPAY', 'SHOPEEPAY', 'LINKAJA'];
+
+function isElectronicWallet(nama) {
+  const upper = String(nama || '').toUpperCase();
+  return E_WALLET_KEYWORDS.some(kw => upper.includes(kw));
+}
+
+// CATATAN: belum bisa divalidasi dengan data lama (28/31 Agt) karena belum ada "@"
+function classifyEntitas(nama) {
+  const trimmed = String(nama || '').trim();
+  if (trimmed.startsWith('@')) {
+    return { tipe: 'DIVISI', namaBersih: trimmed.slice(1).trim() };
+  }
+  return { tipe: 'PERORANGAN', namaBersih: trimmed };
+}
+
+// ─────────────────────────────────────────────
+// PARSER 4: LAPORAN PER STRUK (.txt)
+// ─────────────────────────────────────────────
+function parseLaporanPerStruk(buffer, filename = '') {
+  const lines = buffer.toString('latin1').split('\n').map(l => l.replace(/\r/, ''));
+
+  let noAnggota = '', namaAnggota = '', noStruk = '';
+  let totalBelanja = 0, potonganProduk = 0, totalSetelahDiskon = 0, pembayaranKredit = 0;
+
+  // Coba ekstrak noStruk dari nama file: "[TANGGAL] [NAMA] [NOMOR].txt"
+  const fileMatch = filename.match(/(\d+)\.txt$/i);
+  if (fileMatch) noStruk = fileMatch[1];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let m;
+    if (m = line.match(/No\.Anggota\s*:\s*(\d+)/i))            noAnggota          = m[1];
+    if (m = line.match(/Nama Anggota\s*:\s*(.+)/i))             namaAnggota        = m[1].trim();
+    if (/TOTAL BELANJA/i.test(line))                             totalBelanja       = parseTxtAmount(line);
+    if (/POTONGAN PRODUK/i.test(line))                          potonganProduk     = parseTxtAmount(line);
+    if (/^TOTAL[^B]/i.test(line) && !/BELANJA/i.test(line))    totalSetelahDiskon = parseTxtAmount(line);
+    if (/PEMBAYARAN KREDIT/i.test(line))                        pembayaranKredit   = parseTxtAmount(line);
+  }
+
+  // Hanya proses DIVISI, skip PERORANGAN
+  const { tipe, namaBersih } = classifyEntitas(namaAnggota);
+  if (tipe !== 'DIVISI') return null;
+
+  // Blok pajak — LOOP (bukan if/else), support 1-3 blok sekaligus
+  let dpp_ppn = 0, ppn_ppn = 0, nonPajak = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const next = lines[i + 1] || '';
+
+    // BLOK 1: "N Item PPN" (bukan PPN Bebas)
+    if (/\d+\s*Item PPN/i.test(line) && !/PPN Bebas/i.test(line)) {
+      const mD = next.match(/DPP=\s*([0-9.]+)/i);
+      const mP = next.match(/PPN=\s*([0-9.]+)/i);
+      if (mD) dpp_ppn += parseInt(mD[1].replace(/\./g, '')) || 0;
+      if (mP) ppn_ppn += parseInt(mP[1].replace(/\./g, '')) || 0;
+    }
+    // BLOK 2: "**** : N Item PPN Bebas" — DPP masuk nonPajak, PPN diabaikan
+    if (/\*{4}\s*:\s*\d+\s*Item PPN Bebas/i.test(line)) {
+      const mD = next.match(/DPP=\s*([0-9.]+)/i);
+      if (mD) nonPajak += parseInt(mD[1].replace(/\./g, '')) || 0;
+    }
+    // BLOK 3: "** : N Item Kena Cukai" — DPP masuk nonPajak, tidak ada PPN
+    if (/\*{2}\s*:\s*\d+\s*Item Kena Cukai/i.test(line) && !/\*{4}/.test(line)) {
+      const mD = next.match(/DPP=\s*([0-9.]+)/i);
+      if (mD) nonPajak += parseInt(mD[1].replace(/\./g, '')) || 0;
+    }
+  }
+
+  // Validasi internal (toleransi ±5 untuk pembulatan)
+  const totalPajak    = dpp_ppn + ppn_ppn + nonPajak;
+  const totalExpected = totalSetelahDiskon + potonganProduk;
+  if (Math.abs(totalPajak - totalExpected) > 5) {
+    console.warn(`[parseLaporanPerStruk] WARNING ${filename}: ` +
+      `dpp+ppn+nonPajak=${totalPajak} != total+potongan=${totalExpected}`);
+  }
+
+  return {
+    section: 'DIVISI',
+    nama: namaBersih,
+    noAnggota,
+    noStruk: noStruk || noAnggota,
+    totalBelanja, potonganProduk, totalSetelahDiskon, pembayaranKredit,
+    dpp: dpp_ppn, ppn: ppn_ppn, nonPajak,
+  };
+}
+
+// ─────────────────────────────────────────────
+// PARSER 5: LAPORAN PER MEMBER (.xlsx/.xls)
+// ─────────────────────────────────────────────
+function parseLaporanPerMember(buffer) {
+  const wb = XLSX.read(buffer, { type: 'buffer' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+
+  let totalPerorangan = 0;
+  let currentTipe = null;
+
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    const cellB = String(getCellVal(ws, r, 1) ?? ''); // kolom B
+    // Deteksi baris "NAMA : ..."
+    if (/^NAMA\s*:/i.test(cellB)) {
+      const namaRaw = cellB.replace(/^NAMA\s*:\s*/i, '').trim();
+      currentTipe = classifyEntitas(namaRaw).tipe;
+      continue;
+    }
+    // Ambil nilai TOTAL hanya dari blok PERORANGAN
+    if (/^TOTAL$/i.test(cellB.trim()) && currentTipe === 'PERORANGAN') {
+      // PERHATIAN: index kolom TOTAL (idx 2) perlu dikonfirmasi dari file asli
+      const totalVal = Number(getCellVal(ws, r, 2)) || 0;
+      totalPerorangan += totalVal;
+      currentTipe = null;
+    }
+  }
+
+  return { total: totalPerorangan };
+}
+
+// ─────────────────────────────────────────────
 // BUILD OMSET ROWS
 // ─────────────────────────────────────────────
-function buildOmsetRows({ txt, omi, smartResults }) {
+function buildOmsetRows({ txt, omi, smartResults, divisiStrukList = [], memberData = { total: 0 } }) {
   const rows = [];
   const tokoData = smartResults.find(s => s.category === 'TOKO') || null;
   const logoData = smartResults.find(s => s.category === 'LOGO') || null;
-
   const add = (fields) => rows.push({ ...defaultRow(), ...fields });
 
-  add({ nama_ref: 'promo',       keterangan: 'Potongan Produk / Diskon',   tag_promo: txt.potProduk });
-  add({ nama_ref: 'omset omi',   keterangan: 'Penjualan Toko OMI',
-        pendapatan_toko: Math.round(omi.dppBKP), non_pajak: Math.round(omi.nonPajak),
-        ppn_pk: omi.ppnOmi, beban_toko: omi.hppOmi, persediaan_toko: omi.hppOmi });
+  // Pre-compute SUM dari semua struk DIVISI (untuk rumus pengurangan agregat)
+  const sumDivDpp      = divisiStrukList.reduce((s, d) => s + d.dpp,      0);
+  const sumDivPpn      = divisiStrukList.reduce((s, d) => s + d.ppn,      0);
+  const sumDivNonPajak = divisiStrukList.reduce((s, d) => s + d.nonPajak, 0);
 
+  // Helper untuk filter entri SMART yang dipecah 3-baris
+  const pecahEntries = (data) => data
+    ? data.entries.filter(e => e.section === 'PIUTANG' && !isElectronicWallet(e.pelanggan))
+    : [];
+
+  // 1. Promo
+  add({ nama_ref: 'promo', keterangan: 'Potongan Produk / Diskon', tag_promo: txt.potProduk });
+
+  // 2. Omset OMI (rumus pengurangan agregat - Bagian 4A)
+  add({ nama_ref: 'omset omi', keterangan: 'Penjualan Toko OMI',
+    pendapatan_toko : Math.round(omi.dppBKP - sumDivDpp),
+    ppn_pk          : Math.round(omi.ppnOmi - sumDivPpn),
+    non_pajak       : Math.round((omi.cukai + omi.ppnBebas) - sumDivNonPajak),
+    beban_toko      : omi.hppOmi,
+    persediaan_toko : omi.hppOmi,
+  });
+
+  // 3. Omset SMART TOKO (rumus pengurangan agregat - Bagian 4B)
   if (tokoData) {
-    add({ nama_ref: 'omset smart', keterangan: 'Penjualan SMART TOKO',
-          pendapatan_toko: tokoData.summary.dpp, ppn_pk: tokoData.summary.ppn,
-          beban_toko: tokoData.summary.hpp, persediaan_toko: tokoData.summary.hpp });
+    const ep = pecahEntries(tokoData);
+    const sumDpp = ep.reduce((s, e) => s + e.dpp, 0);
+    const sumPpn = ep.reduce((s, e) => s + e.ppn, 0);
+    add({ nama_ref: 'omset smart toko', keterangan: 'Penjualan SMART TOKO',
+      pendapatan_toko : Math.round(tokoData.summary.dpp - sumDpp),
+      ppn_pk          : Math.round(tokoData.summary.ppn - sumPpn),
+      beban_toko      : tokoData.summary.hpp,
+      persediaan_toko : tokoData.summary.hpp,
+    });
   }
 
-  add({ nama_ref: 'pegawai',  keterangan: 'Kredit Anggota Pegawai',  piutang: omi.kredit });
-  add({ nama_ref: 'e-money',  keterangan: 'Transaksi E-Money OMI',   piutang_edc: omi.emoney });
-  add({ nama_ref: 'tunai',    keterangan: 'Kas Tunai Aktual',        kas_uks: txt.tunai });
-
-  if (tokoData) {
-    tokoData.entries.forEach(e => add({
-      nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-      keterangan: 'Pembayaran SMART TOKO', piutang_edc: e.total,
-    }));
-  }
+  // 4. Omset SMART LOGO (DIKEMBALIKAN - Bagian 4C)
   if (logoData) {
-    logoData.entries.forEach(e => add({
-      nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-      keterangan: 'Pembelian SMART LOGO',
-      piutang: e.total, pendapatan_toko: e.dpp, ppn_pk: e.ppn,
-    }));
+    const ep = pecahEntries(logoData);
+    const sumDpp = ep.reduce((s, e) => s + e.dpp, 0);
+    const sumPpn = ep.reduce((s, e) => s + e.ppn, 0);
+    add({ nama_ref: 'omset smart logo', keterangan: 'Penjualan SMART LOGO',
+      pendapatan_toko : Math.round(logoData.summary.dpp - sumDpp),
+      ppn_pk          : Math.round(logoData.summary.ppn - sumPpn),
+      beban_toko      : logoData.summary.hpp,
+      persediaan_toko : logoData.summary.hpp,
+    });
   }
+
+  // 5. E-Money
+  add({ nama_ref: 'e-money', keterangan: 'Transaksi E-Money OMI', piutang_edc: omi.emoney });
+
+  // 6. EDC / Debit Card (BARU)
+  if (omi.debitCard > 0) {
+    add({ nama_ref: 'edc / debit card', keterangan: 'Transaksi Debit Card OMI', piutang_edc: omi.debitCard });
+  }
+
+  // 7. Pegawai / Perorangan (SUMBER BERUBAH: dulu omi.kredit, sekarang memberData.total)
+  add({ nama_ref: 'pegawai', keterangan: 'Kredit Anggota Pegawai', piutang: memberData.total });
+
+  // 8. Tunai
+  add({ nama_ref: 'tunai', keterangan: 'Kas Tunai Aktual', kas_uks: txt.tunai });
+
+  // 9. Beban Promosi dari Tutup Harian (BARU)
+  if (txt.voucherPotongan > 0) {
+    add({ nama_ref: 'beban promosi', keterangan: 'Voucher / Promo Tutup Harian', beban_promosi: txt.voucherPotongan });
+  }
+
+  // 10-12. SMART TOKO entries per section
+  if (tokoData) {
+    tokoData.entries.forEach(e => {
+      if (e.section === 'VOUCHER') {
+        add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+              keterangan: 'Beban Promosi SMART TOKO', beban_promosi: e.total });
+      } else if (e.section === 'PIUTANG') {
+        if (isElectronicWallet(e.pelanggan)) {
+          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+                keterangan: 'Pembayaran E-Wallet SMART TOKO', piutang_edc: e.total });
+        } else {
+          // Institusi/Divisi — 3 baris
+          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+                keterangan: 'Piutang SMART TOKO', piutang: e.total });
+          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+                keterangan: 'Pendapatan SMART TOKO', pendapatan_toko: e.dpp, ppn_pk: e.ppn });
+        }
+      }
+    });
+  }
+
+  // 13-15. SMART LOGO entries — pola identik dengan TOKO
+  if (logoData) {
+    logoData.entries.forEach(e => {
+      if (e.section === 'VOUCHER') {
+        add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+              keterangan: 'Beban Promosi SMART LOGO', beban_promosi: e.total });
+      } else if (e.section === 'PIUTANG') {
+        if (isElectronicWallet(e.pelanggan)) {
+          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+                keterangan: 'Pembayaran E-Wallet SMART LOGO', piutang_edc: e.total });
+        } else {
+          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+                keterangan: 'Piutang SMART LOGO', piutang: e.total });
+          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
+                keterangan: 'Pendapatan SMART LOGO', pendapatan_toko: e.dpp, ppn_pk: e.ppn });
+        }
+      }
+    });
+  }
+
+  // 16. Struk DIVISI (paling terakhir)
+  divisiStrukList.forEach(struk => {
+    // Baris Piutang
+    add({ nama_ref: struk.nama, kwitansi: struk.noStruk,
+          keterangan: 'Kredit Anggota Divisi', piutang: struk.pembayaranKredit });
+    // Baris Pendapatan + PPN [+ NonPajak jika ada]
+    add({ nama_ref: struk.nama, kwitansi: struk.noStruk,
+          keterangan: 'Pendapatan Divisi',
+          pendapatan_toko : struk.dpp,
+          ppn_pk          : struk.ppn,
+          non_pajak       : struk.nonPajak > 0 ? struk.nonPajak : 0 });
+    // Baris Tagihan Promo (hanya jika potonganProduk > 0)
+    if (struk.potonganProduk > 0) {
+      add({ nama_ref: struk.nama, kwitansi: struk.noStruk,
+            keterangan: 'Tagihan Promo Divisi', tag_promo: struk.potonganProduk });
+    }
+  });
 
   return rows.map((r, i) => ({ ...r, no: i + 1 }));
 }
@@ -207,7 +477,7 @@ function calculateTotals(rows) {
 // ─────────────────────────────────────────────
 // VALIDASI SILANG
 // ─────────────────────────────────────────────
-function runValidations({ txt, omi }) {
+function runValidations({ txt, omi, divisiStrukList = [], memberData = { total: 0 } }) {
   const warns = [];
   if (omi.kredit !== txt.kredit)
     warns.push({ type: 'MISMATCH_KREDIT', severity: 'WARNING',
@@ -218,6 +488,25 @@ function runValidations({ txt, omi }) {
   if (Math.abs(omi.ppnOmi - txt.ppn) > 1)
     warns.push({ type: 'MISMATCH_PPN', severity: 'WARNING',
       message: `PPN selisih > 1: OMI=${omi.ppnOmi}, TXT=${txt.ppn}` });
+
+  // Rekonsiliasi Kredit Anggota (Bagian 5)
+  const totalKreditSeharusnya = (divisiStrukList || []).reduce((s, d) => s + d.pembayaranKredit, 0)
+                              + (memberData?.total || 0);
+  if (totalKreditSeharusnya !== omi.kredit) {
+    warns.push({ type: 'REKON_KREDIT', severity: 'WARNING',
+      message: `Rekonsiliasi Kredit Anggota tidak cocok: Divisi+Perorangan=${totalKreditSeharusnya}, OMI.kredit=${omi.kredit}. Kemungkinan ada struk yang belum diupload atau perorangan salah tandai.` });
+  }
+
+  // Validasi total pembayaran vs total penjualan (Bagian 5)
+  const totalPembayaranAktual = txt.tunai + txt.kredit + txt.emoney +
+                                (txt.debitCard || 0) + (txt.creditCard || 0);
+  const totalPenjualan = omi.dppBKP + omi.ppnOmi + omi.nonPajak;
+  const TOLERANSI = 5000; // Rp 5.000
+  if (Math.abs(totalPembayaranAktual - totalPenjualan) > TOLERANSI) {
+    warns.push({ type: 'REKON_PEMBAYARAN', severity: 'WARNING',
+      message: `Total pembayaran aktual (${totalPembayaranAktual}) selisih Rp${Math.abs(totalPembayaranAktual - totalPenjualan)} dari total penjualan (${totalPenjualan}).` });
+  }
+
   return warns;
 }
 
@@ -225,11 +514,12 @@ function runValidations({ txt, omi }) {
 // ENDPOINT: POST /api/process-laporan
 // ─────────────────────────────────────────────
 app.post('/api/process-laporan', upload.fields([
-  { name: 'omi_per_tanggal',  maxCount: 1 },
-  { name: 'omi_tutup_harian', maxCount: 1 },
-  { name: 'smart_files',      maxCount: 5 },
-  { name: 'omi_member',       maxCount: 1 },
-  { name: 'detail_smart',     maxCount: 1 },
+  { name: 'omi_per_tanggal',  maxCount: 1   },
+  { name: 'omi_tutup_harian', maxCount: 1   },
+  { name: 'smart_files',      maxCount: 5   },
+  { name: 'omi_member',       maxCount: 1   },
+  { name: 'per_struk',        maxCount: 100 },
+  { name: 'detail_smart',     maxCount: 1   },
 ]), (req, res) => {
   try {
     const files = req.files || {};
@@ -237,15 +527,45 @@ app.post('/api/process-laporan', upload.fields([
     const missing = [];
     if (!files.omi_per_tanggal?.[0])  missing.push('LAPORAN PER TANGGAL');
     if (!files.omi_tutup_harian?.[0]) missing.push('LAPORAN TUTUP HARIAN');
-    if (!files.smart_files?.length)   missing.push('ringkasan pembayaran SMART');
     if (missing.length) return res.status(400).json({ success: false, error: `File wajib kurang: ${missing.join(', ')}` });
 
     const omi = parseLaporanPerTanggal(files.omi_per_tanggal[0].buffer);
     const txt = parseTutupHarian(files.omi_tutup_harian[0].buffer);
 
+    const warnings = [];
+
+    // Parse omi_member
+    let memberData = { total: 0 };
+    if (files.omi_member?.[0]) {
+      try {
+        memberData = parseLaporanPerMember(files.omi_member[0].buffer);
+      } catch (e) {
+        warnings.push({ type: 'MEMBER_PARSE_ERROR', severity: 'WARNING', message: e.message });
+      }
+    } else {
+      warnings.push({ type: 'MEMBER_MISSING', severity: 'WARNING',
+        message: 'Laporan Per Member tidak diupload — kredit perorangan tidak akan terhitung.' });
+    }
+
+    // Parse per_struk (multiple files)
+    const divisiStrukList = [];
+    for (const f of (files.per_struk || [])) {
+      try {
+        const result = parseLaporanPerStruk(f.buffer, f.originalname);
+        if (result) divisiStrukList.push(result); // null = PERORANGAN, di-skip
+      } catch (e) {
+        warnings.push({ type: 'STRUK_PARSE_ERROR', severity: 'ERROR',
+          message: `${f.originalname}: ${e.message}` });
+      }
+    }
+    if (!files.per_struk?.length) {
+      warnings.push({ type: 'STRUK_MISSING', severity: 'WARNING',
+        message: 'Laporan Per Struk tidak diupload — kredit divisi tidak akan terhitung.' });
+    }
+
     const smartResults = [];
     const smartErrors  = [];
-    for (const f of files.smart_files) {
+    for (const f of (files.smart_files || [])) {
       try {
         smartResults.push(parseSmartRingkasan(f.buffer));
       } catch (e) {
@@ -253,9 +573,13 @@ app.post('/api/process-laporan', upload.fields([
       }
     }
 
-    const omsetRows = buildOmsetRows({ txt, omi, smartResults });
+    const smartConfirmation = req.body.smart_confirmation || null;
+
+    const omsetRows = buildOmsetRows({ txt, omi, smartResults, divisiStrukList, memberData });
     const summary   = calculateTotals(omsetRows);
-    const warnings  = runValidations({ txt, omi });
+    const valWarnings = runValidations({ txt, omi, divisiStrukList, memberData });
+    warnings.push(...valWarnings);
+
     if (smartErrors.length) {
       smartErrors.forEach(e => warnings.push({ type: 'SMART_PARSE_ERROR', severity: 'ERROR', message: e }));
     }
@@ -268,6 +592,7 @@ app.post('/api/process-laporan', upload.fields([
           ...summary,
           jumlahTransaksi : omsetRows.length,
           tanggal         : txt.tanggal,
+          smartConfirmation,
         },
         warnings,
       }

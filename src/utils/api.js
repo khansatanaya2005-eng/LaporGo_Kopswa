@@ -14,12 +14,13 @@ const BASE_URL = _raw ? _raw.replace(/\/api\/?$/, '') : '';
  * @param {Object} fileSlots - Object berisi array File dari tiap slot
  * @returns {Promise<{success: boolean, data: Object}>}
  */
-export async function processLaporan(fileSlots, allowNoSmart = false) {
+export async function processLaporan(fileSlots, allowNoSmart = false, smartConfirmation = null) {
   const {
     omiPerTanggal = [],
     omiTutupHarian = [],
     smartFiles = [],
     omiMember = [],
+    perStrukFiles = [],
     detailSmart = [],
   } = fileSlots;
 
@@ -36,8 +37,12 @@ export async function processLaporan(fileSlots, allowNoSmart = false) {
     formData.append('allow_no_smart', 'true');
   }
 
-  // File opsional
+  // File member & per struk
   if (omiMember[0]) formData.append('omi_member', omiMember[0]);
+  perStrukFiles.forEach(f => formData.append('per_struk', f));
+  if (smartConfirmation) formData.append('smart_confirmation', smartConfirmation);
+
+  // File opsional detail
   if (detailSmart[0]) formData.append('detail_smart', detailSmart[0]);
 
   const res = await fetch(`${BASE_URL}/api/process-laporan`, {

@@ -20,7 +20,8 @@ const UploadReport = () => {
   // ── Slot OMI ──────────────────────────────────────
   const [omiPerTanggal,  setOmiPerTanggal]  = useState([]);  // WAJIB
   const [omiTutupHarian, setOmiTutupHarian] = useState([]);  // WAJIB
-  const [omiPerMember,   setOmiPerMember]   = useState([]);  // opsional
+  const [omiPerMember,   setOmiPerMember]   = useState([]);  // WAJIB
+  const [perStrukFiles,  setPerStrukFiles]  = useState([]);  // WAJIB, multiple .txt
   const [omiDiscItem,    setOmiDiscItem]    = useState([]);  // opsional
   const [omiStrukTxt,    setOmiStrukTxt]    = useState([]);  // opsional
   const [omiPareto,      setOmiPareto]      = useState([]);  // opsional
@@ -35,24 +36,27 @@ const UploadReport = () => {
 
   const smartFiles = [...smartToko, ...smartLogo];
   const [showSmartModal, setShowSmartModal] = useState(false);
+  const [smartConfirmNote, setSmartConfirmNote] = useState('');
 
   // ── Validasi mandatory ────────────────────────────
-  const isOmiOk   = omiPerTanggal.length > 0 && omiTutupHarian.length > 0;
-  const isSmartOk = smartFiles.length > 0;
-  const isAllOk   = isOmiOk; // OMI wajib, SMART wajib-bersyarat (dengan konfirmasi modal)
+  const isOmiOk    = omiPerTanggal.length > 0 && omiTutupHarian.length > 0;
+  const isMemberOk = omiPerMember.length > 0;
+  const isSmartOk  = smartFiles.length > 0;
+  const isAllOk    = isOmiOk && isMemberOk; // OMI & Per Member wajib, SMART opsional bersyarat
 
   const handleResetAll = () => {
     if (!confirm('Reset semua slot file?')) return;
-    setOmiPerTanggal([]); setOmiTutupHarian([]); setOmiPerMember([]);
+    setOmiPerTanggal([]); setOmiTutupHarian([]); setOmiPerMember([]); setPerStrukFiles([]);
     setOmiDiscItem([]); setOmiStrukTxt([]); setOmiPareto([]);
     setOmiAnalisa([]); setOmiPerStruk([]); setOmiPersediaan([]);
     setSmartToko([]); setSmartLogo([]); setSmartDetail([]);
+    setSmartConfirmNote('');
     setProcessError('');
   };
 
   // ── Proses Laporan ────────────────────────────────
   const handleProcessReport = (allowNoSmart = false) => {
-    if (!isOmiOk) return;
+    if (!isAllOk) return;
     if (smartFiles.length === 0 && !allowNoSmart) {
       setShowSmartModal(true);
       return;
@@ -66,13 +70,15 @@ const UploadReport = () => {
     setProcessError('');
 
     try {
+      const confirmation = allowNoSmart ? 'NO_TRANSACTION' : (smartConfirmNote || null);
       const result = await processLaporan({
         omiPerTanggal,
         omiTutupHarian,
         smartFiles,
         omiMember:   omiPerMember,
+        perStrukFiles,
         detailSmart: smartDetail,
-      }, allowNoSmart);
+      }, allowNoSmart, confirmation);
 
       navigate('/preview', {
         state: {
@@ -82,8 +88,9 @@ const UploadReport = () => {
             omiPerTanggal:  omiPerTanggal[0]?.name,
             omiTutupHarian: omiTutupHarian.map(f => f.name),
             smartFiles:     smartFiles.map(f => f.name),
-            // Opsional OMI
+            // Opsional OMI / Detail
             omiPerMember:  omiPerMember.map(f => f.name),
+            perStrukFiles: perStrukFiles.map(f => f.name),
             omiDiscItem:   omiDiscItem.map(f => f.name),
             omiStrukTxt:   omiStrukTxt.map(f => f.name),
             omiPareto:     omiPareto.map(f => f.name),
@@ -98,14 +105,15 @@ const UploadReport = () => {
               ...omiTutupHarian.map(f => ({ file: f, kategori: 'omi_tutup_harian' })),
               ...smartToko.map(f => ({ file: f, kategori: 'smart_toko' })),
               ...smartLogo.map(f => ({ file: f, kategori: 'smart_logo' })),
-              ...omiPerMember.map(f   => ({ file: f, kategori: 'omi_per_member' })),
-              ...omiDiscItem.map(f    => ({ file: f, kategori: 'omi_disc_item' })),
-              ...omiStrukTxt.map(f    => ({ file: f, kategori: 'omi_struk_txt' })),
-              ...omiPareto.map(f      => ({ file: f, kategori: 'omi_pareto' })),
-              ...omiAnalisa.map(f     => ({ file: f, kategori: 'omi_analisa' })),
-              ...omiPerStruk.map(f    => ({ file: f, kategori: 'omi_per_struk' })),
-              ...omiPersediaan.map(f  => ({ file: f, kategori: 'omi_persediaan' })),
-              ...smartDetail.map(f    => ({ file: f, kategori: 'smart_detail' })),
+              ...omiPerMember.map(f => ({ file: f, kategori: 'omi_per_member' })),
+              ...perStrukFiles.map(f => ({ file: f, kategori: 'per_struk' })),
+              ...omiDiscItem.map(f => ({ file: f, kategori: 'omi_disc_item' })),
+              ...omiStrukTxt.map(f => ({ file: f, kategori: 'omi_struk_txt' })),
+              ...omiPareto.map(f => ({ file: f, kategori: 'omi_pareto' })),
+              ...omiAnalisa.map(f => ({ file: f, kategori: 'omi_analisa' })),
+              ...omiPerStruk.map(f => ({ file: f, kategori: 'omi_per_struk' })),
+              ...omiPersediaan.map(f => ({ file: f, kategori: 'omi_persediaan' })),
+              ...smartDetail.map(f => ({ file: f, kategori: 'smart_detail' })),
             ].filter(Boolean),
           }
         }
@@ -196,6 +204,28 @@ const UploadReport = () => {
                     onRemove={(idx) => typeof idx === 'number'
                       ? setOmiTutupHarian(p => p.filter((_, i) => i !== idx))
                       : setOmiTutupHarian([])} />
+                  <FileSlotRow
+                    title="LAPORAN PENJUALAN ANGGOTA PER MEMBER.xls"
+                    isMandatory
+                    description="Sumber: Kredit Anggota PERORANGAN (wajib untuk rekonsiliasi)"
+                    accept=".xls,.xlsx"
+                    uploadedFiles={omiPerMember}
+                    onUpload={setOmiPerMember}
+                    onRemove={() => setOmiPerMember([])}
+                  />
+                  <FileSlotRow
+                    title="LAPORAN PER STRUK KREDIT ANGGOTA (.txt)"
+                    isMandatory
+                    isMulti
+                    isStruk
+                    description="Upload SEMUA file .txt struk kredit hari ini (bisa belasan s/d puluhan file)"
+                    accept=".txt"
+                    uploadedFiles={perStrukFiles}
+                    onUpload={(f) => setPerStrukFiles(p => [...p, ...f])}
+                    onRemove={(idx) => typeof idx === 'number'
+                      ? setPerStrukFiles(p => p.filter((_, i) => i !== idx))
+                      : setPerStrukFiles([])}
+                  />
                 </div>
               </div>
 
@@ -206,9 +236,6 @@ const UploadReport = () => {
                   <span className="text-[10px] text-slate-400">Opsional (validasi silang)</span>
                 </div>
                 <div className="space-y-2.5">
-                  <FileSlotRow title="LAPORAN PENJUALAN ANGGOTA PER MEMBER.xls"
-                    description="Rincian kredit anggota & transaksi Divisi (*)" accept=".xls,.xlsx"
-                    uploadedFiles={omiPerMember} onUpload={setOmiPerMember} onRemove={() => setOmiPerMember([])} />
                   <FileSlotRow title="LAPORAN DISC. ITEM.xls"
                     description="Rincian diskon per item" accept=".xls,.xlsx"
                     uploadedFiles={omiDiscItem} onUpload={setOmiDiscItem} onRemove={() => setOmiDiscItem([])} />
@@ -314,8 +341,16 @@ const UploadReport = () => {
                 {isOmiOk ? 'LENGKAP' : 'BELUM (Per Tanggal + Tutup Harian)'}
               </span>
               {' · '}
+              MEMBER: <span className={isMemberOk ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>
+                {isMemberOk ? 'LENGKAP' : 'BELUM (Per Member wajib)'}
+              </span>
+              {' · '}
               SMART: <span className={isSmartOk ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>
                 {isSmartOk ? `LENGKAP (${smartFiles.length} file)` : 'BELUM'}
+              </span>
+              {' · '}
+              PER STRUK: <span className={perStrukFiles.length > 0 ? 'font-bold text-emerald-600' : 'text-amber-600 font-semibold'}>
+                {perStrukFiles.length > 0 ? `LENGKAP (${perStrukFiles.length} file)` : 'BELUM'}
               </span>
             </p>
           </div>
@@ -355,7 +390,10 @@ const UploadReport = () => {
                 Lupa Upload (Kembali)
               </button>
               <button
-                onClick={() => executeProcess(true)}
+                onClick={() => {
+                  setSmartConfirmNote('NO_TRANSACTION');
+                  executeProcess(true);
+                }}
                 className="px-4 py-2 bg-[#FF5000] hover:bg-[#e04600] text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer"
               >
                 Ya, Memang 0 Transaksi

@@ -386,6 +386,14 @@ const ReportPreview = () => {
         </div>
       )}
 
+      {/* Audit Banner SMART */}
+      {reportData.summary?.smartConfirmation === 'NO_TRANSACTION' && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700">
+          <Info className="w-4 h-4 shrink-0" />
+          <span><strong>Catatan audit:</strong> User mengkonfirmasi tidak ada transaksi SMART pada tanggal ini.</span>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
