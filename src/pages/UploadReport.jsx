@@ -75,9 +75,17 @@ const UploadReport = () => {
         omiPerTanggal,
         omiTutupHarian,
         smartFiles,
+        smartToko,
+        smartLogo,
         omiMember:   omiPerMember,
         perStrukFiles,
         detailSmart: smartDetail,
+        omiPerStruk,
+        omiDiscItem,
+        omiPareto,
+        omiAnalisa,
+        omiPersediaan,
+        omiStrukTxt,
       }, allowNoSmart, confirmation);
 
       navigate('/preview', {

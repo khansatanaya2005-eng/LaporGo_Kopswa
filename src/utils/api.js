@@ -19,31 +19,49 @@ export async function processLaporan(fileSlots, allowNoSmart = false, smartConfi
     omiPerTanggal = [],
     omiTutupHarian = [],
     smartFiles = [],
+    smartToko = [],
+    smartLogo = [],
     omiMember = [],
     perStrukFiles = [],
     detailSmart = [],
+    omiPerStruk = [],
+    omiDiscItem = [],
+    omiPareto = [],
+    omiAnalisa = [],
+    omiPersediaan = [],
+    omiStrukTxt = [],
   } = fileSlots;
 
   const formData = new FormData();
 
-  // File wajib OMI
+  // Berkas Utama OMI
   if (omiPerTanggal[0]) formData.append('omi_per_tanggal', omiPerTanggal[0]);
-  if (omiTutupHarian[0]) formData.append('omi_tutup_harian', omiTutupHarian[0]);
+  omiTutupHarian.forEach(f => formData.append('omi_tutup_harian', f));
+  if (omiMember[0]) formData.append('omi_member', omiMember[0]);
 
-  // File SMART (bisa lebih dari 1 — TOKO + LOGO)
+  // Berkas Struk Kasir Kredit
+  perStrukFiles.forEach(f => formData.append('per_struk', f));
+
+  // Berkas SMART
   smartFiles.forEach(f => formData.append('smart_files', f));
+  if (smartToko[0]) formData.append('smart_toko', smartToko[0]);
+  if (smartLogo[0]) formData.append('smart_logo', smartLogo[0]);
+  if (detailSmart[0]) formData.append('detail_smart', detailSmart[0]);
 
   if (allowNoSmart) {
     formData.append('allow_no_smart', 'true');
   }
+  if (smartConfirmation) {
+    formData.append('smart_confirmation', smartConfirmation);
+  }
 
-  // File member & per struk
-  if (omiMember[0]) formData.append('omi_member', omiMember[0]);
-  perStrukFiles.forEach(f => formData.append('per_struk', f));
-  if (smartConfirmation) formData.append('smart_confirmation', smartConfirmation);
-
-  // File opsional detail
-  if (detailSmart[0]) formData.append('detail_smart', detailSmart[0]);
+  // Berkas Pendukung OMI
+  if (omiPerStruk[0]) formData.append('omi_per_struk', omiPerStruk[0]);
+  if (omiDiscItem[0]) formData.append('omi_disc_item', omiDiscItem[0]);
+  if (omiPareto[0]) formData.append('omi_pareto', omiPareto[0]);
+  if (omiAnalisa[0]) formData.append('omi_analisa', omiAnalisa[0]);
+  if (omiPersediaan[0]) formData.append('omi_persediaan', omiPersediaan[0]);
+  omiStrukTxt.forEach(f => formData.append('omi_struk_txt', f));
 
   const res = await fetch(`${BASE_URL}/api/process-laporan`, {
     method: 'POST',
@@ -65,11 +83,11 @@ export async function processLaporan(fileSlots, allowNoSmart = false, smartConfi
  * Memanfaatkan data yang sudah diproses sebelumnya (tersimpan di app.locals.lastResult).
  * @param {string} filename - Nama file yang akan didownload
  */
-export async function downloadExcel(omsetRows, summary, tanggal, filename = 'Laporan_Gabungan.xlsx') {
+export async function downloadExcel(omsetRows, summary, tanggal, filename = 'Laporan_Gabungan.xlsx', reportId = null) {
   const res = await fetch(`${BASE_URL}/api/download-excel`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ omsetRows, summary, tanggal }),
+    body: JSON.stringify({ omsetRows, summary, tanggal, reportId }),
   });
 
   if (!res.ok) {

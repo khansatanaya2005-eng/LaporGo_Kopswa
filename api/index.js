@@ -210,11 +210,16 @@ function isElectronicWallet(nama) {
   return E_WALLET_KEYWORDS.some(kw => upper.includes(kw));
 }
 
-// CATATAN: belum bisa divalidasi dengan data lama (28/31 Agt) karena belum ada "@"
-function classifyEntitas(nama) {
+function classifyEntitas(nama, noAnggota = '') {
   const trimmed = String(nama || '').trim();
-  if (trimmed.startsWith('@')) {
-    return { tipe: 'DIVISI', namaBersih: trimmed.slice(1).trim() };
+  const noStr   = String(noAnggota || '').trim();
+  if (
+    trimmed.startsWith('@') ||
+    noStr.startsWith('100') ||
+    /DIVISI|PT\.|PT |KCP|KANTOR|CABANG/i.test(trimmed)
+  ) {
+    const cleanName = trimmed.replace(/^@/, '').trim();
+    return { tipe: 'DIVISI', namaBersih: cleanName };
   }
   return { tipe: 'PERORANGAN', namaBersih: trimmed };
 }
@@ -244,7 +249,7 @@ function parseLaporanPerStruk(buffer, filename = '') {
   }
 
   // Hanya proses DIVISI, skip PERORANGAN
-  const { tipe, namaBersih } = classifyEntitas(namaAnggota);
+  const { tipe, namaBersih } = classifyEntitas(namaAnggota, noAnggota);
   if (tipe !== 'DIVISI') return null;
 
   // Blok pajak — LOOP (bukan if/else), support 1-3 blok sekaligus
@@ -302,18 +307,26 @@ function parseLaporanPerMember(buffer) {
   let currentTipe = null;
 
   for (let r = range.s.r; r <= range.e.r; r++) {
-    const cellB = String(getCellVal(ws, r, 1) ?? ''); // kolom B
-    // Deteksi baris "NAMA : ..."
+    const cellB = String(getCellVal(ws, r, 1) ?? '').trim();
+    // Deteksi baris "NAMA :"
     if (/^NAMA\s*:/i.test(cellB)) {
-      const namaRaw = cellB.replace(/^NAMA\s*:\s*/i, '').trim();
-      currentTipe = classifyEntitas(namaRaw).tipe;
+      const namaVal = String(getCellVal(ws, r, 3) ?? '').trim(); // Kolom D
+      const noAnggotaVal = String(getCellVal(ws, r, 14) ?? '').trim(); // Kolom O
+      currentTipe = classifyEntitas(namaVal, noAnggotaVal).tipe;
       continue;
     }
     // Ambil nilai TOTAL hanya dari blok PERORANGAN
-    if (/^TOTAL$/i.test(cellB.trim()) && currentTipe === 'PERORANGAN') {
-      // PERHATIAN: index kolom TOTAL (idx 2) perlu dikonfirmasi dari file asli
-      const totalVal = Number(getCellVal(ws, r, 2)) || 0;
-      totalPerorangan += totalVal;
+    if (/^TOTAL$/i.test(cellB) && currentTipe === 'PERORANGAN') {
+      // Nilai Net berada di kolom AF (idx 31)
+      let netVal = Number(getCellVal(ws, r, 31)) || 0;
+      if (!netVal) {
+        // Fallback scan dari kanan kolom baris jika bergeser
+        for (let c = Math.min(range.e.c, 40); c >= 15; c--) {
+          const v = Number(getCellVal(ws, r, c));
+          if (v && v > 0) { netVal = v; break; }
+        }
+      }
+      totalPerorangan += netVal;
       currentTipe = null;
     }
   }
@@ -335,16 +348,26 @@ function buildOmsetRows({ txt, omi, smartResults, divisiStrukList = [], memberDa
   const sumDivPpn      = divisiStrukList.reduce((s, d) => s + d.ppn,      0);
   const sumDivNonPajak = divisiStrukList.reduce((s, d) => s + d.nonPajak, 0);
 
-  // Helper untuk filter entri SMART yang dipecah 3-baris
-  const pecahEntries = (data) => data
-    ? data.entries.filter(e => e.section === 'PIUTANG' && !isElectronicWallet(e.pelanggan))
+  // Helper untuk filter entri SMART yang dipecah single-line
+  const epToko = tokoData
+    ? tokoData.entries.filter(e => e.section === 'PIUTANG' && !isElectronicWallet(e.pelanggan))
     : [];
+  const sumSmartTokoPiutangDpp = epToko.reduce((s, e) => s + e.dpp, 0);
+  const sumSmartTokoPiutangPpn = epToko.reduce((s, e) => s + e.ppn, 0);
+
+  const epLogo = logoData
+    ? logoData.entries.filter(e => e.section === 'PIUTANG' && !isElectronicWallet(e.pelanggan))
+    : [];
+  const sumSmartLogoPiutangDpp = epLogo.reduce((s, e) => s + e.dpp, 0);
+  const sumSmartLogoPiutangPpn = epLogo.reduce((s, e) => s + e.ppn, 0);
 
   // 1. Promo
-  add({ nama_ref: 'promo', keterangan: 'Potongan Produk / Diskon', tag_promo: txt.potProduk });
+  add({ nama_ref: 'PROMO ', keterangan: 'Potongan Produk / Diskon', tag_promo: txt.potProduk });
 
-  // 2. Omset OMI (rumus pengurangan agregat - Bagian 4A)
-  add({ nama_ref: 'omset omi', keterangan: 'Penjualan Toko OMI',
+  // 2. Omset OMI (rumus pengurangan agregat)
+  add({
+    nama_ref        : 'OMSET OMI',
+    keterangan      : 'Penjualan Toko OMI',
     pendapatan_toko : Math.round(omi.dppBKP - sumDivDpp),
     ppn_pk          : Math.round(omi.ppnOmi - sumDivPpn),
     non_pajak       : Math.round((omi.cukai + omi.ppnBebas) - sumDivNonPajak),
@@ -352,109 +375,129 @@ function buildOmsetRows({ txt, omi, smartResults, divisiStrukList = [], memberDa
     persediaan_toko : omi.hppOmi,
   });
 
-  // 3. Omset SMART TOKO (rumus pengurangan agregat - Bagian 4B)
+  // 3. Omset SMART TOKO (rumus pengurangan agregat)
   if (tokoData) {
-    const ep = pecahEntries(tokoData);
-    const sumDpp = ep.reduce((s, e) => s + e.dpp, 0);
-    const sumPpn = ep.reduce((s, e) => s + e.ppn, 0);
-    add({ nama_ref: 'omset smart toko', keterangan: 'Penjualan SMART TOKO',
-      pendapatan_toko : Math.round(tokoData.summary.dpp - sumDpp),
-      ppn_pk          : Math.round(tokoData.summary.ppn - sumPpn),
+    add({
+      nama_ref        : 'OMSET SMART ',
+      keterangan      : 'Penjualan SMART TOKO',
+      pendapatan_toko : Math.round(tokoData.summary.dpp - sumSmartTokoPiutangDpp),
+      ppn_pk          : Math.round(tokoData.summary.ppn - sumSmartTokoPiutangPpn),
       beban_toko      : tokoData.summary.hpp,
       persediaan_toko : tokoData.summary.hpp,
     });
   }
 
-  // 4. Omset SMART LOGO (DIKEMBALIKAN - Bagian 4C)
+  // 4. Omset SMART LOGO (rumus pengurangan agregat)
   if (logoData) {
-    const ep = pecahEntries(logoData);
-    const sumDpp = ep.reduce((s, e) => s + e.dpp, 0);
-    const sumPpn = ep.reduce((s, e) => s + e.ppn, 0);
-    add({ nama_ref: 'omset smart logo', keterangan: 'Penjualan SMART LOGO',
-      pendapatan_toko : Math.round(logoData.summary.dpp - sumDpp),
-      ppn_pk          : Math.round(logoData.summary.ppn - sumPpn),
+    add({
+      nama_ref        : 'OMSET LOGO ',
+      keterangan      : 'Penjualan SMART LOGO',
+      pendapatan_toko : Math.round(logoData.summary.dpp - sumSmartLogoPiutangDpp),
+      ppn_pk          : Math.round(logoData.summary.ppn - sumSmartLogoPiutangPpn),
       beban_toko      : logoData.summary.hpp,
       persediaan_toko : logoData.summary.hpp,
     });
   }
 
   // 5. E-Money
-  add({ nama_ref: 'e-money', keterangan: 'Transaksi E-Money OMI', piutang_edc: omi.emoney });
-
-  // 6. EDC / Debit Card (BARU)
-  if (omi.debitCard > 0) {
-    add({ nama_ref: 'edc / debit card', keterangan: 'Transaksi Debit Card OMI', piutang_edc: omi.debitCard });
+  if (omi.emoney > 0) {
+    add({ nama_ref: 'E-MONEY ', keterangan: 'Transaksi E-Money OMI', piutang_edc: omi.emoney });
   }
 
-  // 7. Pegawai / Perorangan (SUMBER BERUBAH: dulu omi.kredit, sekarang memberData.total)
-  add({ nama_ref: 'pegawai', keterangan: 'Kredit Anggota Pegawai', piutang: memberData.total });
+  // 6. EDC / Debit Card
+  if (omi.debitCard > 0) {
+    add({ nama_ref: 'EDC', keterangan: 'Transaksi Debit Card OMI', piutang_edc: omi.debitCard });
+  }
+
+  // 7. Pegawai / Perorangan (diambil dari rekap Laporan Per Member)
+  add({ nama_ref: 'PEGAWAI ', keterangan: 'Kredit Anggota Pegawai', piutang: memberData.total });
 
   // 8. Tunai
-  add({ nama_ref: 'tunai', keterangan: 'Kas Tunai Aktual', kas_uks: txt.tunai });
+  add({ nama_ref: 'TUNAI ', keterangan: 'Kas Tunai Aktual', kas_uks: txt.tunai });
 
-  // 9. Beban Promosi dari Tutup Harian (BARU)
+  // 9. Beban Promosi dari Tutup Harian
   if (txt.voucherPotongan > 0) {
-    add({ nama_ref: 'beban promosi', keterangan: 'Voucher / Promo Tutup Harian', beban_promosi: txt.voucherPotongan });
+    add({ nama_ref: 'BEBAN PROMOSI', keterangan: 'Voucher / Promo Tutup Harian', beban_promosi: txt.voucherPotongan });
   }
 
-  // 10-12. SMART TOKO entries per section
+  // 10. Struk DIVISI OMI (Single-Row per Transaksi!)
+  divisiStrukList.forEach(struk => {
+    add({
+      nama_ref        : struk.nama,
+      kwitansi        : struk.noStruk || '',
+      keterangan      : 'Kredit Anggota Divisi',
+      tag_promo       : struk.potonganProduk > 0 ? struk.potonganProduk : 0,
+      piutang         : struk.pembayaranKredit,
+      pendapatan_toko : struk.dpp,
+      ppn_pk          : struk.ppn,
+      non_pajak       : struk.nonPajak > 0 ? struk.nonPajak : 0,
+    });
+  });
+
+  // 11. SMART TOKO entries per section (Single-Row per Transaksi!)
   if (tokoData) {
     tokoData.entries.forEach(e => {
       if (e.section === 'VOUCHER') {
-        add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-              keterangan: 'Beban Promosi SMART TOKO', beban_promosi: e.total });
+        add({
+          nama_ref        : e.pelanggan,
+          jenis_transaksi : e.voucherName,
+          keterangan      : 'Beban Promosi SMART TOKO',
+          beban_promosi   : e.total,
+        });
       } else if (e.section === 'PIUTANG') {
         if (isElectronicWallet(e.pelanggan)) {
-          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-                keterangan: 'Pembayaran E-Wallet SMART TOKO', piutang_edc: e.total });
+          add({
+            nama_ref        : e.pelanggan,
+            jenis_transaksi : e.voucherName,
+            keterangan      : 'Pembayaran E-Wallet SMART TOKO',
+            piutang_edc     : e.total,
+          });
         } else {
-          // Institusi/Divisi — 3 baris
-          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-                keterangan: 'Piutang SMART TOKO', piutang: e.total });
-          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-                keterangan: 'Pendapatan SMART TOKO', pendapatan_toko: e.dpp, ppn_pk: e.ppn });
+          // Institusi/Divisi — Single Row (Debit: Piutang, Kredit: Pendapatan + PPN)
+          add({
+            nama_ref        : e.pelanggan,
+            jenis_transaksi : e.voucherName,
+            keterangan      : 'Piutang SMART TOKO',
+            piutang         : e.total,
+            pendapatan_toko : e.dpp,
+            ppn_pk          : e.ppn,
+          });
         }
       }
     });
   }
 
-  // 13-15. SMART LOGO entries — pola identik dengan TOKO
+  // 12. SMART LOGO entries (Single-Row per Transaksi!)
   if (logoData) {
     logoData.entries.forEach(e => {
       if (e.section === 'VOUCHER') {
-        add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-              keterangan: 'Beban Promosi SMART LOGO', beban_promosi: e.total });
+        add({
+          nama_ref        : e.pelanggan,
+          jenis_transaksi : e.voucherName,
+          keterangan      : 'Beban Promosi SMART LOGO',
+          beban_promosi   : e.total,
+        });
       } else if (e.section === 'PIUTANG') {
         if (isElectronicWallet(e.pelanggan)) {
-          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-                keterangan: 'Pembayaran E-Wallet SMART LOGO', piutang_edc: e.total });
+          add({
+            nama_ref        : e.pelanggan,
+            jenis_transaksi : e.voucherName,
+            keterangan      : 'Pembayaran E-Wallet SMART LOGO',
+            piutang_edc     : e.total,
+          });
         } else {
-          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-                keterangan: 'Piutang SMART LOGO', piutang: e.total });
-          add({ nama_ref: e.pelanggan, jenis_transaksi: e.voucherName,
-                keterangan: 'Pendapatan SMART LOGO', pendapatan_toko: e.dpp, ppn_pk: e.ppn });
+          add({
+            nama_ref        : e.pelanggan,
+            jenis_transaksi : e.voucherName,
+            keterangan      : 'Piutang SMART LOGO',
+            piutang         : e.total,
+            pendapatan_toko : e.dpp,
+            ppn_pk          : e.ppn,
+          });
         }
       }
     });
   }
-
-  // 16. Struk DIVISI (paling terakhir)
-  divisiStrukList.forEach(struk => {
-    // Baris Piutang
-    add({ nama_ref: struk.nama, kwitansi: struk.noStruk,
-          keterangan: 'Kredit Anggota Divisi', piutang: struk.pembayaranKredit });
-    // Baris Pendapatan + PPN [+ NonPajak jika ada]
-    add({ nama_ref: struk.nama, kwitansi: struk.noStruk,
-          keterangan: 'Pendapatan Divisi',
-          pendapatan_toko : struk.dpp,
-          ppn_pk          : struk.ppn,
-          non_pajak       : struk.nonPajak > 0 ? struk.nonPajak : 0 });
-    // Baris Tagihan Promo (hanya jika potonganProduk > 0)
-    if (struk.potonganProduk > 0) {
-      add({ nama_ref: struk.nama, kwitansi: struk.noStruk,
-            keterangan: 'Tagihan Promo Divisi', tag_promo: struk.potonganProduk });
-    }
-  });
 
   return rows.map((r, i) => ({ ...r, no: i + 1 }));
 }
@@ -510,6 +553,17 @@ function runValidations({ txt, omi, divisiStrukList = [], memberData = { total: 
   return warns;
 }
 
+// In-memory cache for raw sheet buffers (auto-cleaned after 2 hours)
+const reportBuffersCache = new Map();
+function cleanOldBuffers() {
+  const now = Date.now();
+  for (const [key, val] of reportBuffersCache.entries()) {
+    if (now - val.timestamp > 2 * 60 * 60 * 1000) {
+      reportBuffersCache.delete(key);
+    }
+  }
+}
+
 // ─────────────────────────────────────────────
 // ENDPOINT: POST /api/process-laporan
 // ─────────────────────────────────────────────
@@ -517,11 +571,20 @@ app.post('/api/process-laporan', upload.fields([
   { name: 'omi_per_tanggal',  maxCount: 1   },
   { name: 'omi_tutup_harian', maxCount: 1   },
   { name: 'smart_files',      maxCount: 5   },
+  { name: 'smart_toko',       maxCount: 1   },
+  { name: 'smart_logo',       maxCount: 1   },
   { name: 'omi_member',       maxCount: 1   },
   { name: 'per_struk',        maxCount: 100 },
   { name: 'detail_smart',     maxCount: 1   },
+  { name: 'omi_per_struk',    maxCount: 1   },
+  { name: 'omi_disc_item',    maxCount: 1   },
+  { name: 'omi_pareto',       maxCount: 1   },
+  { name: 'omi_analisa',      maxCount: 1   },
+  { name: 'omi_persediaan',   maxCount: 1   },
+  { name: 'omi_struk_txt',    maxCount: 50  },
 ]), (req, res) => {
   try {
+    cleanOldBuffers();
     const files = req.files || {};
 
     const missing = [];
@@ -563,9 +626,15 @@ app.post('/api/process-laporan', upload.fields([
         message: 'Laporan Per Struk tidak diupload — kredit divisi tidak akan terhitung.' });
     }
 
+    const smartAllFiles = [
+      ...(files.smart_files || []),
+      ...(files.smart_toko || []),
+      ...(files.smart_logo || []),
+    ];
+
     const smartResults = [];
     const smartErrors  = [];
-    for (const f of (files.smart_files || [])) {
+    for (const f of smartAllFiles) {
       try {
         smartResults.push(parseSmartRingkasan(f.buffer));
       } catch (e) {
@@ -584,9 +653,22 @@ app.post('/api/process-laporan', upload.fields([
       smartErrors.forEach(e => warnings.push({ type: 'SMART_PARSE_ERROR', severity: 'ERROR', message: e }));
     }
 
+    // Simpan buffer file sumber untuk multi-sheet Excel generator
+    const reportId = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+    reportBuffersCache.set(reportId, {
+      timestamp: Date.now(),
+      detailSmartBuffer   : files.detail_smart?.[0]?.buffer || null,
+      perStrukXlsBuffer   : files.omi_per_struk?.[0]?.buffer || null,
+      smartTokoBuffer     : (files.smart_toko?.[0] || smartAllFiles.find(f => /toko/i.test(f.originalname)))?.buffer || null,
+      smartLogoBuffer     : (files.smart_logo?.[0] || smartAllFiles.find(f => /logo/i.test(f.originalname)))?.buffer || null,
+      omiPerTanggalBuffer : files.omi_per_tanggal?.[0]?.buffer || null,
+      omiMemberBuffer     : files.omi_member?.[0]?.buffer || null,
+    });
+
     return res.status(200).json({
       success: true,
       data: {
+        reportId,
         omsetRows,
         summary: {
           ...summary,
@@ -604,7 +686,7 @@ app.post('/api/process-laporan', upload.fields([
 });
 
 // ─────────────────────────────────────────────
-// GENERATE EXCEL (1 SHEET: OMSET)
+// GENERATE EXCEL (MULTI-SHEET: OMSET, detail smart, Sheet1, ringkasan, omi)
 // ─────────────────────────────────────────────
 const OMSET_COL_DEFS = [
   { header: 'NO',                        key: 'no',                   width: 5  },
@@ -632,7 +714,21 @@ const OMSET_COL_DEFS = [
   { header: 'BEBAN PROMOSI (D)',      key: 'beban_promosi',          width: 12 },
 ];
 
-async function generateExcel({ omsetRows, summary }) {
+function appendSourceSheet(wbOut, sheetName, buffer) {
+  if (!buffer) return;
+  try {
+    const wbSrc = XLSX.read(buffer, { type: 'buffer' });
+    const firstSheet = wbSrc.Sheets[wbSrc.SheetNames[0]];
+    if (!firstSheet) return;
+    const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+    const ws = wbOut.addWorksheet(sheetName);
+    sheetData.forEach(row => ws.addRow(row));
+  } catch (err) {
+    console.warn(`[appendSourceSheet] Error adding ${sheetName}:`, err.message);
+  }
+}
+
+async function generateExcel({ omsetRows, summary, reportId = null }) {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('OMSET');
   ws.columns = OMSET_COL_DEFS;
@@ -682,7 +778,7 @@ async function generateExcel({ omsetRows, summary }) {
   selRow.font = { bold: true, color: { argb: currentSelisih === 0 ? 'FF16A34A' : 'FFDC2626' } };
   selRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: currentSelisih === 0 ? 'FFF0FDF4' : 'FFFEF2F2' } };
 
-  // ── TABEL RINGKASAN TERPISAH (OPSI 2) ─────────────────────
+  // ── TABEL RINGKASAN TERPISAH
   ws.addRow({});
   ws.addRow({});
 
@@ -721,6 +817,17 @@ async function generateExcel({ omsetRows, summary }) {
 
   ws.views = [{ state: 'frozen', ySplit: 1 }];
 
+  // ── GABUNGKAN SHEET SUMBER JIKA BUFFER TERSEDIA ──
+  if (reportId && reportBuffersCache.has(reportId)) {
+    const raw = reportBuffersCache.get(reportId);
+    appendSourceSheet(wb, 'detail smart ', raw.detailSmartBuffer);
+    appendSourceSheet(wb, 'Sheet1',        raw.perStrukXlsBuffer);
+    appendSourceSheet(wb, 'ringkasan toko', raw.smartTokoBuffer);
+    appendSourceSheet(wb, 'ringkasan logo', raw.smartLogoBuffer);
+    appendSourceSheet(wb, 'omi pertanggal ', raw.omiPerTanggalBuffer);
+    appendSourceSheet(wb, 'omi member ',   raw.omiMemberBuffer);
+  }
+
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf);
 }
@@ -730,13 +837,13 @@ async function generateExcel({ omsetRows, summary }) {
 // ─────────────────────────────────────────────
 app.post('/api/download-excel', async (req, res) => {
   try {
-    const { omsetRows, summary, tanggal } = req.body || {};
+    const { omsetRows, summary, tanggal, reportId } = req.body || {};
     
     if (!omsetRows || !summary) {
       return res.status(400).json({ error: 'Data laporan tidak lengkap' });
     }
 
-    const excelBuf = await generateExcel({ omsetRows, summary });
+    const excelBuf = await generateExcel({ omsetRows, summary, reportId });
     const filename = `Laporan_Gabungan_${tanggal || 'export'}.xlsx`.replace(/[/\\]/g, '-');
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

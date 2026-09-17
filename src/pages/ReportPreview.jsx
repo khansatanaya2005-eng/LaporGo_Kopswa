@@ -63,7 +63,7 @@ const ReportPreview = () => {
     );
   }
 
-  const { omsetRows: initialOmsetRows = [], summary: initialSummary = {}, warnings = [] } = reportData;
+  const { omsetRows: initialOmsetRows = [], summary: initialSummary = {}, warnings = [], reportId = null } = reportData;
 
   const [past, setPast] = useState([]);
   const [present, setPresent] = useState(initialOmsetRows);
@@ -191,7 +191,7 @@ const ReportPreview = () => {
     if (!customDate) return alert("Pilih tanggal laporan terlebih dahulu!");
     setDownloading(true);
     try {
-      await downloadExcel(present, dynamicSummary, customDate, `Laporan_Gabungan_${customDate}.xlsx`);
+      await downloadExcel(present, dynamicSummary, customDate, `Laporan_Gabungan_${customDate}.xlsx`, reportId);
     } catch (e) {
       alert('Gagal mengunduh Excel: ' + e.message);
     } finally {
