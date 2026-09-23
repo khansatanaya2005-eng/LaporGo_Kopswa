@@ -214,11 +214,12 @@ function classifyEntitas(nama, noAnggota = '') {
   const trimmed = String(nama || '').trim();
   const noStr   = String(noAnggota || '').trim();
   if (
+    trimmed.startsWith('~') ||
     trimmed.startsWith('@') ||
     noStr.startsWith('100') ||
     /DIVISI|PT\.|PT |KCP|KANTOR|CABANG/i.test(trimmed)
   ) {
-    const cleanName = trimmed.replace(/^@/, '').trim();
+    const cleanName = trimmed.replace(/^[~@]/, '').trim();
     return { tipe: 'DIVISI', namaBersih: cleanName };
   }
   return { tipe: 'PERORANGAN', namaBersih: trimmed };
