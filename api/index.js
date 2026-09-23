@@ -114,12 +114,13 @@ function parseLaporanPerTanggal(buffer) {
 // ─────────────────────────────────────────────
 function parseTutupHarian(buffer) {
   const lines = buffer.toString('latin1').split('\n');
-  let potProduk = 0, tunai = 0, kredit = 0, emoney = 0, ppn = 0, tanggal = '';
+  let potProduk = 0, potGwp = 0, tunai = 0, kredit = 0, emoney = 0, ppn = 0, tanggal = '';
   let debitCard = 0, creditCard = 0, voucherPotongan = 0;
 
   for (const raw of lines) {
     const line = raw.replace(/\r/, '').trim();
     if (/Pot\.Produk/i.test(line))                    potProduk       = parseTxtAmount(line);
+    else if (/Pot\.GWP/i.test(line))                  potGwp          = parseTxtAmount(line);
     else if (/^-\s*Tunai/i.test(line))                tunai           = parseTxtAmount(line);
     else if (/^-\s*Kredit/i.test(line))               kredit          = parseTxtAmount(line);
     else if (/^-\s*E-Money/i.test(line))              emoney          = parseTxtAmount(line);
@@ -130,7 +131,6 @@ function parseTutupHarian(buffer) {
              /^-\s*PPN$/.test(line.replace(/\s+[\d.,]+$/, ''))) ppn = parseTxtAmount(line);
 
     // TODO: Point Belanja   — belum ada arahan masuk kolom jurnal mana
-    // TODO: Pot.GWP         — belum ada arahan
     // TODO: Disc.Tot.Struk  — belum ada arahan
     // TODO: Kas Aktual      — belum ada arahan
     // TODO: Ambil Tunai     — belum ada arahan
@@ -141,7 +141,7 @@ function parseTutupHarian(buffer) {
     if (mTgl && !tanggal) tanggal = mTgl[1];
   }
 
-  return { potProduk, tunai, kredit, emoney, ppn, tanggal, debitCard, creditCard, voucherPotongan };
+  return { potProduk, potGwp, tunai, kredit, emoney, ppn, tanggal, debitCard, creditCard, voucherPotongan };
 }
 
 // ─────────────────────────────────────────────
@@ -178,22 +178,26 @@ function parseSmartRingkasan(buffer) {
     hpp       : rowHpp       !== -1 ? parseLine(getCellVal(ws, rowHpp,       1)) : 0,
   };
 
-  // Loop entri voucher
+  // Loop entri voucher & piutang
+  // Mulai dari r=7 (row ke-8, 0-indexed) agar section header (* Voucher / * Piutang)
+  // yang ada di baris 8 tidak terlewat sebelum entri pertama
   const entries = [];
   let currentSection = null;
   const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
-  for (let r = 9; r <= range.e.r; r++) {
+  for (let r = 7; r <= range.e.r; r++) {
     const bVal = String(getCellVal(ws, r, 1) ?? '').trim();
     if (bVal.startsWith('Penjualan :')) break;
     if (bVal === '* Voucher') { currentSection = 'VOUCHER'; continue; }
     if (bVal === '* Piutang') { currentSection = 'PIUTANG'; continue; }
-    if (bVal.startsWith('  - Voucher:')) {
-      const voucherName = bVal.replace('  - Voucher:', '').trim();
+    if (/^-\s*Voucher:/i.test(bVal) || bVal.startsWith('Voucher:')) {
+      const voucherName = bVal.replace(/^-\s*Voucher:\s*/i, '').replace(/^Voucher:\s*/i, '').trim();
       const pelanggan   = String(getCellVal(ws, r, 2) ?? voucherName);
+      // Bersihkan nama: buang suffix ' -*' atau ' -' dan '*' di akhir (artefak dari sistem kasir)
+      const pelangganBersih = pelanggan.replace(/\s*-?\*+$/, '').replace(/\s*-$/, '').trim();
       const total       = parseRupiah(String(getCellVal(ws, r, 3) ?? '0'));
       const dpp         = Math.round(total / 1.11);
       const ppn         = total - dpp;
-      entries.push({ section: currentSection, voucherName, pelanggan, total, dpp, ppn });
+      entries.push({ section: currentSection, voucherName, pelanggan: pelangganBersih, total, dpp, ppn });
     }
   }
 
@@ -210,14 +214,10 @@ function isElectronicWallet(nama) {
   return E_WALLET_KEYWORDS.some(kw => upper.includes(kw));
 }
 
-function classifyEntitas(nama, noAnggota = '') {
+function classifyEntitas(nama) {
   const trimmed = String(nama || '').trim();
-  const noStr   = String(noAnggota || '').trim();
-  if (
-    trimmed.startsWith('~') ||
-    noStr.startsWith('100') ||
-    /DIVISI|PT\.|PT |KCP|KANTOR|CABANG/i.test(trimmed)
-  ) {
+  // ATURAN FINAL: CUMA cek awalan tanda ~ di depan nama, titik, tidak ada pengecualian lain
+  if (trimmed.startsWith('~')) {
     const cleanName = trimmed.replace(/^~/, '').trim();
     return { tipe: 'DIVISI', namaBersih: cleanName };
   }
@@ -347,6 +347,7 @@ function buildOmsetRows({ txt, omi, smartResults, divisiStrukList = [], memberDa
   const sumDivDpp      = divisiStrukList.reduce((s, d) => s + d.dpp,      0);
   const sumDivPpn      = divisiStrukList.reduce((s, d) => s + d.ppn,      0);
   const sumDivNonPajak = divisiStrukList.reduce((s, d) => s + d.nonPajak, 0);
+  const sumDivPromo    = divisiStrukList.reduce((s, d) => s + (d.potonganProduk || 0), 0);
 
   // Helper untuk filter entri SMART yang dipecah single-line
   const epToko = tokoData
@@ -361,8 +362,10 @@ function buildOmsetRows({ txt, omi, smartResults, divisiStrukList = [], memberDa
   const sumSmartLogoPiutangDpp = epLogo.reduce((s, e) => s + e.dpp, 0);
   const sumSmartLogoPiutangPpn = epLogo.reduce((s, e) => s + e.ppn, 0);
 
-  // 1. Promo
-  add({ nama_ref: 'PROMO ', keterangan: 'Potongan Produk / Diskon', tag_promo: txt.potProduk });
+  // 1. Promo (hanya sisa promo umum non-divisi, karena promo divisi dicatat di baris divisi masing-masing)
+  const totalPromoHarian = (txt.potProduk || 0) + (txt.potGwp || 0);
+  const promoUmum = Math.max(0, totalPromoHarian - sumDivPromo);
+  add({ nama_ref: 'PROMO ', keterangan: 'Potongan Produk / Diskon', tag_promo: promoUmum });
 
   // 2. Omset OMI (rumus pengurangan agregat)
   add({
@@ -863,6 +866,7 @@ export {
   parseTutupHarian,
   parseSmartRingkasan,
   parseLaporanPerStruk,
+  parseLaporanPerMember,
   classifyEntitas,
   isElectronicWallet,
   buildOmsetRows,
