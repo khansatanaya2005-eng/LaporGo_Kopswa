@@ -23,7 +23,6 @@ const UploadReport = () => {
   const [omiPerMember,   setOmiPerMember]   = useState([]);  // WAJIB
   const [perStrukFiles,  setPerStrukFiles]  = useState([]);  // WAJIB, multiple .txt
   const [omiDiscItem,    setOmiDiscItem]    = useState([]);  // opsional
-  const [omiStrukTxt,    setOmiStrukTxt]    = useState([]);  // opsional
   const [omiPareto,      setOmiPareto]      = useState([]);  // opsional
   const [omiAnalisa,     setOmiAnalisa]     = useState([]);  // opsional
   const [omiPerStruk,    setOmiPerStruk]    = useState([]);  // opsional
@@ -47,7 +46,7 @@ const UploadReport = () => {
   const handleResetAll = () => {
     if (!confirm('Reset semua slot file?')) return;
     setOmiPerTanggal([]); setOmiTutupHarian([]); setOmiPerMember([]); setPerStrukFiles([]);
-    setOmiDiscItem([]); setOmiStrukTxt([]); setOmiPareto([]);
+    setOmiDiscItem([]); setOmiPareto([]);
     setOmiAnalisa([]); setOmiPerStruk([]); setOmiPersediaan([]);
     setSmartToko([]); setSmartLogo([]); setSmartDetail([]);
     setSmartConfirmNote('');
@@ -85,7 +84,6 @@ const UploadReport = () => {
         omiPareto,
         omiAnalisa,
         omiPersediaan,
-        omiStrukTxt,
       }, allowNoSmart, confirmation);
 
       navigate('/preview', {
@@ -100,7 +98,6 @@ const UploadReport = () => {
             omiPerMember:  omiPerMember.map(f => f.name),
             perStrukFiles: perStrukFiles.map(f => f.name),
             omiDiscItem:   omiDiscItem.map(f => f.name),
-            omiStrukTxt:   omiStrukTxt.map(f => f.name),
             omiPareto:     omiPareto.map(f => f.name),
             omiAnalisa:    omiAnalisa.map(f => f.name),
             omiPerStruk:   omiPerStruk.map(f => f.name),
@@ -116,7 +113,6 @@ const UploadReport = () => {
               ...omiPerMember.map(f => ({ file: f, kategori: 'omi_per_member' })),
               ...perStrukFiles.map(f => ({ file: f, kategori: 'per_struk' })),
               ...omiDiscItem.map(f => ({ file: f, kategori: 'omi_disc_item' })),
-              ...omiStrukTxt.map(f => ({ file: f, kategori: 'omi_struk_txt' })),
               ...omiPareto.map(f => ({ file: f, kategori: 'omi_pareto' })),
               ...omiAnalisa.map(f => ({ file: f, kategori: 'omi_analisa' })),
               ...omiPerStruk.map(f => ({ file: f, kategori: 'omi_per_struk' })),

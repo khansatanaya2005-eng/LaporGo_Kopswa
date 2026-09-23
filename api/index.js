@@ -581,7 +581,6 @@ app.post('/api/process-laporan', upload.fields([
   { name: 'omi_pareto',       maxCount: 1   },
   { name: 'omi_analisa',      maxCount: 1   },
   { name: 'omi_persediaan',   maxCount: 1   },
-  { name: 'omi_struk_txt',    maxCount: 50  },
 ]), (req, res) => {
   try {
     cleanOldBuffers();
@@ -855,11 +854,21 @@ app.post('/api/download-excel', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// ENDPOINT: GET /api/health
-// ─────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', message: 'LaporGo API running on Vercel', version: '2.1.0' });
 });
+
+export {
+  parseLaporanPerTanggal,
+  parseTutupHarian,
+  parseSmartRingkasan,
+  parseLaporanPerStruk,
+  classifyEntitas,
+  isElectronicWallet,
+  buildOmsetRows,
+  calculateTotals,
+  runValidations,
+  generateExcel
+};
 
 export default app;

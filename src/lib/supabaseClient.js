@@ -647,7 +647,6 @@ export async function createUserInSupabase({ full_name, email, role, password })
   if (!isSupabaseConfigured()) return null;
 
   // Save current active admin session so signUp doesn't log the admin out
-  const currentAdminUser = await getCurrentUser();
   const currentLocalUser = localStorage.getItem('laporgo_user');
 
   let authUserId = null;
@@ -754,7 +753,7 @@ export async function uploadOutputExcel(fileBlob, laporanId, tanggal) {
 
   const filename = `${laporanId}/Laporan_Gabungan_${tanggal}.xlsx`;
 
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from('laporan-files')
     .upload(filename, fileBlob, {
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

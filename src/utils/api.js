@@ -29,7 +29,6 @@ export async function processLaporan(fileSlots, allowNoSmart = false, smartConfi
     omiPareto = [],
     omiAnalisa = [],
     omiPersediaan = [],
-    omiStrukTxt = [],
   } = fileSlots;
 
   const formData = new FormData();
@@ -61,7 +60,6 @@ export async function processLaporan(fileSlots, allowNoSmart = false, smartConfi
   if (omiPareto[0]) formData.append('omi_pareto', omiPareto[0]);
   if (omiAnalisa[0]) formData.append('omi_analisa', omiAnalisa[0]);
   if (omiPersediaan[0]) formData.append('omi_persediaan', omiPersediaan[0]);
-  omiStrukTxt.forEach(f => formData.append('omi_struk_txt', f));
 
   const res = await fetch(`${BASE_URL}/api/process-laporan`, {
     method: 'POST',
@@ -105,12 +103,4 @@ export async function downloadExcel(omsetRows, summary, tanggal, filename = 'Lap
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-}
-
-/**
- * Format angka ke format Rupiah: 1.234.567
- */
-export function fmtRupiah(n) {
-  if (!n || n === 0) return '-';
-  return new Intl.NumberFormat('id-ID').format(n);
 }

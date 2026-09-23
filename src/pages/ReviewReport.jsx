@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  History, Search, Calendar, Download, Eye,
+  History, Search, Calendar, Eye,
   CheckCircle2, AlertTriangle, Clock, Filter,
-  FileText, Loader2, RefreshCw, DatabaseZap,
-  Trash2, RotateCcw, AlertOctagon, X, CheckSquare, Square
+  Loader2, RefreshCw, DatabaseZap,
+  Trash2, RotateCcw, AlertOctagon, X, CheckSquare,
+  FileCheck, FileClock
 } from 'lucide-react';
 import { formatRupiah } from '../utils/cn';
 import {
@@ -13,7 +14,6 @@ import {
   updateWorkflowStatus
 } from '../lib/supabaseClient';
 import { MOCK_HISTORY_LAPORAN } from '../data/mockData';
-import { FileCheck, FileClock } from 'lucide-react';
 
 const StatusBadge = ({ status }) => {
   if (status === 'Balance')
@@ -280,14 +280,6 @@ const ReviewReport = () => {
       alert('Gagal mengosongkan tempat sampah: ' + e.message);
     } finally {
       setProcessing(false);
-    }
-  };
-
-  const handleDownload = async (row) => {
-    if (row.file_output_url && row.file_output_url !== '#') {
-      window.open(row.file_output_url, '_blank');
-    } else {
-      alert(`File Excel untuk laporan ${row.tanggal} tidak tersedia.\nSilakan proses ulang laporan ini.`);
     }
   };
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, X, Download } from 'lucide-react';
 
-const VoucherModal = ({ isOpen, onClose, onConfirm, defaultDate = '' }) => {
+const VoucherModal = ({ isOpen, onClose, onConfirm }) => {
   const [voucherNo, setVoucherNo] = useState('');
 
   if (!isOpen) return null;

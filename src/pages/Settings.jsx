@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Plus, Trash2, Save, Key, Sliders, CheckCircle2, BookOpen, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Trash2, Save, Sliders, CheckCircle2, BookOpen, RotateCcw } from 'lucide-react';
 import { MOCK_KEYWORDS, DEFAULT_COA_MAP } from '../data/mockData';
 
 const Settings = () => {

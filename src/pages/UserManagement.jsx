@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, 
   UserPlus, 
   Shield, 
   Trash2, 
@@ -177,7 +176,7 @@ const UserManagement = () => {
         fetchUsers();
       } else {
         // Create user
-        const result = await createUserInSupabase({
+        await createUserInSupabase({
           full_name: formData.full_name,
           email: finalEmail,
           role: formData.role,
